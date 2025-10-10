@@ -1,0 +1,2 @@
+id,venueId,name,code,description,sizeSqm,heightM,accessible,featuresJSON,imagesJSON,layoutsJSON,baseRateHour,baseRateHalfDay,baseRateDay
+DISC-WEEKDAY,VEN-001,Midweek Saver,MW15,,,,,[],[],[],,,

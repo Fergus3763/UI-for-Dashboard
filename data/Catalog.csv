@@ -1,0 +1,26 @@
+id,name,heading,vatCategory,ratePerHour,rateHalfDay,rateDay,ratePerPerson,ratePerBooking,includedDefault,includedCondition,notes
+CAT-0001,nan,nan,,,,,,,,,nan
+CAT-0002,nan,nan,,,,,,,,,nan
+CAT-0003,nan,nan,,,,,,,,,nan
+CAT-0004,nan,nan,,,,,,,,,nan
+CAT-0005,nan,nan,,,,,,,,,nan
+CAT-0006,nan,nan,,,,,,,,,nan
+CAT-0007,nan,nan,,,,,,,,,nan
+CAT-0008,nan,nan,,,,,,,,,nan
+CAT-0009,nan,nan,,,,,,,,,nan
+CAT-0010,nan,nan,,,,,,,,,nan
+CAT-0011,nan,nan,,,,,,,,,nan
+CAT-0012,nan,nan,,,,,,,,,nan
+CAT-0013,nan,nan,,,,,,,,,nan
+CAT-0014,nan,nan,,,,,,,,,nan
+CAT-0015,nan,nan,,,,,,,,,nan
+CAT-0016,nan,nan,,,,,,,,,nan
+CAT-0017,nan,nan,,,,,,,,,nan
+CAT-0018,nan,nan,,,,,,,,,nan
+CAT-0019,nan,nan,,,,,,,,,nan
+CAT-0020,Coffee & Tea (refills),F&B,,0.0,,0.0,,,,,nan
+CAT-0021,PTZ Camera Kit,AV,,60.0,,180.0,,,,,nan
+CAT-0022,Service Charge %,nan,,,,,,,,,Applied to subtotal Ex VAT
+CAT-0023,Out-of-hours %,nan,,,,,,,,,Applied when outside earliest/latest window
+CAT-0024,Deposit %,nan,,,,,,,,,Deposit requested from client
+CAT-0025,Rounding Step,nan,,,,,,,,,Order total rounding
