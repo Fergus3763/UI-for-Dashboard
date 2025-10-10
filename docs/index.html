@@ -3,15 +3,280 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UI-for-Dashboard — Test</title>
+  <title>Meeting Room MVP — Admin</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 2rem; }
-    .card { padding: 1rem; border: 1px solid #ddd; border-radius: 10px; }
+    :root {
+      --bg:#0f1220; --panel:#151a2c; --muted:#8ea0b7; --text:#e9eef7;
+      --line:#2a3450; --accent:#4e7dfc; --ok:#2fca72; --warn:#f5b61a; --danger:#ff5d6c;
+      --chip:#1e2844; --chip2:#1a2440; --radius:12px;
+    }
+    * { box-sizing: border-box; }
+    html,body { height:100%; }
+    body {
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:linear-gradient(180deg,#0b0e1a 0%, #0f1220 60%);
+      color:var(--text);
+    }
+    .wrap { max-width:1200px; margin:0 auto; padding:28px 24px 64px; }
+    header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    header h1 { font-size:20px; margin:0; font-weight:700; letter-spacing:.2px; }
+    .status { color:var(--muted); font-size:13px; }
+
+    .nav {
+      display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 16px;
+    }
+    .tab {
+      padding:10px 14px; border:1px solid var(--line); border-radius:10px;
+      background:var(--chip); color:#d9e3f3; cursor:pointer; user-select:none;
+    }
+    .tab.active { background:var(--accent); border-color:var(--accent); color:white; }
+    .panel {
+      border:1px solid var(--line); border-radius:var(--radius);
+      background:var(--panel); padding:16px; display:none;
+    }
+    .panel.active { display:block; }
+    .row { display:grid; grid-template-columns: 180px 1fr; gap:12px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line); }
+    .row:last-child { border-bottom:none; }
+    label { color:#c9d5ea; font-size:13px; }
+    input[type="text"], input[type="number"], textarea, select {
+      width:100%; background:#0e1427; border:1px solid #223056; color:#eaf2ff;
+      border-radius:10px; padding:10px 12px; font-size:14px; outline:none;
+    }
+    textarea { min-height:96px; resize:vertical; }
+    .grid { display:grid; gap:12px; }
+    .cols-2 { grid-template-columns: 1fr 1fr; }
+    .cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .toolbar { display:flex; gap:8px; justify-content:flex-end; padding:8px 0 0; }
+    .btn { padding:10px 14px; border-radius:10px; border:1px solid var(--line); background:#162143; color:#eaf2ff; cursor:pointer; }
+    .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+    .btn.ghost { background:#121a33; }
+    .btn.ok { background:var(--ok); border-color:var(--ok); color:#071a0f; }
+    .hint { color:var(--muted); font-size:12px; }
+    .table { width:100%; border-collapse:collapse; margin-top:8px; }
+    .table th, .table td { border-bottom:1px dashed var(--line); padding:10px; text-align:left; font-size:14px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px dashed var(--line); border-radius:999px; background:var(--chip2); }
+    .chip { display:inline-block; padding:4px 8px; border-radius:999px; background:#17203d; border:1px solid var(--line); font-size:12px; color:#c8d5ef; }
+    .subtle { color:#a7b7d3; font-size:13px; }
+    .divider { height:1px; background:var(--line); margin:14px 0; }
   </style>
 </head>
 <body>
-  <h1>It works 🎉</h1>
-  <p class="card">This is served from <code>docs/index.html</code>.</p>
+  <div class="wrap">
+    <header>
+      <h1>Venue Setup — Admin (UI-only MVP)</h1>
+      <div class="status">No logic yet. Inputs don’t save.</div>
+    </header>
+
+    <!-- Primary tabs -->
+    <div class="nav" id="tabs">
+      <div class="tab active" data-target="venue">Venue</div>
+      <div class="tab" data-target="rooms">Rooms</div>
+      <div class="tab" data-target="fnb">F&amp;B</div>
+      <div class="tab" data-target="av">AV</div>
+      <div class="tab" data-target="labour">Labour</div>
+      <div class="tab" data-target="third">3rd Party Hire-ins</div>
+      <div class="tab" data-target="addons">Add-Ons</div>
+      <div class="tab" data-target="vat">VAT</div>
+    </div>
+
+    <!-- Venue -->
+    <section id="venue" class="panel active">
+      <div class="grid cols-2">
+        <div class="row"><label>Venue Name</label><input type="text" placeholder="e.g., Douglas Suites"/></div>
+        <div class="row"><label>Venue Code</label><input type="text" placeholder="e.g., VEN-001"/></div>
+        <div class="row"><label>Default Currency</label>
+          <select>
+            <option>EUR (€)</option><option>GBP (£)</option><option>USD ($)</option>
+          </select></div>
+        <div class="row"><label>Time Zone</label><input type="text" placeholder="e.g., Europe/Dublin"/></div>
+        <div class="row" style="grid-column:1/-1"><label>Description</label>
+          <textarea placeholder="Short blurb for bookers…"></textarea></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" data-action="close">Close Tab</button>
+        <button class="btn primary" data-action="save">Save Venue</button>
+      </div>
+    </section>
+
+    <!-- Rooms -->
+    <section id="rooms" class="panel">
+      <div class="grid cols-2">
+        <div class="row"><label>Room Name</label><input type="text" placeholder="e.g., Douglas Suite"/></div>
+        <div class="row"><label>Room Code</label><input type="text" placeholder="Required, e.g., MW15"/></div>
+        <div class="row"><label>Main Image</label><input type="text" placeholder="Upload/drag&drop (UI only)"/></div>
+        <div class="row"><label>Add More Images</label><input type="text" placeholder="Upload/drag&drop (UI only)"/></div>
+        <div class="row" style="grid-column:1/-1"><label>Room Description</label><textarea placeholder="Seen by bookers…"></textarea></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="subtle">Features (free text list)</div>
+      <div class="grid cols-2">
+        <div class="row"><label>Feature</label><input type="text" placeholder="e.g., Natural light"/><span class="hint">Add another →</span></div>
+        <div class="row"><label>Feature</label><input type="text" placeholder="e.g., Air-con"/></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="subtle">Layouts + capacity</div>
+      <table class="table">
+        <thead><tr><th>Layout</th><th>Capacity</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><input type="text" placeholder="Boardroom"/></td><td><input type="number" placeholder="12"/></td><td><button class="btn">Delete</button></td></tr>
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+      <div class="grid cols-3">
+        <div class="row"><label>Hourly Rate</label><input type="number" placeholder="e.g., 50"/></div>
+        <div class="row"><label>Half-Day Rate</label><input type="number" placeholder="e.g., 100"/></div>
+        <div class="row"><label>Day Rate</label><input type="number" placeholder="e.g., 175"/></div>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn ghost" data-action="close">Close Tab</button>
+        <button class="btn ok">Save Room</button>
+        <button class="btn primary">Save All</button>
+      </div>
+    </section>
+
+    <!-- F&B / AV / Labour / 3rd Party share the same pattern -->
+    <section id="fnb" class="panel">
+      <div class="subtle">F&amp;B items (venue curated)</div>
+      <table class="table">
+        <thead><tr>
+          <th>Name</th><th>Hourly</th><th>Half-Day</th><th>Day</th><th>Per Person</th><th>Per Booking</th><th>VAT</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><input type="text" placeholder="e.g., Coffee"/></td>
+            <td><input type="number" placeholder=""/></td>
+            <td><input type="number" placeholder=""/></td>
+            <td><input type="number" placeholder=""/></td>
+            <td><input type="number" placeholder="e.g., 3.00"/></td>
+            <td><input type="number" placeholder=""/></td>
+            <td>
+              <select>
+                <option>— select VAT —</option>
+              </select>
+            </td>
+            <td><button class="btn">Delete</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="toolbar">
+        <button class="btn">+ Add New F&amp;B Item</button>
+        <button class="btn primary">Save F&amp;B</button>
+      </div>
+    </section>
+
+    <section id="av" class="panel">
+      <div class="subtle">AV items</div>
+      <table class="table">
+        <thead><tr><th>Name</th><th>Hourly</th><th>Half-Day</th><th>Day</th><th>VAT</th><th>Actions</th></tr></thead>
+        <tbody><tr>
+          <td><input type="text" placeholder="e.g., Projector"/></td>
+          <td><input type="number"/></td><td><input type="number"/></td><td><input type="number"/></td>
+          <td><select><option>— select VAT —</option></select></td>
+          <td><button class="btn">Delete</button></td>
+        </tr></tbody>
+      </table>
+      <div class="toolbar"><button class="btn primary">Save AV</button></div>
+    </section>
+
+    <section id="labour" class="panel">
+      <div class="subtle">Labour</div>
+      <table class="table">
+        <thead><tr><th>Role</th><th>Hourly</th><th>Half-Day</th><th>Day</th><th>VAT</th><th>Actions</th></tr></thead>
+        <tbody><tr>
+          <td><input type="text" placeholder="e.g., AV Tech"/></td>
+          <td><input type="number"/></td><td><input type="number"/></td><td><input type="number"/></td>
+          <td><select><option>— select VAT —</option></select></td>
+          <td><button class="btn">Delete</button></td>
+        </tr></tbody>
+      </table>
+      <div class="toolbar"><button class="btn primary">Save Labour</button></div>
+    </section>
+
+    <section id="third" class="panel">
+      <div class="subtle">3rd Party hire-ins</div>
+      <table class="table">
+        <thead><tr><th>Name</th><th>Hourly</th><th>Half-Day</th><th>Day</th><th>VAT</th><th>Actions</th></tr></thead>
+        <tbody><tr>
+          <td><input type="text" placeholder="e.g., Staging"/></td>
+          <td><input type="number"/></td><td><input type="number"/></td><td><input type="number"/></td>
+          <td><select><option>— select VAT —</option></select></td>
+          <td><button class="btn">Delete</button></td>
+        </tr></tbody>
+      </table>
+      <div class="toolbar"><button class="btn primary">Save 3rd Party</button></div>
+    </section>
+
+    <section id="addons" class="panel">
+      <div class="subtle">Add-Ons (supports Optional vs Included)</div>
+      <div class="grid cols-2">
+        <div class="row"><label>Name *</label><input type="text" placeholder="e.g., Coffee Break, Green Room"/></div>
+        <div class="row"><label>VAT Category</label><select><option>— select VAT —</option></select></div>
+        <div class="row"><label>Inclusion Type</label>
+          <select>
+            <option>Optional (Upsell)</option>
+            <option>Included (Free)</option>
+            <option>Included (Conditional)</option>
+          </select>
+        </div>
+        <div class="row"><label>Charge Basis</label>
+          <select>
+            <option>Per Booking</option><option>Per Person</option><option>Per Hour</option><option>Half-Day</option><option>Day</option>
+          </select>
+        </div>
+        <div class="row"><label>Linked Room(s)</label><input type="text" placeholder="e.g., Douglas Suite; Cork Room"/></div>
+        <div class="row"><label>Per-Person Price</label><input type="number" placeholder="e.g., 3.00"/></div>
+        <div class="row"><label>Hourly Rate</label><input type="number"/></div>
+        <div class="row"><label>Half-Day Rate</label><input type="number"/></div>
+        <div class="row"><label>Day Rate</label><input type="number"/></div>
+        <div class="row" style="grid-column:1/-1"><label>Upsell Hint (internal)</label><input type="text" placeholder="e.g., show near checkout"/></div>
+      </div>
+      <div class="toolbar"><button class="btn ok">Save Add-On</button></div>
+    </section>
+
+    <section id="vat" class="panel">
+      <div class="subtle">VAT Bands (venue-defined)</div>
+      <table class="table">
+        <thead><tr><th>Name</th><th>Rate %</th><th>Applies To</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><input type="text" placeholder="e.g., Standard"/></td>
+            <td><input type="number" placeholder="e.g., 23"/></td>
+            <td><span class="pill"><span class="chip">F&amp;B</span><span class="chip">AV</span><span class="chip">Add-On</span></span></td>
+            <td><button class="btn">Delete</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="toolbar"><button class="btn primary">Save VAT</button></div>
+      <div class="hint">Later: this table will drive all VAT dropdowns above.</div>
+    </section>
+  </div>
+
+  <script>
+    // simple tabs (UI only)
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById(t.dataset.target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }));
+    // Close buttons just return to Venue
+    document.querySelectorAll('[data-action="close"]').forEach(b=>{
+      b.addEventListener('click', ()=> {
+        document.querySelector('.tab[data-target="venue"]').click();
+      });
+    });
+    // Save buttons are no-ops (UI-only)
+    document.querySelectorAll('[data-action="save"]').forEach(b=>{
+      b.addEventListener('click', ()=> alert('Saved (UI only). No data written.'));
+    });
+  </script>
 </body>
 </html>
 
