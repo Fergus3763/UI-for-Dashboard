@@ -1,6 +1,8 @@
 # Meeting Room MVP — HUB
 
 Central source of truth for the **UI-only MVP** and all **data deliverables**.
+## Live site
+https://fergus3763.github.io/UI-for-Dashboard/
 
 ## Structure
 ```
