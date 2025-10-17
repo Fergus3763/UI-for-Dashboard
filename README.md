@@ -7,7 +7,9 @@
 - ### Glossary & Data Dictionary
 
 [📄 Open in GitHub](https://github.com/Fergus3763/UI-for-Dashboard/blob/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)  
-[⬇️ Direct download (.xlsx)](https://raw.githubusercontent.com/Fergus3763/UI-for-Dashboard/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+[⬇️ Download Excel file (.xlsx)](https://raw.githubusercontent.com/Fergus3763/UI-for-Dashboard/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+> Opens via your browser’s “Save As” dialog — GitHub cannot preview Excel files directly.
+
 
 [![Download Data Dictionary](https://img.shields.io/badge/Data%20Dictionary-.xlsx-blue)](https://raw.githubusercontent.com/Fergus3763/UI-for-Dashboard/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
 
