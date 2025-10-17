@@ -4,6 +4,7 @@
 - 👉 [Links](docs/links.md) 
 
 - [Glossary & Data Dictionary](glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+🔖 **Latest Handover:** [v0.2 (UI MVP)](https://github.com/Fergus3763/UI-for-Dashboard/releases/tag/v0.2-handoff)
 
 Central source of truth for the **UI-only MVP** and all **data deliverables**.
 ## Live site
