@@ -6,6 +6,9 @@
 _Last updated: {{ update this date }}_
 
 ---
+### Glossary / Data Dictionary
+- [📄 Open in GitHub](https://github.com/Fergus3763/UI-for-Dashboard/blob/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+- [⬇️ Direct download (.xlsx)](https://raw.githubusercontent.com/Fergus3763/UI-for-Dashboard/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
 
 ## Live UIs
 
