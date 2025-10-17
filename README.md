@@ -4,6 +4,15 @@
 - 👉 [Links](docs/links.md) 
 
 - [Glossary & Data Dictionary](glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+- ### Glossary & Data Dictionary
+
+[📄 Open in GitHub](https://github.com/Fergus3763/UI-for-Dashboard/blob/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)  
+[⬇️ Direct download (.xlsx)](https://raw.githubusercontent.com/Fergus3763/UI-for-Dashboard/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+
+[![Download Data Dictionary](https://img.shields.io/badge/Data%20Dictionary-.xlsx-blue)](https://raw.githubusercontent.com/Fergus3763/UI-for-Dashboard/main/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
+
+> File: `glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx` (expected ~13 KB)
+
 🔖 **Latest Handover:** [v0.2 (UI MVP)](https://github.com/Fergus3763/UI-for-Dashboard/releases/tag/v0.2-handoff)
 
 Central source of truth for the **UI-only MVP** and all **data deliverables**.
