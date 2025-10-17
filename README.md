@@ -1,6 +1,9 @@
 # Meeting Room MVP — HUB
 ## Project Links
-- 👉 [Links](docs/links.md)
+
+- 👉 [Links](docs/links.md) 
+
+- [Glossary & Data Dictionary](glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx)
 
 Central source of truth for the **UI-only MVP** and all **data deliverables**.
 ## Live site
