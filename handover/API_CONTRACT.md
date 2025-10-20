@@ -32,3 +32,14 @@ Creates a fixed blackout window (start–end) for a room.
 { "success": true, "id": "blk_456" }
 { "success": false, "error": "Overlaps existing blackout" }
 
+## DELETE /blackout_periods/:id
+
+- Removes a blackout by id.
+- Optional safety check: `?roomId=Room-A`
+
+**Example**
+DELETE
+https://zingy-biscuit-94791a.netlify.app/.netlify/functions/blackout_periods/blk_456?roomId=Room-A
+
+**Response (example)**
+{ "success": true }
