@@ -1,0 +1,6 @@
+id,roomId,catalogItemId,visibility,basisOverride,rateOverridesJSON,minQty,maxQty,defaultQty,autoSuggest
+MAP-001,RM-001,CAT-0001,included,Per Person,{"Per Person":2.5},,,100,true
+MAP-002,RM-001,CAT-0002,optional,Per Booking,{"Per Booking":90},,,1,true
+MAP-003,RM-002,CAT-0003,included,Per Booking,,,0,1,false
+MAP-004,RM-002,CAT-0004,optional,Per Person,{"Per Person":25},,,10,true
+MAP-005,RM-003,CAT-0006,optional,Per Booking,{"Per Booking":0},,,1,false
