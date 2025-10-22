@@ -1,0 +1,30 @@
+Assumptions & Ambiguities Report
+=====================================================
+Row counts
+----------
+- Catalog.csv: 6 row(s)
+- Rooms.csv: 3 row(s)
+- RoomCatalogMap.csv: 5 row(s)
+- VAT.csv: 2 row(s)
+- Durations.csv: 3 row(s)
+
+Header renames applied (old → new)
+----------------------------------
+- No header renames applied (already matched).
+
+Added / x_ extra columns
+-------------------------
+- None present in this sample.
+
+Integrity checks
+----------------
+- Rooms.code present & unique: OK
+- RoomCatalogMap foreign keys valid: OK
+- Numeric fields parsed correctly; blanks where unknown.
+- VAT categories in Catalog match VAT.csv names.
+
+Open questions / defaults
+-------------------------
+- Inclusion condition syntax currently plain text (e.g., ">200 pax"). A simple evaluator (>, >=, <, <=, ==) can be used.
+- VAT rates are venue-defined; ensure actual venue rates are populated before go-live.
+- Confirm if Half-Day and Day hours (4 and 8) match all venue expectations.
