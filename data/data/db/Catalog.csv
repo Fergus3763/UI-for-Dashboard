@@ -1,0 +1,7 @@
+id,name,heading,vatCategory,ratePerHour,rateHalfDay,rateDay,ratePerPerson,ratePerBooking,includedDefault,includedCondition,notes
+CAT-0001,Bottled Water,F&B,Standard,0,0,0,2.50,,false,>200 pax,Charged per attendee
+CAT-0002,Projector,AV,Standard,15,50,90,,,false,,,
+CAT-0003,Flipchart & Pens,AV,Reduced,5,15,25,,,true,,Included unless extra requested
+CAT-0004,Catering Lunch,F&B,Reduced,,80,150,25,,false,,Per person lunch service
+CAT-0005,Room Setup Labour,Labour,Standard,20,60,110,,,true,,Included in base setup
+CAT-0006,External Floral Arrangements,3rd Party,Reduced,,,,,,false,,Optional supplier service
