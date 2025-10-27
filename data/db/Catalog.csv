@@ -1,4 +1,4 @@
-id,name,heading,vatCategory,ratePerHour,rateHalfDay,rateDay,ratePerPerson,ratePerBooking,includedDefault,includedCondition,notes
+id,name,heading,vat_category,rate_per_hour,rate_half_day,rate_day,rate_per_person,rate_per_booking,included_default,included_condition,notes
 CAT-0001,Bottled Water,F&B,Standard,0,0,0,2.50,,false,>200 pax,Charged per attendee
 CAT-0002,Projector,AV,Standard,15,50,90,,,false,,
 CAT-0003,Flipchart & Pens,AV,Reduced,5,15,25,,,true,,Included unless extra requested
