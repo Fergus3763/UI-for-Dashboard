@@ -1,1 +1,3 @@
-
+id,name,ratePercent,appliesToJSON
+VAT-STD,Standard,23,"[""F&B"",""AV"",""Labour"",""3rd Party"",""Add-On""]"
+VAT-RED,Reduced,13.5,"[""F&B"",""3rd Party""]"
