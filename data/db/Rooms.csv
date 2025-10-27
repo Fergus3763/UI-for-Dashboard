@@ -1,1 +1,5 @@
+id,venue_id,name,code,description,size_sqm,height_m,accessible,features_json,images_json,layouts_json,base_rate_hour,base_rate_half_day,base_rate_day
+RM-001,VEN-001,Conference Suite,CONF-001,"Large conference room with natural light",120,3.0,true,"[""Projector"",""Whiteboard"",""AC""]","[""img1.jpg"",""img2.jpg""]","[{""layout"":""Theatre"",""capacity"":120},{""layout"":""Classroom"",""capacity"":80}]",200,600,1000
+RM-002,VEN-001,Meeting Room A,MEET-001,"Medium meeting room with AV facilities",50,2.8,true,"[""Screen"",""Whiteboard""]","[""meet1.jpg""]","[{""layout"":""Boardroom"",""capacity"":20},{""layout"":""U-Shape"",""capacity"":16}]",100,300,500
+RM-003,VEN-001,Private Lounge,LOUN-001,"Casual lounge for small gatherings",35,2.7,false,"[""Sofa"",""CoffeeTable""]","[""lounge.jpg""]","[{""layout"":""Informal"",""capacity"":10}]",70,200,350
 
