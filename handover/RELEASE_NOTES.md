@@ -40,6 +40,7 @@ It represents the baseline from which future HUB#2 and multi-tenant extensions c
 
 ---
 ## Release Notes — Handover v0.3 (Database Integration)
+- Added API Acceptance Checklist to `/handover/supabase/HANDOFF_TO_API.md` (blackout + availability).
 
 ### Database Integration (Seed & Validate)
 - Added `/handover/supabase/HANDOFF_TO_API.md` for API Spoke integration.
