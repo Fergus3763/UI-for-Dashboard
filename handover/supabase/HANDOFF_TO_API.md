@@ -35,3 +35,59 @@
 - Keep response shapes identical to current contract.
 - CommonJS only in Netlify functions (no "type":"module").
 
+---
+
+## API Spoke Acceptance Checklist (v0.3)
+
+### Scope
+Verify blackout + availability endpoints against the DB we just seeded/validated.
+
+### Pre-requisites
+- Environment (server-side only):
+  - `SUPABASE_URL` (Netlify)
+  - `SUPABASE_SERVICE_ROLE_KEY` (Netlify)
+- DB tables present: `blackout_periods`, `rooms`
+- Use ISO 8601 UTC (`Z`) timestamps everywhere.
+
+### Test Data (assumptions)
+- We’ll use a room that exists in the seed: **RM-001** (Conference Suite).  
+  If your API expects the **room ID** (not code), use `RM-001` as the string value.
+
+### Expected Response Shapes
+- **POST /blackout_periods** → `200` JSON:
+  ```json
+  {
+    "id": "<uuid-or-id>",
+    "roomId": "RM-001",
+    "startsAt": "2025-01-01T09:00:00Z",
+    "endsAt": "2025-01-01T11:00:00Z",
+    "title": "Test blackout"
+  }
+---
+
+## API Spoke Acceptance Checklist (v0.3)
+
+### Scope
+Verify blackout + availability endpoints against the DB we just seeded/validated.
+
+### Pre-requisites
+- Environment (server-side only):
+  - `SUPABASE_URL` (Netlify)
+  - `SUPABASE_SERVICE_ROLE_KEY` (Netlify)
+- DB tables present: `blackout_periods`, `rooms`
+- Use ISO 8601 UTC (`Z`) timestamps everywhere.
+
+### Test Data (assumptions)
+- We’ll use a room that exists in the seed: **RM-001** (Conference Suite).  
+  If your API expects the **room ID** (not code), use `RM-001` as the string value.
+
+### Expected Response Shapes
+- **POST /blackout_periods** → `200` JSON:
+  ```json
+  {
+    "id": "<uuid-or-id>",
+    "roomId": "RM-001",
+    "startsAt": "2025-01-01T09:00:00Z",
+    "endsAt": "2025-01-01T11:00:00Z",
+    "title": "Test blackout"
+  }
