@@ -13,7 +13,13 @@ order by table_name;
 
 **Result pasted here:**
 ## Summary Dashboard (paste result table below)
-
+| table_name       | row_count |
+| ---------------- | --------- |
+| catalog          | 6         |
+| durations        | 3         |
+| room_catalog_map | 5         |
+| rooms            | 3         |
+| vat              | 2         |
 -- Run in Supabase SQL editor:
 with
 row_counts as (
