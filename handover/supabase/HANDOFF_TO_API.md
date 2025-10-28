@@ -21,7 +21,47 @@
 - POST /blackout_periods
   - Fixed blackout: { roomId, startsAt, endsAt, title? }
   - Temp hold: { roomId, tempAmount, tempUnit, title? }
-- DELETE /blackout_periods/:id?roomId=
+- DELETE /blackout_periods/:id?roomId=- (Optional) GET /blackout_periods?roomId=
+
+## Acceptance (curl)
+1) POST blackout → 200 JSON (record)
+2) GET availability (overlap) → available:false + blackoutReason
+3) DELETE blackout → 200 { ok: true }
+4) GET list (optional) → array including created blackout before deletion
+
+## Notes
+- Timestamps: ISO 8601 UTC (`Z`).
+- Keep response shapes identical to current contract.
+- CommonJS only in Netlify functions (no "type":"module").
+
+---
+
+## API Spoke Acceptance Checklist (v0.3)
+
+### Scope
+Verify blackout + availability endpoints against the DB we just seeded/validated.
+
+### Pre-requisites
+- Environment (server-side only):
+  - `SUPABASE_URL` (Netlify)
+  - `SUPABASE_SERVICE_ROLE_KEY` (Netlify)
+- DB tables present: `blackout_periods`, `rooms`
+- Use ISO 8601 UTC (`Z`) timestamps everywhere.
+
+### Test Data (assumptions)
+- Use room **RM-001** from seed.
+
+### Expected Response Shapes
+- **POST /blackout_periods** → `200` JSON:
+  ```json
+  {
+    "id": "<uuid-or-id>",
+    "roomId": "RM-001",
+    "startsAt": "2025-01-01T09:00:00Z",
+    "endsAt": "2025-01-01T11:00:00Z",
+    "title": "Test blackout"
+  }
+
 - (Optional) GET /blackout_periods?roomId=
 
 ## Acceptance (curl)
