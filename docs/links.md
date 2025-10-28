@@ -25,6 +25,8 @@ _Last updated: {{ update this date }}_
   - `/glossary` → Term glossary
 
 ---
+## Data & DB
+- **Supabase Handoff (for API Spoke)** → [/handover/supabase/HANDOFF_TO_API.md](/handover/supabase/HANDOFF_TO_API.md)
 
 ### Availability Spoke (Admin + API Demo)
 - **Netlify site (Admin page):**  
