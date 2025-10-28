@@ -39,7 +39,14 @@ It represents the baseline from which future HUB#2 and multi-tenant extensions c
   [https://fergus3763.github.io/UI-for-Dashboard/](https://fergus3763.github.io/UI-for-Dashboard/)
 
 ---
+## Release Notes — Handover v0.3 (Database Integration)
 
+### Database Integration (Seed & Validate)
+- Added `/handover/supabase/HANDOFF_TO_API.md` for API Spoke integration.
+- Schema aligned and data seeded via Supabase UI.
+- Validation PASS (row counts + summary checks = 0 issues).
+- `seed.js` deferred until after API wiring.
+- 
 ## 🧭 Next Steps
 1. Version bump to `v0.3` for automation of build/deploy (manual currently 100%).  
 2. Add environment variable documentation (Firebase + Google Cloud + Stripe).  
