@@ -18,6 +18,7 @@
 ## Phase 4 — Release
 - Update `/handover/RELEASE_NOTES.md`; tag v0.3.
 - Add `/handover/ENV_SAMPLE.md` with required env names.
+```md
 ## Status Snapshot (post-HUB#2)
 - [x] Netlify functions live: `blackout_periods`, `availability`
 - [x] Env vars aligned (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NODE_VERSION=18`)
