@@ -47,7 +47,12 @@ It represents the baseline from which future HUB#2 and multi-tenant extensions c
 - Schema aligned and data seeded via Supabase UI.
 - Validation PASS (row counts + summary checks = 0 issues).
 - `seed.js` deferred until after API wiring.
-- 
+- ## v0.3.1 – Docs alignment for HUB#2 handover
+- Added /handover/README.md (index)
+- Updated HUB_PROMPT with “Zero Local Patches” and backend state
+- Added blackout_periods/availability sections to API_CONTRACT
+- Integration Plan updated with status snapshot and next steps
+
 ## 🧭 Next Steps
 1. Version bump to `v0.3` for automation of build/deploy (manual currently 100%).  
 2. Add environment variable documentation (Firebase + Google Cloud + Stripe).  
