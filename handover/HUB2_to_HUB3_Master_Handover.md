@@ -15,6 +15,15 @@ The project’s goal is to deliver a SaaS meeting room management platform for h
 The platform will empower hotels to capture new market demand without additional staff overheads by automating price calculation, availability, and booking confirmation in real time.
 
 HUB#3 now assumes control of all ongoing development, coordination, and direction of current and future Spokes.
+### Governance Rule
+No local patches or out-of-band changes. All work must land via PR, align with `API_CONTRACT.md` and `DATA_BOUNDARY.md`, and be logged in `RELEASE_NOTES.md`. See `HUB_PROMPT.md` → “Zero Local Patches” for details.
+
+### Quick Links (Authoritative Docs)
+- [HUB_PROMPT.md](./HUB_PROMPT.md)
+- [API_CONTRACT.md](./API_CONTRACT.md)
+- [DATA_BOUNDARY.md](./DATA_BOUNDARY.md)
+- [INTEGRATION_PLAN.md](./INTEGRATION_PLAN.md)
+- [Supabase handoff notes](./supabase/HANDOFF_TO_API.md)
 
 🏗️ The Big Picture
 
