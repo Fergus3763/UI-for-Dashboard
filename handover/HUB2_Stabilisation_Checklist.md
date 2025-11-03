@@ -111,6 +111,17 @@ All actions must be committed, tagged, and reflected in the GitHub history befor
 ✅ Ready for seamless Hub#3 creation and activation  
 
 ---
+/handover/
+  API_CONTRACT.md
+  DATA_BOUNDARY.md
+  HUB2_Stabilisation_Checklist.md   <-- (new)
+  HUB2_to_HUB3_Master_Handover.md
+  HUB_PROMPT.md
+  INTEGRATION_PLAN.md
+  RELEASE_NOTES.md
+  README.md
+  supabase/
+    HANDOFF_TO_API.md
 
 **Maintainer:** Fergus3763  
 **Timestamp:** (to be auto-updated in commit)
