@@ -1,5 +1,24 @@
 # Handover Pack
 # Handover Pack — UI MVP (v0.2)
+# Handover Index
+
+This folder contains the operational documents used by HUBs and Spokes.
+Use this file as the entry point.
+
+## Primary
+- **Master Handover:** [HUB2_to_HUB3_Master_Handover.md](./HUB2_to_HUB3_Master_Handover.md)
+- **HUB Prompt (authoritative brief for each Hub):** [HUB_PROMPT.md](./HUB_PROMPT.md)
+
+## Contracts & Plans
+- **API Contract:** [API_CONTRACT.md](./API_CONTRACT.md)
+- **Integration Plan:** [INTEGRATION_PLAN.md](./INTEGRATION_PLAN.md)
+- **Data Boundary:** [DATA_BOUNDARY.md](./DATA_BOUNDARY.md)
+
+## Back-end Integration Notes
+- **Supabase / API Handoff Notes:** [supabase/HANDOFF_TO_API.md](./supabase/HANDOFF_TO_API.md)
+
+## Process Rules (Global)
+- No local patches or temporary workarounds: all changes must be PR-reviewed, documented, and aligned with the API Contract and Data Boundary. See **HUB_PROMPT** for enforcement details.
 
 **Release Tag:** [v0.2-handoff](https://github.com/Fergus3763/UI-for-Dashboard/releases/tag/v0.2-handoff)  
 **Status:** ✅ Stable | **Date:** October 2025  
