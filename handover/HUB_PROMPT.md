@@ -1,6 +1,37 @@
 # HUB PROMPT — UI-for-Dashboard
 
 This file tells any new “HUB” how to continue the project with full context.
+## Zero Local Patches (Policy)
+All fixes and changes **must** be done via PRs against this repo and recorded in `RELEASE_NOTES.md`.  
+**No local hotfixes, emergency overrides, or ad-hoc scripts** that aren’t reflected in:
+- `API_CONTRACT.md` (interfaces)
+- `DATA_BOUNDARY.md` (data model & events)
+- `INTEGRATION_PLAN.md` (rollout)
+
+If a workaround is needed, **file an issue** and create a **documented temporary toggle** with a removal date.
+
+## Current Backend State (HUB#2 baseline)
+- **Netlify Functions (Production):**
+  - `/.netlify/functions/blackout_periods` — POST: insert blackout row; GET: list by `roomId`.
+  - `/.netlify/functions/availability` — GET: availability window (used by the admin UI).
+- **Environment variables (Netlify → Site → Environment):**
+  - `SUPABASE_URL` — base URL (https://…supabase.co)
+  - `SUPABASE_SERVICE_ROLE_KEY` — service role key (scoped to **Builds, Functions, Runtime**; set for **all contexts**, not only Production)
+  - `NODE_VERSION=18`
+- **Schema change (HUB#2):**
+  - `public.blackout_periods` now includes `title text`.
+  - Foreign key: `blackout_periods.room_id → rooms.id` (use **room ids** e.g., `RM-002`, not labels).
+- **Smoke tests:**
+  - GET `…/.netlify/functions/blackout_periods?roomId=RM-002` → expect JSON array.
+  - POST `…/.netlify/functions/blackout_periods` with body:
+    ```json
+    {
+      "roomId": "RM-002",
+      "startsAt": "2025-10-29T10:00:00Z",
+      "endsAt": "2025-10-29T12:00:00Z",
+      "title": "Admin Blackout"
+    }
+    ```
 
 ## Core links
 - Repo: https://github.com/Fergus3763/UI-for-Dashboard
