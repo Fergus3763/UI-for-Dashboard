@@ -44,8 +44,17 @@ https://zingy-biscuit-94791a.netlify.app/.netlify/functions/blackout_periods/blk
 **Response (example)**
 { "success": true }
 
-**Commit message:**  
-`docs(api): add lightweight sections for blackout_periods & availability`
+## Availability & Blackouts (Live in HUB#2)
 
----
+### POST /functions/blackout_periods
+Insert a blackout period.
+
+- **Body:**
+  ```json
+  {
+    "roomId": "RM-002",
+    "startsAt": "2025-10-29T10:00:00Z",
+    "endsAt": "2025-10-29T12:00:00Z",
+    "title": "Admin Blackout"
+  }
 
