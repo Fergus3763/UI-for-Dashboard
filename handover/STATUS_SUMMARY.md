@@ -103,4 +103,21 @@
 
 ## Integration Roadmap (Forward Intent)
 The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics) into a single functioning entity. Each HUB contributes tested components and updates this file so integration proceeds seamlessly.
+> Integration Roadmap: Continues under Hub#3 stewardship — align new work via PR only.
+
+### Status Summary (since HUB#2 → HUB#3)
+
+| Area | Status | Note |
+|------|---------|------|
+| Environment | 🟢 | Env vars aligned and builds verified |
+| API Functions | 🟢 | blackout_periods and availability confirmed operational |
+| Docs | 🟡 | Minor normalisation still in progress (relative links and footer notes) |
+| Integration Plan | ⚪ | Pending Hub#3 adoption meeting |
+
+### Context & Learnings — HUB#2 → HUB#3
+- All core handover docs validated; only minor formatting inconsistencies found.
+- Environment file alignment confirmed successful (Netlify + Supabase).
+- API schema updates (blackout_periods.title) stable across deployments.
+- Early governance clauses (“no local patches”) now enforced in README.
+- Recommended adding visual 🔴 tags for critical checklist items pre-handover.
 
