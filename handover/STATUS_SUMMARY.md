@@ -1,0 +1,106 @@
+# HUB Status Summary (Living Document)
+
+> This file is the living “spine” of the project handover.  
+> Each HUB updates this one document at handover.  
+> Legend: 🟢 Done • 🟡 In progress / Partial • ⚪ Not started / Deferred
+
+---
+
+## 🧭 1) Core Goal Alignment
+- 🟢 **Architecture & Workflow Defined** — Hub + Spoke model; HUB is source of truth; Spokes do focused builds.  
+  _Ref:_ `handover/HUB_PROMPT.md`
+- 🟢 **Data Sources Centralised** — Base CSVs (Rooms, RoomCatalogMap, VAT, Durations, Assumptions) versioned.  
+  _Ref:_ `/data/`
+- 🟢 **Terminology Alignment** — Glossary validated for consistent naming.  
+  _Ref:_ `/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx`
+- 🟡 **Integration Strategy** — Documented Option 2 (API→DB) then Option 1 (Admin→API).  
+  _Ref:_ `handover/INTEGRATION_PLAN.md`
+
+---
+
+## 🏗️ 2) Admin UI & Dashboard (Front-End)
+- 🟢 **Base Admin UI (static)** — Room/Date/Time selector, Check, Add/Delete Blackouts (local).  
+  _Live:_ GitHub Pages (`/docs` or UI root)  
+- 🟢 **Static Deployment (verified)** — Public, embeddable (iframe).  
+- 🟡 **Admin → API Wiring** — Not live yet (Admin updates local state only).  
+  _Next:_ Option 1 in `handover/INTEGRATION_PLAN.md`
+- ⚪ **Room Management Panels (capacity, layouts, F&B, AV)** — Not implemented; data placeholders exist.  
+  _Refs:_ `/data/RoomCatalogMap.csv`, `/data/Catalog.csv`
+- ⚪ **Analytics/Reports** — Not started.
+
+---
+
+## 🧮 3) Data Model (Backend Schema)
+- 🟢 **RoomCalendar / RoomEvent** — JSON schemas incl. buffers, rounding, OOH, overlap.  
+- 🟢 **Availability Engine (Luxon)** — `checkOverlap`, `addEvent`, `detectOOH`, `applyBuffers`, etc.  
+  _Ref:_ Calendar/Availability Spoke source & functions
+- 🟢 **syncCalendarsWithRooms() adapter** — Ensures each room has a calendar stub (no orphans).  
+- 🟡 **Persistent Storage** — In-memory; to be replaced by Supabase (Option 2).  
+- ⚪ **Layouts, F&B, AV schema/UI** — Not wired yet; CSV scaffolding only.
+
+---
+
+## 🌐 4) Availability API (Serverless on Netlify)
+- 🟢 **GET `/availability`** — Returns availability, billableHours, OOH, EU/UTC times.  
+- 🟢 **POST `/blackout_periods`** — Create fixed/temporary blackout.  
+- 🟢 **DELETE `/blackout_periods/:id`** — Remove blackout by id.  
+  _Base:_ `https://<your-netlify-site>.netlify.app`  
+  _Functions path always works:_ `/.netlify/functions/...`
+- 🟡 **Error handling & logs** — Luxon/ESM/CJS issues resolved; keep testing.  
+- 🟡 **Persistence via DB** — Not integrated (Supabase planned).
+
+---
+
+## 📦 5) Documentation & Handover
+- 🟢 `handover/HUB_PROMPT.md` — Core HUB guidance + Observations section.  
+- 🟢 `handover/API_CONTRACT.md` — GET/POST/DELETE contracts with examples.  
+- 🟢 `handover/INTEGRATION_PLAN.md` — **Do Option 2 (API→DB) first, then Option 1 (Admin→API)**.  
+- 🟢 `handover/DATA_BOUNDARY.md` — Calendar vs Availability vs DB responsibilities.  
+- 🟢 `handover/RELEASE_NOTES.md` — Latest release (v0.2 handover).  
+- 🟢 `handover/CHECKLIST.md` — Handover verification list.  
+- 🟢 `/docs/links.md` — Consolidated URLs.  
+- 🟢 `/glossary/Meeting_Rooms_Glossary_and_Dictionary.xlsx` — Real binary file (downloadable).
+
+---
+
+## 🚧 6) Outstanding / Deferred Work
+- 🟡 **API → DB (Supabase)** — Replace in-memory blackouts; keep API shapes unchanged.  
+- 🟡 **Admin → API Wiring** — Make Admin read/write live events via API.  
+- ⚪ **Room Config (capacity, layouts, F&B, AV)** — New Admin sections + data binding.  
+- ⚪ **Multi-venue / Tenant** — Future spoke (add `tenant_id`).  
+- ⚪ **Analytics Dashboard** — After persistence.  
+- ⚪ **Auth / Roles** — Optional; Netlify password OK for now.
+
+---
+
+## 🧾 7) Where each major work item lives
+- `handover/` — Source of truth: prompts, contracts, plans, notes, releases, checklist.  
+- `data/` — CSV datasets + assumptions report.  
+- `glossary/` — Naming & field dictionary (Excel).  
+- `netlify/functions/` — Live serverless API (availability & blackouts).  
+- `public/` or `docs/` — Frontend Admin UI.  
+
+---
+
+## 🧩 8) Suggested restart sequence for HUB#3
+1) Confirm handover docs + run CHECKLIST.  
+2) Test API (GET/POST/DELETE).  
+3) Implement **Option 2: API → Supabase** (persistence, same API shapes).  
+4) Implement **Option 1: Admin → API** (wire buttons + initial fetch).  
+5) Start **Room Config** (capacity/layouts/F&B/AV) using CSVs.  
+6) ⛔ Return to HUB for integration and test.
+
+---
+
+## Context & Learnings — HUB#2 → HUB#3 (to be filled by HUB#2)
+- Add 3–5 bullets with deployment gotchas, data nuances, or UX notes discovered this cycle.
+- Example placeholders:
+  - Netlify cache needed “Deploy without cache” after function changes.
+  - UTC inputs + EU display (Europe/Dublin) confirmed correct during DST.
+  - Admin currently updates local state — persistence comes from API/DB only.
+
+---
+
+## Integration Roadmap (Forward Intent)
+The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics) into a single functioning entity. Each HUB contributes tested components and updates this file so integration proceeds seamlessly.
+
