@@ -121,3 +121,33 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 - Early governance clauses (“no local patches”) now enforced in README.
 - Recommended adding visual 🔴 tags for critical checklist items pre-handover.
 
+---
+
+## HUB#3 — Current Status
+
+### Status Summary (since HUB#2 → HUB#3)
+
+| Area | Status | Note |
+|------|---------|------|
+| Environment | 🟢 | Env vars aligned and Netlify build verified |
+| API Functions | 🟢 | `blackout_periods` + `availability` functions operational post-deploy |
+| Documentation | 🟡 | Minor markdown normalisation in progress (`./` relative links and footer notes) |
+| Integration Plan | ⚪ | Pending formal adoption by Hub#3 post-stabilisation |
+| Governance | 🟢 | “No local patches” rule formalised and included across handover docs |
+
+---
+
+### Context & Learnings — HUB#2 → HUB#3
+- Handover documentation now standardised; all authoritative files validated.
+- Environment parity achieved across Supabase, Netlify, and API layers.
+- Schema update (`blackout_periods.title`) deployed and verified live.
+- Added visual 🔴 flags in checklist for must-complete stabilisation tasks.
+- Governance and version control policies reinforced via README footer.
+
+---
+
+> **Integration Roadmap:** Continues under Hub#3 stewardship — all new work must align via PR and follow the no-local-patch policy.
+>  
+> Maintainer: Fergus3763  
+> Timestamp: (auto-updated in commit)
+
