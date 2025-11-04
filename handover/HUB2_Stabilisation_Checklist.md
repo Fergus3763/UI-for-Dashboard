@@ -17,6 +17,7 @@ All actions must be committed, tagged, and reflected in the GitHub history befor
 - [ ] **Internal Links Audit**
   - Verify all Markdown links in `/handover/` use relative paths (`./API_CONTRACT.md` not `/handover/API_CONTRACT.md`).
   - Commit: `docs(handover): normalise relative markdown links`
+✅ INTERNAL LINKS AUDIT — completed (relative ./ paths verified)
 
 - [ ] **HUB_PROMPT.md**
   - Confirm it references HUB#2 → HUB#3 transition.
