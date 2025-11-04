@@ -14,7 +14,7 @@ All actions must be committed, tagged, and reflected in the GitHub history befor
     > All fixes must be implemented at system level and reflected across connected Hubs/Spokes.
   - Commit: `docs(readme): add no-local-patch policy notice`
 
-- [ ] **Internal Links Audit**
+- [X] **Internal Links Audit**
   - Verify all Markdown links in `/handover/` use relative paths (`./API_CONTRACT.md` not `/handover/API_CONTRACT.md`).
   - Commit: `docs(handover): normalise relative markdown links`
 ✅ INTERNAL LINKS AUDIT — completed (relative ./ paths verified)
@@ -30,7 +30,7 @@ All actions must be committed, tagged, and reflected in the GitHub history befor
 
 ## ⚙️ Phase 2 — Environment Consistency
 
-- [ ] **.env.sample**
+- [] **.env.sample**
   - Ensure the following exist and mirror production:
     ```
     SUPABASE_URL=
@@ -123,6 +123,12 @@ All actions must be committed, tagged, and reflected in the GitHub history befor
   README.md
   supabase/
     HANDOFF_TO_API.md
+## Status Snapshot (post-HUB#2)
+
+- [x] Functions live: `blackout_periods`, `availability`
+- [x] Env vars aligned: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NODE_VERSION`
+- [x] Schema updated: `blackout_periods.title`
+- [ ] 🔴 Add E2E smoke script (CI) to hit both endpoints and validate basic responses
 
 **Maintainer:** Fergus3763  
 **Timestamp:** (to be auto-updated in commit)
