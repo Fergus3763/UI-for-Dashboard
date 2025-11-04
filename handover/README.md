@@ -67,3 +67,13 @@ This folder contains the canonical handover documents for the UI MVP.
 - [Assumptions_and_Ambiguities_Report.txt](Assumptions_and_Ambiguities_Report.txt)
 - [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
+---
+
+### 🔄 HUB Continuity Summary
+**Current HUB:** #3  
+**Last Update:** HUB#2 → HUB#3 Transition  
+**Status:** 🟢 Stable — environment and API verified, docs synchronised.  
+**Notes:** Governance and “no local patches” policy active; Integration Roadmap unchanged.  
+**Maintainer:** Fergus3763 (Project Owner)
+
+---
