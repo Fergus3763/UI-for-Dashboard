@@ -1,4 +1,5 @@
 # HUB PROMPT — UI-for-Dashboard
+> 🔗 See the living **Status Summary**: [handover/STATUS_SUMMARY.md](STATUS_SUMMARY.md)
 
 This file tells any new “HUB” how to continue the project with full context.
 ## Zero Local Patches (Policy)
