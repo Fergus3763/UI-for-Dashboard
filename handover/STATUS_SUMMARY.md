@@ -28,6 +28,12 @@
   _Refs:_ `/data/RoomCatalogMap.csv`, `/data/Catalog.csv`
 - ⚪ **Analytics/Reports** — Not started.
 
+### Admin UI routing
+- Netlify “Open production deploy” opens the site root `/`.
+- The app redirects `/` → `/admin/venue` by design (default landing).
+- Use the top navigation to reach other tabs (Rooms, F&B, AV, Labour, 3rd-Party).
+- Deep links (e.g. /admin/labour) also work directly because `_redirects` routes all paths to `/index.html`.
+
 ---
 
 ## 🧮 3) Data Model (Backend Schema)
