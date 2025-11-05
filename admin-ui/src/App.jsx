@@ -4,7 +4,6 @@ import Rooms from "./pages/Dashboard/Rooms/index.jsx";
 import FoodBeverage from "./pages/Dashboard/FoodBeverage/index.jsx";
 import AV from "./pages/Dashboard/AV/index.jsx";
 import Labour from "./pages/Dashboard/Labour/index.jsx";
-import ThirdParty from "./pages/Dashboard/ThirdParty/index.jsx";
 
 export default function App() {
   return (
@@ -15,7 +14,6 @@ export default function App() {
         <Link to="/admin/fnb">F&amp;B</Link>
         <Link to="/admin/av">AV</Link>
         <Link to="/admin/labour">Labour</Link>
-        <Link to="/admin/third-party">3rd-Party</Link>
       </div>
       <Routes>
         <Route path="/" element={<Navigate to="/admin/venue" replace />} />
@@ -24,9 +22,7 @@ export default function App() {
         <Route path="/admin/fnb" element={<FoodBeverage />} />
         <Route path="/admin/av" element={<AV />} />
         <Route path="/admin/labour" element={<Labour />} />
-        <Route path="/admin/third-party" element={<ThirdParty />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
