@@ -1,0 +1,13 @@
+[build]
+  base = "admin-ui"
+  publish = "admin-ui/dist"
+  command = "npm ci && npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# single-page app routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
