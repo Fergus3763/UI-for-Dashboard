@@ -38,6 +38,12 @@ It represents the baseline from which future HUB#2 and multi-tenant extensions c
 - Click-through UI live at:  
   [https://fergus3763.github.io/UI-for-Dashboard/](https://fergus3763.github.io/UI-for-Dashboard/)
 
+## v0.4.0 — Admin UI routes live; Venue added (MVP)
+- New: Admin UI tabs (Venue, Rooms, F&B, AV, Labour, Add-Ons)
+- Infra: separate Netlify site for admin-ui, Node 18
+- Updated: `netlify.toml` set base/publish + build command
+- Handover: prepared HUB#3 → HUB#4 with clear next actions
+
 ---
 ## Release Notes — Handover v0.3 (Database Integration)
 - Added API Acceptance Checklist to `/handover/supabase/HANDOFF_TO_API.md` (blackout + availability).
