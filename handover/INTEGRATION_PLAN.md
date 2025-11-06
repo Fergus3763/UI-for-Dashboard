@@ -28,3 +28,14 @@
 - [ ] Document Room ID/Name mapping rules (Design doc → upcoming Spoke)
 Deliverable: persistent availability + admin changes reflected after refresh.
 
+## HUB#4 Plan (first 1–2 sprints)
+1) Persistence for Admin UI
+   - Define Supabase tables for: Venue, Rooms, F&B items, AV items, Labour roles, Upsell rules
+   - Add simple service layer (fetch/save) and wire UI forms → Supabase
+2) API Contract
+   - Finalise availability/blackouts endpoints and payloads in `API_CONTRACT.md`
+3) CI Smoke
+   - Add a basic smoke run that hits admin-ui routes and functions endpoints post-deploy
+4) Migration Note
+   - Provide seed scripts or snapshot docs for initial test data
+
