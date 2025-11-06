@@ -138,4 +138,8 @@ The live environment is currently hosted on **Netlify**:
 `https://zingy-biscuit-94791a.netlify.app/`
 
 ---
+### Governance / Continuity (carry-forward)
+- No local patches or temporary workarounds — all fixes via PR and reflected across environments.
+- Continue building on the separate **Admin UI Netlify site** (Node 18).
+- Respect the existing routes and top nav pattern in `admin-ui/src/App.jsx`.
 
