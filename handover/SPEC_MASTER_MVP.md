@@ -1,3 +1,7 @@
+> **File Purpose (added HUB#4):**  
+> This recovered master spec consolidates all Admin UI and Pricing logic decisions made during HUB#3.  
+> Treat as the single authoritative reference for subsequent development and schema integration.
+
 # WorXInn Meeting Rooms — Single‑Page Master Spec (Single File)
 
 > **Status:** HUB #3 · Design-in-progress · All work tracked in this single page. If it’s not here, it doesn’t exist.
