@@ -47,3 +47,24 @@
 - Integration plan: `handover/INTEGRATION_PLAN.md`
 
 > Governance rule: **No local patches**. Any fix/change must be implemented at system level and reflected across connected Hubs/Spokes.
+Links verified (handover docs link correctly)
+
+ In all handover/*.md, relative links use ./ and open correctly in GitHub:
+
+ ./API_CONTRACT.md
+
+ ./DATA_BOUNDARY.md
+
+ ./INTEGRATION_PLAN.md
+
+ ./RELEASE_NOTES.md
+
+ ./STATUS_SUMMARY.md
+
+ ../glossary/README.md (if linking out of folder)
+
+ Master handover files include the No local patches rule
+How to verify (UI steps):
+Open each handover markdown file in GitHub’s UI.
+Click every link in the file; confirm it resolves (no 404).
+If any link starts with /handover/... (missing ./), edit and fix it.
