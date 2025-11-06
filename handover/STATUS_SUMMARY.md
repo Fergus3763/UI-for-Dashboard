@@ -155,6 +155,14 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 - Governance and version control policies reinforced via README footer.
 
 ---
+## Status — end of HUB#3
+
+- 🟢 Admin UI tabs live: Venue, Rooms, F&B, AV, Labour, Add-Ons
+- 🟢 Separate Netlify site for admin-ui with Node 18 (base=admin-ui, publish=public)
+- 🟡 API unchanged this phase; formal spec uplift planned for HUB#4
+- ⚪ Persistence for Admin UI (Supabase) planned next
+
+**Handover to HUB#4:** proceed with data model + persistence, API spec hardening, and E2E smoke.
 
 > **Integration Roadmap:** Continues under Hub#3 stewardship — all new work must align via PR and follow the no-local-patch policy.
 >  
