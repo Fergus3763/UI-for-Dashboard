@@ -178,3 +178,8 @@ docs(handover): add HUB#2 → HUB#3 Master Handover (Dublin timestamp)
 6️⃣ Select Commit directly to main branch → Click Commit changes.
 7️⃣ Confirm the file appears under /handover/.
 8️⃣ Optionally, copy the timestamped signature into your internal notes for redundancy.
+
+Status Snapshot (post-HUB#2)
+- [x] Env vars aligned (confirmed Netlify + GitHub)
+- [x] Schema updated: blackout_periods.title
+- [ ] Verify Netlify bundle includes updated endpoints (handover to HUB#4)
