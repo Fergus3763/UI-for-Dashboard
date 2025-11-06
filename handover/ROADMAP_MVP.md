@@ -10,7 +10,6 @@
 
 ## Visual Countdown (Now → Presentation)
 
-```mermaid
 flowchart LR
   %% Styles
   classDef done fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#065f46;      %% green
@@ -19,15 +18,15 @@ flowchart LR
   classDef gate fill:#f3f4f6,stroke:#111827,stroke-width:2px,color:#111827;      %% neutral
   classDef big fill:#ffffff,stroke:#111827,stroke-width:2.5px;
 
-  %% PHASE GATES
-  G0([HUB #3 Start]):::gate
-  G1([Phase 3 ✓ Function Smoke Test]):::gate
-  G2([Phase 4 Save → API (persist data)]):::gate
-  G3([Phase 5 Data Models & Validation]):::gate
-  G4([Phase 6 Booker MVP (Hotel-facing)]):::gate
-  G5([Phase 7 QA & Stability]):::gate
-  G6([Phase 8 UI/UX Polish]):::gate
-  G7([Phase 9 Tag v0.3.2 + Handover]):::gate
+  %% PHASE GATES (use quoted rectangular nodes to allow parentheses/long text)
+  G0["HUB #3 Start"]:::gate
+  G1["Phase 3 ✓ Function Smoke Test"]:::gate
+  G2["Phase 4 Save → API — persist data"]:::gate
+  G3["Phase 5 Data Models & Validation"]:::gate
+  G4["Phase 6 Booker MVP — Hotel-facing"]:::gate
+  G5["Phase 7 QA & Stability"]:::gate
+  G6["Phase 8 UI/UX Polish"]:::gate
+  G7["Phase 9 Tag v0.3.2 + Handover"]:::gate
 
   %% LANE: Admin Config
   subgraph A[Admin Configuration]
@@ -45,8 +44,8 @@ flowchart LR
   subgraph B[Data/API]
     B1[Create Netlify Functions: save_config]:::todo
     B2[Wire front-end Save → Function]:::todo
-    B3[Supabase tables & policies (MVP)]:::todo
-    B4[Validation in Function (shape & required)]:::todo
+    B3[Supabase tables & policies MVP]:::todo
+    B4[Validation in Function: shape & required]:::todo
     B5[Read/Load config into Admin forms]:::todo
   end
 
@@ -54,10 +53,10 @@ flowchart LR
   subgraph C[Room Booker (MVP)]
     C1[Basic search: date, time, attendees]:::todo
     C2[Availability check → endpoint]:::done
-    C3[Room results (filter by layout/capacity)]:::todo
+    C3[Room results: filter by layout/capacity]:::todo
     C4[Configurator: layouts & included items]:::todo
-    C5[Add-ons suggestions (curated upsells)]:::todo
-    C6[Price breakdown (by cost centre + VAT)]:::todo
+    C5[Add-ons suggestions: curated upsells]:::todo
+    C6[Price breakdown: cost centre + VAT]:::todo
     C7[Summary + “Reserve” (stub)]:::todo
   end
 
