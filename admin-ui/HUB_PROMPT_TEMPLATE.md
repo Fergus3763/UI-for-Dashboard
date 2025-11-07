@@ -1,6 +1,17 @@
 # HUB PROMPT TEMPLATE
 
 Use this file to start any new HUB cleanly. Send Prompt #1 first. After the assistant acknowledges, send Prompt #2. If there were changes since the last HUB that aren’t yet captured in the repo, also send the optional Delta Prompt.
+<!-- ───────────────────────────────────────────────────────────────────────── -->
+## 🔁 Prompt Evolution Note
+
+The assistant will occasionally propose **Prompt Revision Suggestions** when new insights,
+principles, or governance nuances emerge that would help future HUBs (especially for
+Prompt #2 — *“What You May Have Missed”*).  
+Each suggestion will identify:
+- the affected prompt section (e.g., “Vision”, “Principles”, “Governance”), and  
+- the exact line or paragraph to add.
+
+You may review and merge these notes into this template as needed to keep it current.
 
 ---
 
