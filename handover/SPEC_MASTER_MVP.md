@@ -8,6 +8,25 @@
 
 > ⚠️ **Note:** Any existing or historical references to “WorXinn” should be disregarded. All context, ownership, and intent refer solely to the **OWNER**. No material or background research is to be drawn from the OWNER’s prior GPT chats or any online sources.
 
+---
+
+## 🌍 Vision & Context
+
+This project maintains two equal workstreams — the **Technical Spine** and the **Vision Layer** — to ensure every build task serves a clear purpose.
+
+| Track | Purpose | Output | Style |
+|-------|----------|--------|--------|
+| **A. Context & Vision** | Preserve and update the *business logic, reasoning, and purpose* behind each module. | “Vision Overview” section inside the master spec. | Plain English, readable by non-developers. |
+| **B. Technical Execution** | Implement what the Vision requires in working code, schema, and UI. | Code snippets, file edits, commit messages. | Step-by-step, copy-and-paste friendly. |
+
+Each time a new element is created (UI page, function, data table, etc.), it includes:
+- A **Vision Paragraph** explaining *why it exists*.
+- The **Implementation Block** showing *what to add/edit/delete*.
+
+This dual-track model, introduced in HUB #3, keeps future HUBs balanced between purpose and execution.
+
+---
+
 ### Spec Delta Log (HUB #3)
 
 * **[Locked:** Pending DB/Code Check **]** Added: Add-Ons vs Features definitions; Pricing Models; Inclusive + Inclusive Threshold; Upsell Eligible; Add-Ons & Upsells tab consolidated; Venue Images at setup.
