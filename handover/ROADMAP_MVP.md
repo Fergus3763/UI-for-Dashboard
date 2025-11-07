@@ -1,5 +1,7 @@
 # Meeting Rooms — MVP Roadmap (Hub #3)
 
+> ⚠️ **Note:** Any existing or historical references to “WorXinn” should be disregarded. All context, ownership, and intent refer solely to the **OWNER**. No material or background research is to be drawn from the OWNER’s prior GPT chats or any online sources.
+
 > Edit directly in GitHub. Mermaid renders automatically.  
 > How to update:
 > - Move tasks between phases by copy/paste.
