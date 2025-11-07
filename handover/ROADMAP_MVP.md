@@ -1,4 +1,4 @@
-# WorXinn Meeting Rooms — MVP Roadmap (Hub #3)
+# Meeting Rooms — MVP Roadmap (Hub #3)
 
 > Edit directly in GitHub. Mermaid renders automatically.  
 > How to update:
