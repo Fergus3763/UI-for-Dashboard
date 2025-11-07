@@ -1,5 +1,7 @@
 # HUB Status Summary (Living Document)
 
+> ⚠️ **Note:** Any existing or historical references to “WorXinn” should be disregarded. All context, ownership, and intent refer solely to the **OWNER**. No material or background research is to be drawn from the OWNER’s prior GPT chats or any online sources.
+
 > This file is the living “spine” of the project handover.  
 > Each HUB updates this one document at handover.  
 > Legend: 🟢 Done • 🟡 In progress / Partial • ⚪ Not started / Deferred
