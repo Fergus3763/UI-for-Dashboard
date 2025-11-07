@@ -6,6 +6,8 @@
 
 > **Status:** HUB #3 · Design-in-progress · All work tracked in this single page. If it’s not here, it doesn’t exist.
 
+> ⚠️ **Note:** Any existing or historical references to “WorXinn” should be disregarded. All context, ownership, and intent refer solely to the **OWNER**. No material or background research is to be drawn from the OWNER’s prior GPT chats or any online sources.
+
 ### Spec Delta Log (HUB #3)
 
 * **[Locked:** Pending DB/Code Check **]** Added: Add-Ons vs Features definitions; Pricing Models; Inclusive + Inclusive Threshold; Upsell Eligible; Add-Ons & Upsells tab consolidated; Venue Images at setup.
