@@ -2,7 +2,7 @@
 > This recovered master spec consolidates all Admin UI and Pricing logic decisions made during HUB#3.  
 > Treat as the single authoritative reference for subsequent development and schema integration.
 
-# WorXInn Meeting Rooms — Single‑Page Master Spec (Single File)
+# Meeting Rooms — Single‑Page Master Spec (Single File)
 
 > **Status:** HUB #3 · Design-in-progress · All work tracked in this single page. If it’s not here, it doesn’t exist.
 
@@ -25,7 +25,7 @@ Manual handling works for high-value, long-lead events but is **too expensive fo
 
 ### Vision
 
-**WorXInn** solves this by providing a **fully automated SaaS platform** that lets hotels sell meeting rooms like spa treatments—instant pricing, instant confirmation, no human bottleneck. The platform’s credibility depends on **price integrity**: the price seen by the Booker must match the one calculated by the Hotel’s backend.
+We solves this by providing a **fully automated SaaS platform** that lets hotels sell meeting rooms like spa treatments—instant pricing, instant confirmation, no human bottleneck. The platform’s credibility depends on **price integrity**: the price seen by the Booker must match the one calculated by the Hotel’s backend.
 
 ### MVP Objective
 
@@ -285,7 +285,7 @@ All remaining tabs follow identical UX: **repeatable items** with clear **pricin
 
 **Step 1 (now):**
 
-* Confirm corrections: spelling **WorXinn**, Venue Setup **Hotel Images**, **Add‑Ons & Upsells** tab, and the **Pricing Model** options.
+* Confirm corrections: Venue Setup **Hotel Images**, **Add‑Ons & Upsells** tab, and the **Pricing Model** options.
 * Reply **DONE–Corrections** or list any tweaks.
 
 **Step 2 (next):**
