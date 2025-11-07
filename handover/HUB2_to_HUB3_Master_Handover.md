@@ -1,14 +1,14 @@
 📘 HUB2_to_HUB3_Master_Handover.md
 
-Project: WorXinn – Meeting Room Management SaaS
+Project: – Meeting Room Management SaaS
 From: HUB#2 (UI & DB Integration Phase)
 To: HUB#3 (Availability, API & System Integration Phase)
 Timestamp: 2025-10-30 14:05 (Dublin Time)
-Prepared under the direction of: Fergus [Surname], Project Owner (WorXinn)
+Prepared under the direction of: Fergus [Surname], Project Owner (Fergus)
 
 🧭 Executive Summary
 
-This document formally transfers responsibility from HUB#2 to HUB#3 within the WorXinn Hub-and-Spoke project framework.
+This document formally transfers responsibility from HUB#2 to HUB#3 within the Hub-and-Spoke project framework.
 
 The project’s goal is to deliver a SaaS meeting room management platform for hotels and venues — designed to automate the Search → Customise → Pay → Arrive journey for small-team, post-Covid on-demand meetings.
 
@@ -27,7 +27,7 @@ No local patches or out-of-band changes. All work must land via PR, align with `
 
 🏗️ The Big Picture
 
-WorXinn’s core ambition is to create a comprehensive meeting room booking SaaS for hotels and multipurpose venues.
+Owner’s core ambition is to create a comprehensive meeting room booking SaaS for hotels and multipurpose venues.
 
 Market Context
 
@@ -35,7 +35,7 @@ Traditional meeting room bookings were manually processed via phone or email, su
 
 The post-Covid landscape favours on-demand, small-group meetings (1–20 people) requiring frictionless engagement, instant pricing, and automated confirmation.
 
-Hotels cannot realistically operate two separate PMS systems, so the WorXinn solution must accommodate all room sizes, layouts, and use cases, from quick meetings to multi-day conferences.
+Hotels cannot realistically operate two separate PMS systems, so the solution must accommodate all room sizes, layouts, and use cases, from quick meetings to multi-day conferences.
 
 Product Objectives
 
@@ -155,7 +155,7 @@ Update /handover/ immediately following the completion of each spoke or feature 
 🪪 Signature & Metadata
 
 Prepared under the direction of
-Fergus [Surname] — Project Owner, WorXinn
+Fergus [Surname] — Project Owner, Fergus
 Finalized and approved by HUB#2 on 30 October 2025, 14:05 (Dublin Time).
 
 ✅ Step-by-Step GitHub Upload Protocol
