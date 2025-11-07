@@ -1,50 +1,76 @@
-# HANDOVER PROTOCOL (for future HUBs and 3rd parties)
+# HANDOVER PROTOCOL (Standard for all HUBs and 3rd-party transfers)
 
 ## PURPOSE
-Provide a deterministic, developer-agnostic transfer: the successor can continue without tribal knowledge.
+Guarantee a deterministic, developer-agnostic transfer so the next HUB or developer can resume work
+with zero undocumented knowledge.
 
-## SCOPE OF AUTHORITY
-- **OWNER** is the sole authority on scope/process.
-- **Hub** is the single source of truth (this repo + latest Hub thread).
-- No use of prior chats or online sources.
+---
 
-## ARTIFACTS (REQUIRED)
-1. `STATUS_SUMMARY.md` — current state + next step in plain language
-2. `SPEC_MASTER_MVP.md` — contracts (VISION + EXECUTION clearly marked)
-3. `ROADMAP_MVP.md` — milestones, acceptance gates
-4. `CHANGELOG.md` — commits (path + message + full replacements)
-5. `PERSISTENCE.md` — data model + function contracts (if relevant)
-6. `KNOWN_ISSUES.md` — bugs, caveats, blockers
-7. `SETUP.md` — env vars, deploy instructions
+## AUTHORITY & GOVERNANCE
 
-## PROCESS
-1. **Prepare**: Ensure all changes are captured as full-file replacements with explicit commit messages.
-2. **Verify**: Run acceptance demo matching SPEC contracts.
-3. **Summarise**: Update `STATUS_SUMMARY.md` in plain, literal language.
-4. **Transfer**: Provide a short 2–4 step “Next Actions” list; await **“DONE”**.
+| Role | Responsibility |
+|------|----------------|
+| **OWNER** | Defines scope, process, and acceptance. Only authority on direction. |
+| **Hub** | Single source of truth — integrates, documents, and records all work. |
+| **Spokes** | Perform heavy implementation under Hub direction. |
+
+No information may be sourced from previous chats or external material; each HUB begins only from the latest recorded Hub context.
+
+---
+
+## REQUIRED ARTIFACTS
+
+1. **STATUS_SUMMARY.md** — current state and next milestone  
+2. **SPEC_MASTER_MVP.md** — contracts, with `## VISION` and `## EXECUTION` clearly marked  
+3. **ROADMAP_MVP.md** — milestones + acceptance gates  
+4. **CHANGELOG.md** — full-file replacements with commit messages  
+5. **PERSISTENCE.md** — data model and function contracts (if applicable)  
+6. **KNOWN_ISSUES.md** — open bugs, blockers, caveats  
+7. **SETUP.md** — environment variables and deployment instructions  
+
+---
+
+## PROCESS (HUB FINALISATION)
+
+1. **Prepare** – ensure all commits follow the explicit pattern: `path + message + full replacement`.  
+2. **Verify** – demo reproduces behaviour defined in SPEC; docs updated.  
+3. **Summarise** – refresh `STATUS_SUMMARY.md` in plain language.  
+4. **Transfer** – provide 2–4 step *Next Actions* list; await explicit **“DONE.”**
+
+---
 
 ## COMMUNICATION STANDARD
-- No jargon, no implied context.
-- Steps of 2–4 items.
-- Each step waits for explicit **“DONE”** before proceeding.
 
-## QA & ACCEPTANCE
-- ✅ Docs and code align (no drift).
-- ✅ Admin→Booker linkage demonstrable (where applicable).
-- ✅ Persistence round-trip verified (where applicable).
-- ✅ All env/deploy details in SETUP.md (no hidden config).
+- Plain, literal language; no acronyms or shorthand.  
+- Each step = 2–4 items.  
+- Wait for explicit **“DONE”** confirmation before continuing.  
+- Any item not recorded in the Hub repo is considered **non-existent**.
 
-## APPENDIX — CONTEXT HARVEST (HUB #4 THREAD ONLY)
-**OWNER (this thread):**
-- Replace any prior brand references; use neutral “OWNER / platform” terminology.
-- Keep all context inside the Hub; do not infer from older chats or the web.
-- Maintain **Dual-Track** (Vision + Execution) going forward.
-- Plain-language, step-based comms; await **“DONE.”**
-- Purpose: automate small meeting-room sales end-to-end without staff involvement.
+---
 
-**HUB (this thread):**
-- Persistence via Netlify Functions + Supabase storing a single JSON config per venue/tenant.
-- Booker MVP must visibly reflect Admin-driven pricing, with alternatives when unavailable.
-- Hub integrates/records; Spokes do heavy implementation.
+## QA & ACCEPTANCE GATES
 
-> Note: This appendix is restricted to content from this HUB #4 chat and the uploaded “Missed details” document.
+✅ Documentation and code are aligned (no drift).  
+✅ Admin → Booker linkage demonstrable where applicable.  
+✅ Persistence round-trip verified if implemented.  
+✅ All environment and deployment details included in `SETUP.md`.
+
+---
+
+## APPENDIX — Context Harvest (HUB #4 thread + “Missed details”)
+
+**OWNER Direction**
+- Replace legacy brand names; maintain neutral “OWNER / Platform” language.  
+- Maintain the **Dual-Track** structure (Vision + Execution).  
+- Use plain-language, step-based instructions; require explicit *DONE* gates.  
+- Project purpose: automate **small-meeting-room** sales for hotels/venues —
+  search → customise → price → pay → confirm, with no staff intervention.  
+- Trust in automated pricing is the adoption hinge; every Admin entry must map to a visible, accurate Booker price.  
+
+**HUB Behaviour**
+- Hub = integrator and record keeper; Spokes = executors.  
+- Persistence via Netlify Functions + Supabase JSONB config per venue/tenant.  
+- Booker MVP validates Admin-driven pricing and availability with fallbacks.  
+- No external inference or prior chat history allowed.
+
+---
