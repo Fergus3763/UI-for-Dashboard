@@ -1,0 +1,74 @@
+<!-- UI-for-Dashboard/admin-ui/public/persistence-smoke.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Persistence Smoke Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+      textarea { width: 100%; height: 180px; }
+      pre { background: #f6f8fa; padding: 1rem; overflow: auto; }
+      .row { display: flex; gap: .75rem; align-items: center; margin: .5rem 0; }
+      label { font-weight: 600; }
+      button { padding: .5rem .9rem; }
+      input[type="text"] { padding: .4rem; width: 260px; }
+    </style>
+  </head>
+  <body>
+    <h1>Persistence Smoke Test</h1>
+    <div class="row">
+      <label for="tenant">Tenant (X-Tenant-Id):</label>
+      <input id="tenant" type="text" placeholder="default" />
+      <button id="btnLoad">Load</button>
+      <button id="btnSave">Save</button>
+    </div>
+    <p>JSON payload:</p>
+    <textarea id="json">{ "hello": "world", "ts": Date.now() }</textarea>
+    <h3>Response</h3>
+    <pre id="out">Click Load or Save…</pre>
+
+    <script>
+      const out = document.getElementById('out');
+      const txt = document.getElementById('json');
+      const tenant = document.getElementById('tenant');
+
+      function tenantHeaders() {
+        const v = tenant.value.trim();
+        return v ? { 'X-Tenant-Id': v } : {};
+      }
+
+      async function load() {
+        out.textContent = 'Loading…';
+        const res = await fetch('/.netlify/functions/load_config', {
+          method: 'GET',
+          headers: { ...tenantHeaders() },
+        });
+        const json = await res.json();
+        out.textContent = JSON.stringify(json, null, 2);
+        if (json?.data) txt.value = JSON.stringify(json.data, null, 2);
+      }
+
+      async function save() {
+        out.textContent = 'Saving…';
+        let data;
+        try {
+          data = JSON.parse(txt.value);
+        } catch (e) {
+          out.textContent = 'Invalid JSON in textarea';
+          return;
+        }
+        const res = await fetch('/.netlify/functions/save_config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...tenantHeaders() },
+          body: JSON.stringify({ data }),
+        });
+        const json = await res.json();
+        out.textContent = JSON.stringify(json, null, 2);
+      }
+
+      document.getElementById('btnLoad').addEventListener('click', load);
+      document.getElementById('btnSave').addEventListener('click', save);
+    </script>
+  </body>
+</html>
