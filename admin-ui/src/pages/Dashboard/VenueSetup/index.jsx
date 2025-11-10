@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { saveConfig, loadConfig } from "../../../lib/persistence";
 
 function newVenue() {
   return {
@@ -32,22 +31,24 @@ export default function VenueSetup() {
     return e;
   }
 
-  // Load any existing config from Supabase on first mount
+  // Load existing config from Supabase on first mount
   useEffect(() => {
     let cancelled = false;
 
     async function doLoad() {
       try {
-        const res = await loadConfig();
+        const res = await fetch("/.netlify/functions/load_config", {
+          method: "GET",
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const json = await res.json();
         if (cancelled) return;
 
-        if (res && res.data && res.data.venue) {
-          // Merge with defaults in case we add new fields later
-          setVenue({ ...newVenue(), ...res.data.venue });
+        if (json && json.data && json.data.venue) {
+          setVenue({ ...newVenue(), ...json.data.venue });
         }
       } catch (err) {
-        // We keep this silent in UI for now; console only.
-        // This avoids blocking the user if persistence is temporarily unavailable.
+        // Don't block UI if persistence fails; just log it.
         // eslint-disable-next-line no-console
         console.error("Failed to load venue config", err);
       } finally {
@@ -72,9 +73,17 @@ export default function VenueSetup() {
 
     setSaving(true);
     try {
-      const payload = { venue };
-      const res = await saveConfig(payload);
-      if (res && res.ok) {
+      const payload = { data: { venue } };
+      const res = await fetch("/.netlify/functions/save_config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (res.ok && json && json.ok) {
         setSaveMessage("Saved to Supabase.");
       } else {
         setSaveMessage("Save completed, but response was unexpected.");
@@ -88,7 +97,6 @@ export default function VenueSetup() {
     }
   }
 
-  // Very simple styling, matching existing plain layout
   return (
     <div style={{ padding: "1.5rem" }}>
       <header
@@ -217,9 +225,10 @@ export default function VenueSetup() {
                 type="file"
                 onChange={(e) =>
                   setField({
-                    main_image: e.target.files && e.target.files[0]
-                      ? e.target.files[0].name
-                      : null,
+                    main_image:
+                      e.target.files && e.target.files[0]
+                        ? e.target.files[0].name
+                        : null,
                   })
                 }
               />
