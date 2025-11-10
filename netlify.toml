@@ -1,11 +1,18 @@
 [build]
   base = "admin-ui"
-  command = "npm install && npm run build"   # <-- change from npm ci
   publish = "public"
+  command = "npm install && npm run build"
 
-[build.environment]
-  NODE_VERSION = "18"
+[functions]
+  directory = "admin-ui/netlify/functions"
 
+# Serve the persistence smoke test as a static file (no SPA redirect)
+[[redirects]]
+  from = "/persistence-smoke.html"
+  to = "/persistence-smoke.html"
+  status = 200
+
+# SPA catch-all for the React Admin UI
 [[redirects]]
   from = "/*"
   to = "/index.html"
