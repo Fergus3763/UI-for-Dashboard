@@ -1,3 +1,5 @@
+// HUB4: Venue Setup with Supabase persistence via Netlify Functions
+
 import { useEffect, useState } from "react";
 
 function newVenue() {
@@ -83,6 +85,9 @@ export default function VenueSetup() {
       });
 
       const json = await res.json();
+      // eslint-disable-next-line no-console
+      console.log("save_config response", json);
+
       if (res.ok && json && json.ok) {
         setSaveMessage("Saved to Supabase.");
       } else {
