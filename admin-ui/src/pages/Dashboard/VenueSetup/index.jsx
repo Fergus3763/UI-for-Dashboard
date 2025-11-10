@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { saveConfig, loadConfig } from "../../../lib/persistence";
 
 function newVenue() {
   return {
@@ -15,6 +16,9 @@ function newVenue() {
 export default function VenueSetup() {
   const [venue, setVenue] = useState(newVenue());
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null);
+  const [initialised, setInitialised] = useState(false);
 
   function setField(patch) {
     setVenue((v) => ({ ...v, ...patch }));
@@ -22,117 +26,224 @@ export default function VenueSetup() {
 
   function validate(v) {
     const e = {};
-    if (!v.name.trim()) e.name = "Venue name is required";
+    if (!v.name || !v.name.trim()) {
+      e.name = "Venue name is required";
+    }
     return e;
   }
 
-  function save() {
+  // Load any existing config from Supabase on first mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function doLoad() {
+      try {
+        const res = await loadConfig();
+        if (cancelled) return;
+
+        if (res && res.data && res.data.venue) {
+          // Merge with defaults in case we add new fields later
+          setVenue({ ...newVenue(), ...res.data.venue });
+        }
+      } catch (err) {
+        // We keep this silent in UI for now; console only.
+        // This avoids blocking the user if persistence is temporarily unavailable.
+        // eslint-disable-next-line no-console
+        console.error("Failed to load venue config", err);
+      } finally {
+        if (!cancelled) setInitialised(true);
+      }
+    }
+
+    doLoad();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSave() {
     const e = validate(venue);
     setErrors(e);
-    if (Object.keys(e).length) return;
+    setSaveMessage(null);
 
-    // Minimal normalization for now (MVP)
-    const payload = {
-      name: venue.name,
-      address: venue.address,
-      email: venue.email,
-      phone: venue.phone,
-      notes: venue.notes,
-      // file inputs not posted yet; wired later to storage/upload
-    };
+    if (Object.keys(e).length > 0) {
+      return;
+    }
 
-    console.log("VENUE:SAVE", payload);
-    alert(`Saved venue: ${venue.name || "(unnamed)"}`);
+    setSaving(true);
+    try {
+      const payload = { venue };
+      const res = await saveConfig(payload);
+      if (res && res.ok) {
+        setSaveMessage("Saved to Supabase.");
+      } else {
+        setSaveMessage("Save completed, but response was unexpected.");
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to save venue config", err);
+      setSaveMessage("Error: could not save venue details.");
+    } finally {
+      setSaving(false);
+    }
   }
 
+  // Very simple styling, matching existing plain layout
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0 }}>Venue Setup — Admin</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={save}>Save</button>
-        </div>
+    <div style={{ padding: "1.5rem" }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1.5rem",
+        }}
+      >
+        <h1>Venue Setup — Admin</h1>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          style={{ padding: "0.4rem 0.9rem" }}
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
       </header>
 
-      <section style={card}>
-        <div style={grid2}>
-          <div>
-            <label style={label}>Venue Name *</label>
-            <input
-              value={venue.name}
-              onChange={(e) => setField({ name: e.target.value })}
-              placeholder="e.g., Airport Business Park — Hub"
-            />
-            {errors.name && <p style={err}>{errors.name}</p>}
+      {!initialised && (
+        <p style={{ marginBottom: "0.75rem", fontStyle: "italic" }}>
+          Loading saved configuration…
+        </p>
+      )}
+
+      {saveMessage && (
+        <p style={{ marginBottom: "0.75rem" }}>
+          <strong>{saveMessage}</strong>
+        </p>
+      )}
+
+      <div
+        style={{
+          maxWidth: "900px",
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+          padding: "1.5rem",
+        }}
+      >
+        <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
+          {/* Left column */}
+          <div style={{ flex: "1 1 260px" }}>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>
+                Venue Name *
+              </label>
+              <input
+                type="text"
+                value={venue.name}
+                onChange={(e) => setField({ name: e.target.value })}
+                style={{ width: "100%", padding: "0.3rem" }}
+                placeholder="e.g., Airport Business Park"
+              />
+              {errors.name && (
+                <div style={{ color: "red", marginTop: "0.25rem" }}>
+                  {errors.name}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>Phone</label>
+              <input
+                type="tel"
+                value={venue.phone}
+                onChange={(e) => setField({ phone: e.target.value })}
+                style={{ width: "100%", padding: "0.3rem" }}
+                placeholder="+353 1 234 5678"
+              />
+            </div>
+
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>
+                Address
+              </label>
+              <textarea
+                value={venue.address}
+                onChange={(e) => setField({ address: e.target.value })}
+                style={{ width: "100%", padding: "0.3rem" }}
+                placeholder="Street, City, Postcode, Country"
+              />
+            </div>
+
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>Notes</label>
+              <textarea
+                value={venue.notes}
+                onChange={(e) => setField({ notes: e.target.value })}
+                style={{ width: "100%", padding: "0.3rem" }}
+                placeholder="Optional administrative notes"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              style={{ padding: "0.4rem 0.9rem" }}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
           </div>
-          <div>
-            <label style={label}>Contact Email</label>
-            <input
-              value={venue.email}
-              onChange={(e) => setField({ email: e.target.value })}
-              placeholder="e.g., sales@example.com"
-              type="email"
-            />
+
+          {/* Right column */}
+          <div style={{ flex: "1 1 260px" }}>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>
+                Contact Email
+              </label>
+              <input
+                type="email"
+                value={venue.email}
+                onChange={(e) => setField({ email: e.target.value })}
+                style={{ width: "100%", padding: "0.3rem" }}
+                placeholder="e.g., sales@example.com"
+              />
+            </div>
+
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>
+                Main Image
+              </label>
+              <input
+                type="file"
+                onChange={(e) =>
+                  setField({
+                    main_image: e.target.files && e.target.files[0]
+                      ? e.target.files[0].name
+                      : null,
+                  })
+                }
+              />
+            </div>
+
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", fontWeight: 600 }}>
+                Add More Images
+              </label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) =>
+                  setField({
+                    more_images: e.target.files
+                      ? Array.from(e.target.files).map((f) => f.name)
+                      : [],
+                  })
+                }
+              />
+            </div>
           </div>
         </div>
-
-        <div style={grid2}>
-          <div>
-            <label style={label}>Phone</label>
-            <input
-              value={venue.phone}
-              onChange={(e) => setField({ phone: e.target.value })}
-              placeholder="+353 1 234 5678"
-            />
-          </div>
-          <div>
-            <label style={label}>Main Image</label>
-            <input
-              type="file"
-              onChange={(e) => setField({ main_image: e.target.files?.[0] || null })}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label style={label}>Add More Images</label>
-          <input
-            multiple
-            type="file"
-            onChange={(e) => setField({ more_images: Array.from(e.target.files || []) })}
-          />
-        </div>
-
-        <div>
-          <label style={label}>Address</label>
-          <textarea
-            rows={2}
-            value={venue.address}
-            onChange={(e) => setField({ address: e.target.value })}
-            placeholder="Street, City, Postcode, Country"
-          />
-        </div>
-
-        <div>
-          <label style={label}>Notes</label>
-          <textarea
-            rows={2}
-            value={venue.notes}
-            onChange={(e) => setField({ notes: e.target.value })}
-            placeholder="Optional administrative notes"
-          />
-        </div>
-
-        <div style={{ marginTop: 8 }}>
-          <button type="button" onClick={save}>Save</button>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
-
-const card  = { border: "1px solid #e5e7eb", padding: 16, borderRadius: 12, margin: "16px 0", background: "#fff" };
-const label = { fontWeight: 600 };
-const err   = { color: "#b91c1c", marginTop: 6 };
-const grid2 = { display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, margin: "10px 0" };
-
