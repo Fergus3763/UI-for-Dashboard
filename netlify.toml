@@ -4,15 +4,15 @@
   command = "npm install && npm run build"
 
 [functions]
-  directory = "admin-ui/netlify/functions"
+  directory = "netlify/functions"
 
-# Serve the persistence smoke test as a static file (no SPA redirect)
+# Allow the smoke test page to load directly
 [[redirects]]
   from = "/persistence-smoke.html"
   to = "/persistence-smoke.html"
   status = 200
 
-# SPA catch-all for the React Admin UI
+# Catch-all for SPA routes (keep this last)
 [[redirects]]
   from = "/*"
   to = "/index.html"
