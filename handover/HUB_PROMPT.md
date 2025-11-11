@@ -1,4 +1,8 @@
 # HUB PROMPT — UI-for-Dashboard
+> **Canonical prompt note (HUB #5):**
+> This file is the authoritative HUB Prompt template.
+> All other HUB Prompt files are stubs pointing here.
+
 > 🔗 See the living **Status Summary**: [handover/STATUS_SUMMARY.md](STATUS_SUMMARY.md)
 
 This file tells any new “HUB” how to continue the project with full context.
