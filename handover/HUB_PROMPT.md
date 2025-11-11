@@ -147,3 +147,4 @@ The live environment is currently hosted on **Netlify**:
 - Continue building on the separate **Admin UI Netlify site** (Node 18).
 - Respect the existing routes and top nav pattern in `admin-ui/src/App.jsx`.
 
+- [ ] Append 2–4 lines to `handover/HUB_CONTEXT.md` under “🔁 Context Relay — for the Next HUB”.
