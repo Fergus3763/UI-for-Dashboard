@@ -33,6 +33,28 @@ Goal: search → configure → price → pay → confirm **without staff**.
 Each new HUB begins with:
 1. The **Operational Handover Prompt** (short 4-part block).  
 2. This **Context file** loaded as read-only background.
+---
+
+## 🔁 Context Relay — for the Next HUB
+
+Each HUB should add a short note (2–4 lines) here before hand-over,
+describing something they believe the *next HUB* must understand.
+
+Focus on:
+- A decision or design choice that might not be obvious later.
+- A pain point or friction you encountered that should be avoided.
+- A clarification of project intent or architecture that matured during your cycle.
+
+Use this simple format:
+
+### HUB #N → HUB #N+1
+- <your note>
+
+### HUB #N+1 → HUB #N+2
+- <next note>
+
+_(Do not delete previous HUB notes; append only.)_
+
 
 ---
 
