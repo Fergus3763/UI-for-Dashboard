@@ -165,6 +165,24 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 - ⚪ Persistence for Admin UI (Supabase) planned next
 
 **Handover to HUB#4:** proceed with data model + persistence, API spec hardening, and E2E smoke.
+## Status — HUB#4 (in progress)
+
+### Admin UI – Venue persistence wiring
+
+- Route `/admin/venue` now renders `admin-ui/src/pages/Venue.jsx`.
+- `Venue.jsx` is a **thin wrapper** that only returns `<VenueSetup />` from  
+  `admin-ui/src/pages/Dashboard/VenueSetup/index.jsx`.
+- `VenueSetup` is the *single source of truth* for the Venue form:
+  - On mount it calls `/.netlify/functions/load_config` (GET).
+    - If `response.data.venue` exists, it hydrates the form from that JSON.
+  - On Save it calls `/.netlify/functions/save_config` (POST) with:
+    - Body shape: `{"data": { "venue": { /* form fields */ } }}`.
+- Persistence target:
+  - Supabase table `public.admin_ui_config` (currently a single row with `id = 'default'`).
+  - Column `data` is a JSONB blob that will later also hold `rooms`, `fnb`, `av`, `labour`, `addons`, etc.
+- Pattern for future HUBs:
+  - Reuse this approach for other Admin tabs by extending the same `data` object rather than adding new tables for every UI tweak.
+  - If you change Venue behaviour, do it in `Dashboard/VenueSetup/index.jsx` (not in `pages/Venue.jsx`).
 
 > **Integration Roadmap:** Continues under Hub#3 stewardship — all new work must align via PR and follow the no-local-patch policy.
 >  
