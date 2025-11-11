@@ -325,3 +325,50 @@ All remaining tabs follow identical UX: **repeatable items** with clear **pricin
 **Step 4:**
 
 * MVP Booker UI outline (search → price → alternates → upsells) with implementation blocks.
+---
+
+## HUB #5 — Additions to MVP Specification (2025-11-11)
+
+### 1. Flexible Capacity Rule
+The previous “min/max capacity” rule has been replaced with a more realistic **flexible capacity model**:
+
+- Each room records:
+  - **Ideal capacity** — the group size the room is most suited for.
+  - **Maximum capacity** — the absolute upper limit of people allowed.
+
+- When a Booker searches:
+  1. The system **excludes** only rooms where the group size exceeds the maximum capacity.
+  2. It **includes** slightly smaller groups for larger rooms, recognising real-world flexibility.
+  3. It **sorts results** so that rooms with ideal capacities closest to the group size appear first.
+
+- Example:  
+  A room with an ideal capacity of 12 and a maximum of 20 can still be offered to a 10-person booking, but not to a 22-person booking.
+
+This allows realistic matching while preventing unsuitable or overcrowded bookings.
+
+---
+
+### 2. Booking Policy / Terms & Conditions Tab
+A new **“Booking Policy / Terms & Conditions”** tab is added to the Hotel Dashboard (alongside Venue, Rooms, F&B, AV, and Labour).  
+This tab holds venue-defined booking rules that the Booker will later enforce.
+
+#### Fields
+1. **Terms & Conditions (text area)** — editable standard terms.  
+2. **Reservation Hold Time (minutes)** — how long an unpaid reservation is kept before expiring.  
+   - Default values:
+     - 1–4 people → 30 minutes  
+     - 5–10 people → 60 minutes  
+     - 11–20 people → 120 minutes  
+   - Venues can override these defaults.  
+3. **Reservation Fee (optional)** — checkbox and percentage input.  
+   - Example: “Charge a reservation fee of 10 % of total booking cost.”  
+   - Optional minimum fee may also be set.
+
+#### Behaviour
+- When a reservation stub is created, the system:
+  - Reads these rules from the Admin configuration in Supabase.
+  - Applies the appropriate hold time based on group size.
+  - Marks the stub as **pending** until payment or expiry.
+  - Cancels automatically when the hold time lapses without payment.
+
+This structure ensures consistency between hotel-defined policies and public Booker behaviour.
