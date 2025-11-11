@@ -1,3 +1,8 @@
+> **Canonical spec note (HUB#4):**
+> This file is the **authoritative MVP spec** for the project.
+> Any other `SPEC_MASTER*` files (e.g. under `admin-ui/`) are pointers only
+> and must not diverge from this document.
+
 > **File Purpose (added HUB#4):**  
 > This recovered master spec consolidates all Admin UI and Pricing logic decisions made during HUB#3.  
 > Treat as the single authoritative reference for subsequent development and schema integration.
