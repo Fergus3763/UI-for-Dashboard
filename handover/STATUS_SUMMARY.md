@@ -226,6 +226,26 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 - [ ] Ensure “HUB #5 – Cleanup Complete” section appears in this file with timestamp.
 
 ---
+---
+
+## HUB #5 — Cleanup Complete  
+**Date:** 2025-11-11  
+**Owner:** Fergus3763  
+
+### Summary  
+- Verified pointer structure between `/admin-ui` and `/handover`.  
+- Confirmed `/handover` remains the **canonical documentation spine**.  
+- Checked and validated all six target files:  
+  1. `admin-ui/ROADMAP_MVP.md` → correct pointer ✅  
+  2. `admin-ui/HUB_PROMPT_TEMPLATE.md` → correct pointer ✅  
+  3. `handover/ROADMAP_MVP.md` → marked canonical ✅  
+  4. `handover/SPEC_MASTER_MVP.md` → marked canonical ✅  
+  5. `handover/HUB_PROMPT.md` → marked canonical ✅  
+  6. `handover/STATUS_SUMMARY.md` → updated with HUB #5 summary ✅  
+- No redundant or duplicated files found under `/admin-ui/`.  
+- Canonical markers are now consistent and timestamped.  
+
+**Next step:** Begin Booker MVP planning (search → availability → results → reserve stub).
 
 _This section is appended at the end of `handover/STATUS_SUMMARY.md` for each HUB.  
 Never delete older checklists—just add the new one below them._
