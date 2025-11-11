@@ -186,6 +186,49 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 
 > **Integration Roadmap:** Continues under Hub#3 stewardship — all new work must align via PR and follow the no-local-patch policy.
 >  
-> Maintainer: Fergus3763  
-> Timestamp: (auto-updated in commit)
+
+
+- [ ] Append 2–4 lines to `handover/HUB_CONTEXT.md` under “🔁 Context Relay — for the Next HUB”.
+
+
+---
+---
+
+## 🚀 HUB #5 Start-Up Checklist
+
+> Purpose: give HUB #5 a 1-page launch reference so no context is lost.
+
+### 🧭 Before you begin
+- [ ] Read **handover/HUB_CONTEXT.md** once to understand overall purpose, architecture, and governance.
+- [ ] Start the new chat with the **Operational Handover Prompt (Prompt A)**.
+- [ ] Paste the contents of **handover/HUB_CONTEXT.md (Prompt B)** immediately afterwards.
+
+### 🧹 Phase 1 – Cleanup & Sync
+- [ ] Verify that `/handover` files are canonical (STATUS, SPEC, ROADMAP, HUB_PROMPT, CONTEXT).
+- [ ] Ensure `/admin-ui` files for ROADMAP & HUB_PROMPT_TEMPLATE are **pointers only**.
+- [ ] Timestamp all edits in this file when complete.
+- [ ] Commit message format:  
+  `docs: mark handover canonical and add HUB#5 cleanup complete`
+
+### 🧪 Phase 2 – Persistence Check
+- [ ] Visit `/admin/venue` → change, save, refresh.
+- [ ] Confirm “Saved to Supabase.” appears and data reloads.
+- [ ] Confirm `public.admin_ui_config` still contains JSON data.
+
+### 🧩 Phase 3 – Prepare for Booker MVP
+- [ ] Review **handover/SPEC_MASTER_MVP.md** & **handover/ROADMAP_MVP.md**.
+- [ ] Outline search → availability → results → reserve stub flow.
+- [ ] Identify which Admin config values (e.g. rooms, pricing) feed Booker.
+
+### 💬 Phase 4 – Governance & Relay
+- [ ] Update this checklist with a ✅ marker when done.
+- [ ] Add 2–4 lines under **“🔁 Context Relay — for the Next HUB”** in `handover/HUB_CONTEXT.md`.
+- [ ] Ensure “HUB #5 – Cleanup Complete” section appears in this file with timestamp.
+
+---
+
+_This section is appended at the end of `handover/STATUS_SUMMARY.md` for each HUB.  
+Never delete older checklists—just add the new one below them._
+
+
 
