@@ -53,6 +53,29 @@ flowchart LR
     B4[Validation in Function: shape & required]:::todo
     B5[Read/Load config into Admin forms]:::todo
   end
+---
+
+### HUB #5 Roadmap Additions (2025-11-11)
+
+**Hotel Dashboard – Near Term**
+- Add new **Booking Policy / Terms & Conditions** tab.  
+  - Includes Terms text area, Reservation Hold Time, and optional Reservation Fee (%).  
+  - Must store values within `public.admin_ui_config → data JSONB`.
+
+**Booker MVP – Phase 1**
+- Integrate flexible capacity matching:  
+  - Only exclude rooms where requested group > maximum capacity.  
+  - Allow smaller groups in larger rooms when reasonable.  
+  - Sort results by “closest fit” to requested group size.
+- Respect Booking Policy settings from Admin configuration:
+  - Enforce hold time for unpaid reservations.
+  - Display Terms & Conditions link before final confirmation.
+  - Apply reservation fee if enabled.
+
+**Later Enhancements (post-demo)**
+- Adjustable “capacity tolerance” per venue.  
+- Dynamic pricing based on capacity utilisation.  
+- Multi-day or multi-room bookings.
 
   %% LANE: Booker MVP
   subgraph C[Room Booker (MVP)]
