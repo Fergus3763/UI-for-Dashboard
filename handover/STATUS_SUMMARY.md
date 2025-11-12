@@ -246,6 +246,13 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 - Canonical markers are now consistent and timestamped.  
 
 **Next step:** Begin Booker MVP planning (search → availability → results → reserve stub).
+---
+
+## HUB #5 — VenueSetup Tabbed Layout
+**Date:** 2025-11-12  
+- Converted VenueSetup to tabs (Venue + Booking Policy).  
+- Booking Policy UI scaffold added; persistence to Supabase will follow as a separate task.  
+- No change to existing save/load behaviour for `venue`.
 
 _This section is appended at the end of `handover/STATUS_SUMMARY.md` for each HUB.  
 Never delete older checklists—just add the new one below them._
