@@ -13,12 +13,17 @@ export const handler = async (event) => {
     };
   }
 
+  // ✅ DEBUG LOG — this is the one we’re adding so you can see it in Netlify logs
+  let body = {};
   try {
-    const body = JSON.parse(event.body || "{}");
-    if (!body || typeof body !== "object") {
-      return { statusCode: 400, body: JSON.stringify({ ok: false, error: "Invalid JSON body" }) };
-    }
+    body = JSON.parse(event.body || "{}");
+    // This prints e.g. ["venue","bookingPolicy"] when you click Save
+    console.log("[save_config] incoming keys:", Object.keys(body || {}));
+  } catch {
+    return { statusCode: 400, body: JSON.stringify({ ok: false, error: "Invalid JSON body" }) };
+  }
 
+  try {
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -32,7 +37,7 @@ export const handler = async (event) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const id = "default";
 
-    // Fetch existing row (ignore "no rows" error)
+    // Fetch existing row (ignore "no rows" error code)
     const { data: existingRow, error: fetchErr } = await supabase
       .from("admin_ui_config")
       .select("id, data, updated_at, created")
