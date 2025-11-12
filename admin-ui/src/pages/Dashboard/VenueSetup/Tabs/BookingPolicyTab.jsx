@@ -35,9 +35,13 @@ export default function BookingPolicyTab({ config, setConfig, onSave }) {
     <div>
       {/* Save at top of tab */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <button type="button" onClick={onSave} style={{ padding: "8px 12px" }}>
-          Save Booking Policy
-        </button>
+      <button
+  type="button"
+  onClick={() => { if (typeof onSave === "function") onSave(); }}
+  style={{ padding: "8px 12px", cursor: "pointer" }}
+>
+  Save Booking Policy
+</button>  
       </div>
 
       {/* Terms & Conditions */}
@@ -220,9 +224,14 @@ export default function BookingPolicyTab({ config, setConfig, onSave }) {
 
       {/* Save at bottom of tab */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-        <button type="button" onClick={onSave} style={{ padding: "8px 12px" }}>
-          Save Booking Policy
-        </button>
+      <button
+  type="button"
+  onClick={() => { if (typeof onSave === "function") onSave(); }}
+  style={{ padding: "8px 12px", cursor: "pointer" }}
+>
+  Save Booking Policy
+</button>
+
       </div>
     </div>
   );
