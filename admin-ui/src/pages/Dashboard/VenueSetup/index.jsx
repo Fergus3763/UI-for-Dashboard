@@ -17,12 +17,13 @@ function newVenue() {
     notes: "",
   };
 }
-
 function newBookingPolicy() {
   return {
     termsText: "",
+    privacyStatement: "",
     holdTimeMinutes: { small: 30, medium: 60, large: 120 },
     reservationFee: { enabled: false, percentage: 0, minimum: 0 },
+    documents: [], // array of { title: "", url: "" }
   };
 }
 
