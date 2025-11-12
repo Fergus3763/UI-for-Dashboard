@@ -2,7 +2,7 @@
 // Now persists `bookingPolicy` alongside `venue` via existing Netlify functions.
 
 import React, { useEffect, useState } from "react";
-import AdminTabs from "../../components/AdminTabs";
+import AdminTabs from "../../../components/AdminTabs";
 import BookingPolicyTab from "./Tabs/BookingPolicyTab";
 
 // ---- helpers ----
