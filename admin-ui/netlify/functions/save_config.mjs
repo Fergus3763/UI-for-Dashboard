@@ -1,11 +1,10 @@
-// load_config.mjs — ESM Netlify Function
-// Returns the admin_ui_config row in a stable shape:
-// { ok, id, data, updated_at, created }
+// save_config.mjs — ESM Netlify Function
+// Stores { venue, bookingPolicy, etc } inside admin_ui_config.data
 
 import { createClient } from "@supabase/supabase-js";
 
 export const handler = async (event) => {
-  if (event.httpMethod !== "GET") {
+  if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
       body: JSON.stringify({ ok: false, error: "Method Not Allowed" }),
@@ -25,40 +24,28 @@ export const handler = async (event) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const id = "default";
+    const body = JSON.parse(event.body || "{}");
 
-    const { data: row, error } = await supabase
+    // Log incoming keys (for visibility in Netlify logs)
+    console.log("[save_config] incoming keys:", Object.keys(body));
+
+    const { data: existing } = await supabase
       .from("admin_ui_config")
-      .select("id, data, updated_at, created")
+      .select("data")
       .eq("id", id)
       .single();
 
-    // If no row yet, return an empty shell
-    if (error && error.code === "PGRST116") {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          ok: true,
-          id,
-          data: {},
-          updated_at: null,
-          created: null,
-        }),
-      };
-    }
+    const merged = { ...(existing?.data || {}), ...body };
 
-    if (error) {
-      throw error;
-    }
+    const { error } = await supabase
+      .from("admin_ui_config")
+      .upsert({ id, data: merged, updated_at: new Date().toISOString() });
+
+    if (error) throw error;
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        ok: true,
-        id: row.id,
-        data: row.data || {},
-        updated_at: row.updated_at || null,
-        created: row.created || null,
-      }),
+      body: JSON.stringify({ ok: true, message: "Configuration saved", id }),
     };
   } catch (err) {
     console.error(err);
