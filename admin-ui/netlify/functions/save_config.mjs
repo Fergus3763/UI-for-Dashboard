@@ -46,15 +46,20 @@ export const handler = async (event) => {
     const merged = { ...existingData, ...body };
     const now = new Date().toISOString();
 
+    // ✅ Upsert merged configuration without undefined columns
     const { error: upsertErr } = await supabase
       .from("admin_ui_config")
-      .upsert({ id, data: merged, updated_at: now, created: existingRow?.created || now });
+      .upsert({ id, data: merged, updated_at: now });
 
     if (upsertErr) throw upsertErr;
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, id, savedKeys: Object.keys(merged) }),
+      body: JSON.stringify({
+        ok: true,
+        id,
+        savedKeys: Object.keys(merged),
+      }),
     };
   } catch (err) {
     console.error("[save_config] ERROR:", err);
