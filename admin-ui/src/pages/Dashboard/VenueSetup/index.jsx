@@ -63,23 +63,28 @@ export default function VenueSetup() {
 
         if (data.venue) setVenue({ ...newVenue(), ...data.venue });
 
-        if (data.bookingPolicy) {
-          const def = newBookingPolicy();
-          setBookingPolicy({
-            ...def,
-            ...data.bookingPolicy,
-            holdTimeMinutes: {
-              ...def.holdTimeMinutes,
-              ...(data.bookingPolicy.holdTimeMinutes || {}),
-            },
-            reservationFee: {
-              ...def.reservationFee,
-              ...(data.bookingPolicy.reservationFee || {}),
-            },
-          });
-        } else {
-          setBookingPolicy(newBookingPolicy());
-        }
+     if (data.bookingPolicy) {
+  const def = newBookingPolicy();
+  setBookingPolicy({
+    ...def,
+    ...data.bookingPolicy,
+    holdTimeMinutes: {
+      ...def.holdTimeMinutes,
+      ...(data.bookingPolicy.holdTimeMinutes || {}),
+    },
+    reservationFee: {
+      ...def.reservationFee,
+      ...(data.bookingPolicy.reservationFee || {}),
+    },
+    documents: Array.isArray(data.bookingPolicy.documents)
+      ? data.bookingPolicy.documents
+      : [],
+    privacyStatement: data.bookingPolicy.privacyStatement || "",
+  });
+} else {
+  setBookingPolicy(newBookingPolicy());
+}
+  
 
         setInitialised(true);
       } catch (err) {
