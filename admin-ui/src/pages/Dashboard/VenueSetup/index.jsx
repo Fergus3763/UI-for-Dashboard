@@ -1,12 +1,11 @@
 // HUB#5: Venue Setup with tabs (Venue + Booking Policy / Terms)
-// Keeps existing Supabase persistence for `venue` via Netlify functions.
-// Booking Policy is local-only for now (persistence added in a follow-up task).
+// Now persists `bookingPolicy` alongside `venue` via existing Netlify functions.
 
 import React, { useEffect, useState } from "react";
 import AdminTabs from "../../components/AdminTabs";
 import BookingPolicyTab from "./Tabs/BookingPolicyTab";
 
-// ---- existing helpers ----
+// ---- helpers ----
 function newVenue() {
   return {
     name: "",
@@ -19,21 +18,23 @@ function newVenue() {
   };
 }
 
+function newBookingPolicy() {
+  return {
+    termsText: "",
+    holdTimeMinutes: { small: 30, medium: 60, large: 120 },
+    reservationFee: { enabled: false, percentage: 0, minimum: 0 },
+  };
+}
+
 export default function VenueSetup() {
   const [venue, setVenue] = useState(newVenue());
+  const [bookingPolicy, setBookingPolicy] = useState(newBookingPolicy());
+
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
   const [initialised, setInitialised] = useState(false);
 
-  // NEW (HUB#5): booking policy (local state only for now)
-  const [bookingPolicy, setBookingPolicy] = useState({
-    termsText: "",
-    holdTimeMinutes: { small: 30, medium: 60, large: 120 },
-    reservationFee: { enabled: false, percentage: 0, minimum: 0 },
-  });
-
-  // NEW (HUB#5): tabs state
   const [activeTab, setActiveTab] = useState("venue");
 
   function setField(patch) {
@@ -42,13 +43,11 @@ export default function VenueSetup() {
 
   function validate(v) {
     const e = {};
-    if (!v.name || !v.name.trim()) {
-      e.name = "Venue name is required";
-    }
+    if (!v.name || !v.name.trim()) e.name = "Venue name is required";
     return e;
   }
 
-  // Load existing config from Supabase (unchanged)
+  // Load config (hydrate both venue and bookingPolicy if present)
   useEffect(() => {
     let cancelled = false;
 
@@ -59,10 +58,27 @@ export default function VenueSetup() {
         const json = await res.json();
         if (cancelled) return;
 
-        if (json && json.data && json.data.venue) {
-          setVenue({ ...newVenue(), ...json.data.venue });
+        const data = (json && json.data) || {};
+
+        if (data.venue) setVenue({ ...newVenue(), ...data.venue });
+
+        if (data.bookingPolicy) {
+          const def = newBookingPolicy();
+          setBookingPolicy({
+            ...def,
+            ...data.bookingPolicy,
+            holdTimeMinutes: {
+              ...def.holdTimeMinutes,
+              ...(data.bookingPolicy.holdTimeMinutes || {}),
+            },
+            reservationFee: {
+              ...def.reservationFee,
+              ...(data.bookingPolicy.reservationFee || {}),
+            },
+          });
+        } else {
+          setBookingPolicy(newBookingPolicy());
         }
-        // Later: if (json?.data?.bookingPolicy) setBookingPolicy(json.data.bookingPolicy);
 
         setInitialised(true);
       } catch (err) {
@@ -72,12 +88,10 @@ export default function VenueSetup() {
     }
 
     doLoad();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // Save (unchanged: only saves `venue`)
+  // Save both venue and bookingPolicy
   async function doSave() {
     const e = validate(venue);
     setErrors(e);
@@ -86,7 +100,7 @@ export default function VenueSetup() {
     setSaving(true);
     setSaveMessage(null);
     try {
-      const payload = { venue }; // keep backend contract identical
+      const payload = { venue, bookingPolicy };
       const res = await fetch("/.netlify/functions/save_config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -103,7 +117,7 @@ export default function VenueSetup() {
     }
   }
 
-  // ---- existing venue form ----
+  // ---- Venue form (unchanged) ----
   function renderVenueForm() {
     return (
       <div>
@@ -173,24 +187,7 @@ export default function VenueSetup() {
     {
       key: "booking",
       label: "Booking Policy / Terms",
-      content: (
-        <div>
-          <div
-            style={{
-              padding: 12,
-              background: "#fff7e6",
-              border: "1px solid #ffe58f",
-              borderRadius: 8,
-              marginBottom: 12,
-            }}
-          >
-            <strong>Note:</strong> This section is scaffolded in HUB #5.
-            Saving to Supabase will be added in a dedicated task. Entries below
-            are not yet persisted.
-          </div>
-          <BookingPolicyTab policy={bookingPolicy} onChange={setBookingPolicy} />
-        </div>
-      ),
+      content: <BookingPolicyTab policy={bookingPolicy} onChange={setBookingPolicy} />,
     },
   ];
 
