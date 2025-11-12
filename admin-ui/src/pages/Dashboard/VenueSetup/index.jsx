@@ -197,8 +197,10 @@ export default function VenueSetup() {
   <BookingPolicyTab
     config={{ bookingPolicy }}
     setConfig={({ bookingPolicy: next }) => setBookingPolicy(next)}
+    onSave={doSave} // NEW: allows saving from the tab
   />
 ),
+
     
     },
   ];
