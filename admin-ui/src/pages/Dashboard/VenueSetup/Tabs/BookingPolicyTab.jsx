@@ -1,9 +1,8 @@
 // BookingPolicyTab.jsx — HUB #5
-// Controlled form for Terms, Privacy Statement, Hold Times, Reservation Fee, and Additional Documents.
-
+// Adds Save button and unit-converted inputs (minutes/hours/days).
 import React from "react";
 
-export default function BookingPolicyTab({ config, setConfig }) {
+export default function BookingPolicyTab({ config, setConfig, onSave }) {
   const policy = (config && config.bookingPolicy) || {
     termsText: "",
     privacyStatement: "",
@@ -23,14 +22,24 @@ export default function BookingPolicyTab({ config, setConfig }) {
   };
 
   const addDoc = () => update("documents", [...docs, { title: "", url: "" }]);
+  const removeDoc = (idx) => update("documents", docs.filter((_, i) => i !== idx));
 
-  const removeDoc = (idx) => {
-    const next = docs.filter((_, i) => i !== idx);
-    update("documents", next);
-  };
+  // Helpers for unit conversion (stored as minutes)
+  const toHours = (mins) => Math.round((mins ?? 60) / 60);
+  const fromHours = (h) => Math.max(1, Number(h || 0)) * 60;
+
+  const toDays = (mins) => Math.round((mins ?? 120) / 1440);
+  const fromDays = (d) => Math.max(1, Number(d || 0)) * 1440;
 
   return (
     <div>
+      {/* Save at top of tab */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <button type="button" onClick={onSave} style={{ padding: "8px 12px" }}>
+          Save Booking Policy
+        </button>
+      </div>
+
       {/* Terms & Conditions */}
       <section style={{ marginBottom: 16 }}>
         <h3>Standard Terms & Conditions</h3>
@@ -53,14 +62,15 @@ export default function BookingPolicyTab({ config, setConfig }) {
         />
       </section>
 
-      {/* Hold time */}
+      {/* Hold time with mixed units */}
       <section style={{ marginBottom: 16 }}>
-        <h3>Reservation Hold Time (minutes)</h3>
+        <h3>Reservation Hold Time (by group size)</h3>
         <p>How long an unpaid booking remains reserved before expiring.</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          {/* Minutes */}
           <div>
-            <label>1–4 people</label>
+            <label>1–4 people (Minutes)</label>
             <input
               type="number"
               min="1"
@@ -68,35 +78,39 @@ export default function BookingPolicyTab({ config, setConfig }) {
               onChange={(e) =>
                 update("holdTimeMinutes", {
                   ...policy.holdTimeMinutes,
-                  small: Number(e.target.value),
+                  small: Math.max(1, Number(e.target.value || 0)),
                 })
               }
             />
           </div>
+
+          {/* Hours (converted to minutes in state) */}
           <div>
-            <label>5–10 people</label>
+            <label>5–10 people (Hours)</label>
             <input
               type="number"
               min="1"
-              value={policy.holdTimeMinutes?.medium ?? 60}
+              value={toHours(policy.holdTimeMinutes?.medium)}
               onChange={(e) =>
                 update("holdTimeMinutes", {
                   ...policy.holdTimeMinutes,
-                  medium: Number(e.target.value),
+                  medium: fromHours(e.target.value),
                 })
               }
             />
           </div>
+
+          {/* Days (converted to minutes in state) */}
           <div>
-            <label>11–20 people</label>
+            <label>11–20 people (Days)</label>
             <input
               type="number"
               min="1"
-              value={policy.holdTimeMinutes?.large ?? 120}
+              value={toDays(policy.holdTimeMinutes?.large)}
               onChange={(e) =>
                 update("holdTimeMinutes", {
                   ...policy.holdTimeMinutes,
-                  large: Number(e.target.value),
+                  large: fromDays(e.target.value),
                 })
               }
             />
@@ -133,7 +147,7 @@ export default function BookingPolicyTab({ config, setConfig }) {
                 onChange={(e) =>
                   update("reservationFee", {
                     ...policy.reservationFee,
-                    percentage: Number(e.target.value),
+                    percentage: Number(e.target.value || 0),
                   })
                 }
               />
@@ -147,7 +161,7 @@ export default function BookingPolicyTab({ config, setConfig }) {
                 onChange={(e) =>
                   update("reservationFee", {
                     ...policy.reservationFee,
-                    minimum: Number(e.target.value),
+                    minimum: Number(e.target.value || 0),
                   })
                 }
               />
@@ -164,7 +178,16 @@ export default function BookingPolicyTab({ config, setConfig }) {
         {docs.length === 0 && <div style={{ marginBottom: 8 }}>No documents added.</div>}
 
         {docs.map((doc, idx) => (
-          <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, alignItems: "end", marginBottom: 8 }}>
+          <div
+            key={idx}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 2fr auto",
+              gap: 8,
+              alignItems: "end",
+              marginBottom: 8,
+            }}
+          >
             <div>
               <label>Title</label>
               <input
@@ -194,6 +217,13 @@ export default function BookingPolicyTab({ config, setConfig }) {
           + Add Additional Document
         </button>
       </section>
+
+      {/* Save at bottom of tab */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+        <button type="button" onClick={onSave} style={{ padding: "8px 12px" }}>
+          Save Booking Policy
+        </button>
+      </div>
     </div>
   );
 }
