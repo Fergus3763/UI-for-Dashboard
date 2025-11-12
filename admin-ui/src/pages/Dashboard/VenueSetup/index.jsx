@@ -187,7 +187,13 @@ export default function VenueSetup() {
     {
       key: "booking",
       label: "Booking Policy / Terms",
-      content: <BookingPolicyTab policy={bookingPolicy} onChange={setBookingPolicy} />,
+   content: (
+  <BookingPolicyTab
+    config={{ bookingPolicy }}
+    setConfig={({ bookingPolicy: next }) => setBookingPolicy(next)}
+  />
+),
+    
     },
   ];
 
