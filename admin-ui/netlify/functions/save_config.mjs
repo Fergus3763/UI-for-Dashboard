@@ -1,26 +1,15 @@
-// save_config.mjs — ESM Netlify Function
-// Merges incoming fields into Supabase admin_ui_config.data
-// POST body example: { venue: {...}, bookingPolicy: {...}, ... }
-// Response: { ok, id, data, updated_at, created }
+// load_config.mjs — ESM Netlify Function
+// Returns the admin_ui_config row in a stable shape:
+// { ok, id, data, updated_at, created }
 
 import { createClient } from "@supabase/supabase-js";
 
 export const handler = async (event) => {
-  if (event.httpMethod !== "POST") {
+  if (event.httpMethod !== "GET") {
     return {
       statusCode: 405,
       body: JSON.stringify({ ok: false, error: "Method Not Allowed" }),
     };
-  }
-
-  // ✅ DEBUG LOG — this is the one we’re adding so you can see it in Netlify logs
-  let body = {};
-  try {
-    body = JSON.parse(event.body || "{}");
-    // This prints e.g. ["venue","bookingPolicy"] when you click Save
-    console.log("[save_config] incoming keys:", Object.keys(body || {}));
-  } catch {
-    return { statusCode: 400, body: JSON.stringify({ ok: false, error: "Invalid JSON body" }) };
   }
 
   try {
@@ -37,52 +26,45 @@ export const handler = async (event) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const id = "default";
 
-    // Fetch existing row (ignore "no rows" error code)
-    const { data: existingRow, error: fetchErr } = await supabase
+    const { data: row, error } = await supabase
       .from("admin_ui_config")
       .select("id, data, updated_at, created")
       .eq("id", id)
       .single();
 
-    if (fetchErr && fetchErr.code !== "PGRST116") {
-      throw fetchErr;
+    // If no row yet, return an empty shell
+    if (error && error.code === "PGRST116") {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ok: true,
+          id,
+          data: {},
+          updated_at: null,
+          created: null,
+        }),
+      };
     }
 
-    const existingData = (existingRow && existingRow.data) || {};
-    const merged = { ...existingData, ...body };
-    const now = new Date().toISOString();
-
-    let upsertRes;
-    if (existingRow) {
-      upsertRes = await supabase
-        .from("admin_ui_config")
-        .update({ data: merged, updated_at: now })
-        .eq("id", id)
-        .select()
-        .single();
-    } else {
-      upsertRes = await supabase
-        .from("admin_ui_config")
-        .insert([{ id, data: merged, updated_at: now, created: now }])
-        .select()
-        .single();
+    if (error) {
+      throw error;
     }
 
-    if (upsertRes.error) throw upsertRes.error;
-
-    const row = upsertRes.data;
     return {
       statusCode: 200,
       body: JSON.stringify({
         ok: true,
         id: row.id,
-        data: row.data,
-        updated_at: row.updated_at,
-        created: row.created,
+        data: row.data || {},
+        updated_at: row.updated_at || null,
+        created: row.created || null,
       }),
     };
   } catch (err) {
     console.error(err);
-    return { statusCode: 500, body: JSON.stringify({ ok: false, error: String(err) }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ ok: false, error: String(err) }),
+    };
   }
 };
