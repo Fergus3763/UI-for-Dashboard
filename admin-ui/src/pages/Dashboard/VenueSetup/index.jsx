@@ -122,18 +122,17 @@ const VenueSetup = () => {
 
         if (!res.ok) {
           console.error("Failed to load config:", res.status, res.statusText);
-          return;
-        }
+        } else {
+          const json = await res.json();
+          const data = json?.data || {};
 
-        const json = await res.json();
-        const data = json?.data || {};
+          const hydratedVenue = hydrateVenue(data.venue);
+          const hydratedBooking = hydrateBookingPolicy(data.bookingPolicy);
 
-        const hydratedVenue = hydrateVenue(data.venue);
-        const hydratedBooking = hydrateBookingPolicy(data.bookingPolicy);
-
-        if (!cancelled) {
-          setVenue(hydratedVenue);
-          setBookingPolicy(hydratedBooking);
+          if (!cancelled) {
+            setVenue(hydratedVenue);
+            setBookingPolicy(hydratedBooking);
+          }
         }
       } catch (err) {
         console.error("Error loading config:", err);
@@ -192,7 +191,7 @@ const VenueSetup = () => {
       try {
         json = await res.json();
       } catch (e) {
-        // If response is not JSON, json stays null
+        // ignore non-JSON response
       }
 
       if (res.ok) {
@@ -214,13 +213,10 @@ const VenueSetup = () => {
   };
 
   const handleVenueChange = (field, value) => {
-    setVenue((prev) => {
-      const next = {
-        ...prev,
-        [field]: value,
-      };
-      return next;
-    });
+    setVenue((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
 
     if (field === "name" && errors.name) {
       setErrors((prev) => {
@@ -237,134 +233,134 @@ const VenueSetup = () => {
       label: "Venue",
       content: (
         <div style={{ padding: "1rem" }}>
+          {!initialised && (
+            <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
+          )}
           <h2>Venue details</h2>
-          {!initialised && <p>Loading...</p>}
-          {initialised && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                doSave();
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              doSave();
+            }}
+          >
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="venue-name"
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Name *
+              </label>
+              <input
+                id="venue-name"
+                type="text"
+                value={venue.name}
+                onChange={(e) =>
+                  handleVenueChange("name", e.target.value || "")
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+              {errors.name && (
+                <div style={{ color: "red", marginTop: "0.25rem" }}>
+                  {errors.name}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="venue-address"
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Address
+              </label>
+              <input
+                id="venue-address"
+                type="text"
+                value={venue.address}
+                onChange={(e) =>
+                  handleVenueChange("address", e.target.value || "")
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="venue-email"
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Email
+              </label>
+              <input
+                id="venue-email"
+                type="email"
+                value={venue.email}
+                onChange={(e) =>
+                  handleVenueChange("email", e.target.value || "")
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="venue-phone"
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Phone
+              </label>
+              <input
+                id="venue-phone"
+                type="tel"
+                value={venue.phone}
+                onChange={(e) =>
+                  handleVenueChange("phone", e.target.value || "")
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="venue-notes"
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Notes
+              </label>
+              <textarea
+                id="venue-notes"
+                value={venue.notes}
+                onChange={(e) =>
+                  handleVenueChange("notes", e.target.value || "")
+                }
+                rows={4}
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+
+            <div
+              style={{
+                marginTop: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
               }}
             >
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  htmlFor="venue-name"
-                  style={{ display: "block", fontWeight: "bold" }}
-                >
-                  Name *
-                </label>
-                <input
-                  id="venue-name"
-                  type="text"
-                  value={venue.name}
-                  onChange={(e) =>
-                    handleVenueChange("name", e.target.value || "")
-                  }
-                  style={{ width: "100%", padding: "0.5rem" }}
-                />
-                {errors.name && (
-                  <div style={{ color: "red", marginTop: "0.25rem" }}>
-                    {errors.name}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  htmlFor="venue-address"
-                  style={{ display: "block", fontWeight: "bold" }}
-                >
-                  Address
-                </label>
-                <input
-                  id="venue-address"
-                  type="text"
-                  value={venue.address}
-                  onChange={(e) =>
-                    handleVenueChange("address", e.target.value || "")
-                  }
-                  style={{ width: "100%", padding: "0.5rem" }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  htmlFor="venue-email"
-                  style={{ display: "block", fontWeight: "bold" }}
-                >
-                  Email
-                </label>
-                <input
-                  id="venue-email"
-                  type="email"
-                  value={venue.email}
-                  onChange={(e) =>
-                    handleVenueChange("email", e.target.value || "")
-                  }
-                  style={{ width: "100%", padding: "0.5rem" }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  htmlFor="venue-phone"
-                  style={{ display: "block", fontWeight: "bold" }}
-                >
-                  Phone
-                </label>
-                <input
-                  id="venue-phone"
-                  type="tel"
-                  value={venue.phone}
-                  onChange={(e) =>
-                    handleVenueChange("phone", e.target.value || "")
-                  }
-                  style={{ width: "100%", padding: "0.5rem" }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label
-                  htmlFor="venue-notes"
-                  style={{ display: "block", fontWeight: "bold" }}
-                >
-                  Notes
-                </label>
-                <textarea
-                  id="venue-notes"
-                  value={venue.notes}
-                  onChange={(e) =>
-                    handleVenueChange("notes", e.target.value || "")
-                  }
-                  rows={4}
-                  style={{ width: "100%", padding: "0.5rem" }}
-                />
-              </div>
-
-              <div
+              <button
+                type="submit"
+                disabled={saving}
                 style={{
-                  marginTop: "1.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
+                  padding: "0.5rem 1rem",
+                  cursor: saving ? "not-allowed" : "pointer",
                 }}
               >
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    cursor: saving ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-                {saveMessage && (
-                  <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
-                )}
-              </div>
-            </form>
-          )}
+                {saving ? "Saving..." : "Save"}
+              </button>
+              {saveMessage && (
+                <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
+              )}
+            </div>
+          </form>
         </div>
       ),
     },
@@ -373,16 +369,16 @@ const VenueSetup = () => {
       label: "Booking Policy / Terms",
       content: (
         <div style={{ padding: "1rem" }}>
-          {!initialised && <p>Loading...</p>}
-          {initialised && (
-            <BookingPolicyTab
-              bookingPolicy={bookingPolicy}
-              onChange={setBookingPolicy}
-              onSave={doSave}
-              saving={saving}
-              saveMessage={saveMessage}
-            />
+          {!initialised && (
+            <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
           )}
+          <BookingPolicyTab
+            bookingPolicy={bookingPolicy}
+            onChange={setBookingPolicy}
+            onSave={doSave}
+            saving={saving}
+            saveMessage={saveMessage}
+          />
         </div>
       ),
     },
@@ -393,11 +389,17 @@ const VenueSetup = () => {
       <h1>Venue setup</h1>
       <AdminTabs
         tabs={tabs}
+        /* support multiple possible prop names that AdminTabs might use */
         activeTab={activeTab}
+        activeKey={activeTab}
+        value={activeTab}
         onTabChange={setActiveTab}
+        onChange={setActiveTab}
+        onValueChange={setActiveTab}
       />
     </div>
   );
 };
 
 export default VenueSetup;
+
