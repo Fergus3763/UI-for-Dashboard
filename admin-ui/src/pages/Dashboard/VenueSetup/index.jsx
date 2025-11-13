@@ -6,38 +6,86 @@ import BookingPolicyTab from "./Tabs/BookingPolicyTab";
 
 const defaultVenue = {
   name: "",
-  address: "",
+  // address broken into separate fields for mapping
+  addressLine1: "",
+  townCity: "",
+  region: "",
+  country: "",
+  postCode: "",
   email: "",
   phone: "",
-  main_image: null,
-  more_images: [],
+  // images: 1 main + 3 additional
+  main_image: "",
+  more_images: ["", "", ""],
+  // free text description
   notes: "",
 };
 
 const defaultBookingPolicy = {
   termsText: "",
   privacyStatement: "",
+  // internally stored as minutes
   holdTimeMinutes: {
-    small: 30,
-    medium: 60,
-    large: 120,
+    small: 30, // minutes
+    medium: 120, // 2 hours
+    large: 1440, // 1 day
+  },
+  // description of what Small/Medium/Large means
+  holdAttendees: {
+    small: "",
+    medium: "",
+    large: "",
   },
   reservationFee: {
     enabled: false,
     percentage: 0,
     minimum: 0,
   },
+  // general documents
   documents: [], // array of { title: string, url: string }
+  // documents specifically linked to Terms text
+  termsDocuments: [], // array of { title: string, url: string }
+  // documents specifically linked to Privacy text
+  privacyDocuments: [], // array of { title: string, url: string }
 };
+
+function normalizeDocuments(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map((doc) => ({
+    title: typeof doc?.title === "string" ? doc.title : "",
+    url: typeof doc?.url === "string" ? doc.url : "",
+  }));
+}
 
 function hydrateVenue(rawVenue) {
   if (!rawVenue || typeof rawVenue !== "object") {
     return { ...defaultVenue };
   }
-  return {
+
+  const merged = {
     ...defaultVenue,
     ...rawVenue,
   };
+
+  // Backwards compatibility: if old single "address" field exists, use it as addressLine1 when empty
+  if (!merged.addressLine1 && typeof rawVenue.address === "string") {
+    merged.addressLine1 = rawVenue.address;
+  }
+
+  // Ensure more_images is always an array with at least 3 entries
+  const more =
+    Array.isArray(rawVenue.more_images) && rawVenue.more_images.length > 0
+      ? rawVenue.more_images.slice(0, 3)
+      : [];
+  while (more.length < 3) {
+    more.push("");
+  }
+
+  merged.more_images = more;
+  merged.main_image =
+    typeof rawVenue.main_image === "string" ? rawVenue.main_image : "";
+
+  return merged;
 }
 
 function hydrateBookingPolicy(rawBookingPolicy) {
@@ -56,7 +104,10 @@ function hydrateBookingPolicy(rawBookingPolicy) {
       ? src.reservationFee
       : {};
 
-  const documentsArray = Array.isArray(src.documents) ? src.documents : [];
+  const attendeesSource =
+    src.holdAttendees && typeof src.holdAttendees === "object"
+      ? src.holdAttendees
+      : {};
 
   return {
     termsText:
@@ -81,6 +132,20 @@ function hydrateBookingPolicy(rawBookingPolicy) {
           ? holdSource.large
           : defaultBookingPolicy.holdTimeMinutes.large,
     },
+    holdAttendees: {
+      small:
+        typeof attendeesSource.small === "string"
+          ? attendeesSource.small
+          : defaultBookingPolicy.holdAttendees.small,
+      medium:
+        typeof attendeesSource.medium === "string"
+          ? attendeesSource.medium
+          : defaultBookingPolicy.holdAttendees.medium,
+      large:
+        typeof attendeesSource.large === "string"
+          ? attendeesSource.large
+          : defaultBookingPolicy.holdAttendees.large,
+    },
     reservationFee: {
       enabled:
         typeof reservationSource.enabled === "boolean"
@@ -95,10 +160,9 @@ function hydrateBookingPolicy(rawBookingPolicy) {
           ? reservationSource.minimum
           : defaultBookingPolicy.reservationFee.minimum,
     },
-    documents: documentsArray.map((doc) => ({
-      title: typeof doc?.title === "string" ? doc.title : "",
-      url: typeof doc?.url === "string" ? doc.url : "",
-    })),
+    documents: normalizeDocuments(src.documents),
+    termsDocuments: normalizeDocuments(src.termsDocuments),
+    privacyDocuments: normalizeDocuments(src.privacyDocuments),
   };
 }
 
@@ -227,6 +291,22 @@ const VenueSetup = () => {
     }
   };
 
+  const handleMoreImageChange = (index, value) => {
+    setVenue((prev) => {
+      const nextMore = Array.isArray(prev.more_images)
+        ? [...prev.more_images]
+        : ["", "", ""];
+      while (nextMore.length < 3) {
+        nextMore.push("");
+      }
+      nextMore[index] = value;
+      return {
+        ...prev,
+        more_images: nextMore,
+      };
+    });
+  };
+
   const tabs = [
     {
       key: "venue",
@@ -243,6 +323,7 @@ const VenueSetup = () => {
               doSave();
             }}
           >
+            {/* Name */}
             <div style={{ marginBottom: "1rem" }}>
               <label
                 htmlFor="venue-name"
@@ -266,24 +347,115 @@ const VenueSetup = () => {
               )}
             </div>
 
+            {/* Address block */}
+            <h3>Address</h3>
             <div style={{ marginBottom: "1rem" }}>
               <label
-                htmlFor="venue-address"
+                htmlFor="venue-address-line1"
                 style={{ display: "block", fontWeight: "bold" }}
               >
                 Address
               </label>
               <input
-                id="venue-address"
+                id="venue-address-line1"
                 type="text"
-                value={venue.address}
+                value={venue.addressLine1}
                 onChange={(e) =>
-                  handleVenueChange("address", e.target.value || "")
+                  handleVenueChange("addressLine1", e.target.value || "")
                 }
                 style={{ width: "100%", padding: "0.5rem" }}
               />
             </div>
 
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0.75rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div>
+                <label
+                  htmlFor="venue-town-city"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Town / City
+                </label>
+                <input
+                  id="venue-town-city"
+                  type="text"
+                  value={venue.townCity}
+                  onChange={(e) =>
+                    handleVenueChange("townCity", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="venue-region"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Region
+                </label>
+                <input
+                  id="venue-region"
+                  type="text"
+                  value={venue.region}
+                  onChange={(e) =>
+                    handleVenueChange("region", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0.75rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div>
+                <label
+                  htmlFor="venue-country"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Country
+                </label>
+                <input
+                  id="venue-country"
+                  type="text"
+                  value={venue.country}
+                  onChange={(e) =>
+                    handleVenueChange("country", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="venue-postcode"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Post Code
+                </label>
+                <input
+                  id="venue-postcode"
+                  type="text"
+                  value={venue.postCode}
+                  onChange={(e) =>
+                    handleVenueChange("postCode", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+            </div>
+
+            {/* Contact details */}
             <div style={{ marginBottom: "1rem" }}>
               <label
                 htmlFor="venue-email"
@@ -320,15 +492,16 @@ const VenueSetup = () => {
               />
             </div>
 
+            {/* Hotel description */}
             <div style={{ marginBottom: "1rem" }}>
               <label
-                htmlFor="venue-notes"
+                htmlFor="venue-description"
                 style={{ display: "block", fontWeight: "bold" }}
               >
-                Notes
+                Hotel Description
               </label>
               <textarea
-                id="venue-notes"
+                id="venue-description"
                 value={venue.notes}
                 onChange={(e) =>
                   handleVenueChange("notes", e.target.value || "")
@@ -338,68 +511,28 @@ const VenueSetup = () => {
               />
             </div>
 
-            <div
-              style={{
-                marginTop: "1.5rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-              }}
-            >
-              <button
-                type="submit"
-                disabled={saving}
-                style={{
-                  padding: "0.5rem 1rem",
-                  cursor: saving ? "not-allowed" : "pointer",
-                }}
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-              {saveMessage && (
-                <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
-              )}
-            </div>
-          </form>
-        </div>
-      ),
-    },
-    {
-      key: "booking",
-      label: "Booking Policy / Terms",
-      content: (
-        <div style={{ padding: "1rem" }}>
-          {!initialised && (
-            <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
-          )}
-          <BookingPolicyTab
-            bookingPolicy={bookingPolicy}
-            onChange={setBookingPolicy}
-            onSave={doSave}
-            saving={saving}
-            saveMessage={saveMessage}
-          />
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <div>
-      <h1>Venue setup</h1>
-      <AdminTabs
-        tabs={tabs}
-        /* support multiple possible prop names that AdminTabs might use */
-        activeTab={activeTab}
-        activeKey={activeTab}
-        value={activeTab}
-        onTabChange={setActiveTab}
-        onChange={setActiveTab}
-        onValueChange={setActiveTab}
-      />
-    </div>
-  );
-};
-
-export default VenueSetup;
-
+            {/* Images */}
+            <div style={{ marginBottom: "1rem" }}>
+              <h3>Images</h3>
+              <p style={{ fontSize: "0.9rem", color: "#555" }}>
+                Enter URLs for up to four images. The first image will be used
+                as the main image.
+              </p>
+              <div style={{ marginBottom: "0.75rem" }}>
+                <label
+                  htmlFor="venue-image-main"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Image 1 (main)
+                </label>
+                <input
+                  id="venue-image-main"
+                  type="text"
+                  value={venue.main_image || ""}
+                  onChange={(e) =>
+                    handleVenueChange("main_image", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+              {[0, 1, 2].map((index) =
