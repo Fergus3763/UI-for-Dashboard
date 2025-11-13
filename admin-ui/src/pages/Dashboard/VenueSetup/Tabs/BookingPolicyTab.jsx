@@ -475,3 +475,219 @@ const BookingPolicyTab = ({
           </div>
           <div>Hours</div>
         </div>
+
+        {/* Large */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 2fr 2fr 1fr",
+            gap: "0.5rem",
+            marginBottom: "0.5rem",
+            alignItems: "center",
+          }}
+        >
+          <div>Large</div>
+          <div>
+            <input
+              type="text"
+              value={attendees.large || ""}
+              onChange={(e) => updateAttendees("large", e.target.value || "")}
+              placeholder="e.g. 11+ attendees"
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>
+            <input
+              type="number"
+              min="0"
+              value={safeNumber(largeDays)}
+              onChange={(e) => updateLargeDays(e.target.value)}
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>Days</div>
+        </div>
+      </div>
+
+      {/* Reservation Fee */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h3>Reservation fee</h3>
+        <div style={{ marginBottom: "0.5rem" }}>
+          <label style={{ display: "inline-flex", alignItems: "center" }}>
+            <input
+              type="checkbox"
+              checked={!!fee.enabled}
+              onChange={toggleReservationFee}
+              style={{ marginRight: "0.5rem" }}
+            />
+            Enable reservation fee
+          </label>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "0.75rem",
+            maxWidth: "400px",
+          }}
+        >
+          <div>
+            <label
+              htmlFor="reservation-percentage"
+              style={{ display: "block", fontWeight: "bold" }}
+            >
+              Percentage (%)
+            </label>
+            <input
+              id="reservation-percentage"
+              type="number"
+              min="0"
+              value={fee.percentage === "" ? "" : fee.percentage ?? 0}
+              disabled={!fee.enabled}
+              onChange={(e) =>
+                updateReservationFee("percentage", e.target.value)
+              }
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="reservation-minimum"
+              style={{ display: "block", fontWeight: "bold" }}
+            >
+              Minimum amount
+            </label>
+            <input
+              id="reservation-minimum"
+              type="number"
+              min="0"
+              value={fee.minimum === "" ? "" : fee.minimum ?? 0}
+              disabled={!fee.enabled}
+              onChange={(e) => updateReservationFee("minimum", e.target.value)}
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* General Documents */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h3>Documents</h3>
+        {documents.length === 0 && (
+          <p style={{ fontSize: "0.9rem", color: "#555" }}>
+            No documents added yet.
+          </p>
+        )}
+        {documents.map((doc, index) => (
+          <div
+            key={index}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "2fr 2fr auto",
+              gap: "0.5rem",
+              marginBottom: "0.5rem",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <label
+                htmlFor={`doc-title-${index}`}
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Title
+              </label>
+              <input
+                id={`doc-title-${index}`}
+                type="text"
+                value={doc.title || ""}
+                onChange={(e) =>
+                  handleDocumentChange(
+                    "documents",
+                    documents,
+                    index,
+                    "title",
+                    e.target.value || ""
+                  )
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor={`doc-url-${index}`}
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                URL
+              </label>
+              <input
+                id={`doc-url-${index}`}
+                type="url"
+                value={doc.url || ""}
+                onChange={(e) =>
+                  handleDocumentChange(
+                    "documents",
+                    documents,
+                    index,
+                    "url",
+                    e.target.value || ""
+                  )
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+            <div style={{ marginTop: "1.4rem" }}>
+              <button
+                type="button"
+                onClick={() => removeDocument("documents", documents, index)}
+                style={{
+                  padding: "0.4rem 0.75rem",
+                  cursor: "pointer",
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => addDocument("documents", documents)}
+          style={{
+            padding: "0.5rem 1rem",
+            marginTop: "0.5rem",
+            cursor: "pointer",
+          }}
+        >
+          {documents.length === 0 ? "Add document" : "Add another document"}
+        </button>
+      </div>
+
+      {/* Save controls */}
+      <div
+        style={{
+          marginTop: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          style={{
+            padding: "0.5rem 1rem",
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+        {saveMessage && (
+          <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BookingPolicyTab;
