@@ -1,216 +1,403 @@
-// HUB#5: Venue Setup with tabs (Venue + Booking Policy / Terms)
-// Now persists `bookingPolicy` alongside `venue` via existing Netlify functions.
+// admin-ui/src/pages/Dashboard/VenueSetup/index.jsx
 
 import React, { useEffect, useState } from "react";
 import AdminTabs from "../../../components/AdminTabs";
 import BookingPolicyTab from "./Tabs/BookingPolicyTab";
 
-// ---- helpers ----
-function newVenue() {
+const defaultVenue = {
+  name: "",
+  address: "",
+  email: "",
+  phone: "",
+  main_image: null,
+  more_images: [],
+  notes: "",
+};
+
+const defaultBookingPolicy = {
+  termsText: "",
+  privacyStatement: "",
+  holdTimeMinutes: {
+    small: 30,
+    medium: 60,
+    large: 120,
+  },
+  reservationFee: {
+    enabled: false,
+    percentage: 0,
+    minimum: 0,
+  },
+  documents: [], // array of { title: string, url: string }
+};
+
+function hydrateVenue(rawVenue) {
+  if (!rawVenue || typeof rawVenue !== "object") {
+    return { ...defaultVenue };
+  }
   return {
-    name: "",
-    address: "",
-    email: "",
-    phone: "",
-    main_image: null,
-    more_images: [],
-    notes: "",
-  };
-}
-function newBookingPolicy() {
-  return {
-    termsText: "",
-    privacyStatement: "",
-    holdTimeMinutes: { small: 30, medium: 60, large: 120 },
-    reservationFee: { enabled: false, percentage: 0, minimum: 0 },
-    documents: [], // array of { title: "", url: "" }
+    ...defaultVenue,
+    ...rawVenue,
   };
 }
 
-export default function VenueSetup() {
-  const [venue, setVenue] = useState(newVenue());
-  const [bookingPolicy, setBookingPolicy] = useState(newBookingPolicy());
+function hydrateBookingPolicy(rawBookingPolicy) {
+  const src =
+    rawBookingPolicy && typeof rawBookingPolicy === "object"
+      ? rawBookingPolicy
+      : {};
 
+  const holdSource =
+    src.holdTimeMinutes && typeof src.holdTimeMinutes === "object"
+      ? src.holdTimeMinutes
+      : {};
+
+  const reservationSource =
+    src.reservationFee && typeof src.reservationFee === "object"
+      ? src.reservationFee
+      : {};
+
+  const documentsArray = Array.isArray(src.documents) ? src.documents : [];
+
+  return {
+    termsText:
+      typeof src.termsText === "string"
+        ? src.termsText
+        : defaultBookingPolicy.termsText,
+    privacyStatement:
+      typeof src.privacyStatement === "string"
+        ? src.privacyStatement
+        : defaultBookingPolicy.privacyStatement,
+    holdTimeMinutes: {
+      small:
+        typeof holdSource.small === "number"
+          ? holdSource.small
+          : defaultBookingPolicy.holdTimeMinutes.small,
+      medium:
+        typeof holdSource.medium === "number"
+          ? holdSource.medium
+          : defaultBookingPolicy.holdTimeMinutes.medium,
+      large:
+        typeof holdSource.large === "number"
+          ? holdSource.large
+          : defaultBookingPolicy.holdTimeMinutes.large,
+    },
+    reservationFee: {
+      enabled:
+        typeof reservationSource.enabled === "boolean"
+          ? reservationSource.enabled
+          : defaultBookingPolicy.reservationFee.enabled,
+      percentage:
+        typeof reservationSource.percentage === "number"
+          ? reservationSource.percentage
+          : defaultBookingPolicy.reservationFee.percentage,
+      minimum:
+        typeof reservationSource.minimum === "number"
+          ? reservationSource.minimum
+          : defaultBookingPolicy.reservationFee.minimum,
+    },
+    documents: documentsArray.map((doc) => ({
+      title: typeof doc?.title === "string" ? doc.title : "",
+      url: typeof doc?.url === "string" ? doc.url : "",
+    })),
+  };
+}
+
+const VenueSetup = () => {
+  const [venue, setVenue] = useState(defaultVenue);
+  const [bookingPolicy, setBookingPolicy] = useState(defaultBookingPolicy);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState(null);
+  const [saveMessage, setSaveMessage] = useState("");
   const [initialised, setInitialised] = useState(false);
-
   const [activeTab, setActiveTab] = useState("venue");
 
-  function setField(patch) {
-    setVenue((v) => ({ ...v, ...patch }));
-  }
-
-  function validate(v) {
-    const e = {};
-    if (!v.name || !v.name.trim()) e.name = "Venue name is required";
-    return e;
-  }
-
-  // Load config (hydrate both venue and bookingPolicy if present)
   useEffect(() => {
     let cancelled = false;
 
-    async function doLoad() {
+    const loadConfig = async () => {
       try {
-        const res = await fetch("/.netlify/functions/load_config", { method: "GET" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        const res = await fetch("/.netlify/functions/load_config", {
+          method: "GET",
+        });
+
+        if (!res.ok) {
+          console.error("Failed to load config:", res.status, res.statusText);
+          return;
+        }
+
         const json = await res.json();
-        if (cancelled) return;
+        const data = json?.data || {};
 
-        const data = (json && json.data) || {};
+        const hydratedVenue = hydrateVenue(data.venue);
+        const hydratedBooking = hydrateBookingPolicy(data.bookingPolicy);
 
-        if (data.venue) setVenue({ ...newVenue(), ...data.venue });
-
-     if (data.bookingPolicy) {
-  const def = newBookingPolicy();
-  setBookingPolicy({
-    ...def,
-    ...data.bookingPolicy,
-    holdTimeMinutes: {
-      ...def.holdTimeMinutes,
-      ...(data.bookingPolicy.holdTimeMinutes || {}),
-    },
-    reservationFee: {
-      ...def.reservationFee,
-      ...(data.bookingPolicy.reservationFee || {}),
-    },
-    documents: Array.isArray(data.bookingPolicy.documents)
-      ? data.bookingPolicy.documents
-      : [],
-    privacyStatement: data.bookingPolicy.privacyStatement || "",
-  });
-} else {
-  setBookingPolicy(newBookingPolicy());
-}
-  
-
-        setInitialised(true);
+        if (!cancelled) {
+          setVenue(hydratedVenue);
+          setBookingPolicy(hydratedBooking);
+        }
       } catch (err) {
-        console.error(err);
-        setInitialised(true);
+        console.error("Error loading config:", err);
+      } finally {
+        if (!cancelled) {
+          setInitialised(true);
+        }
       }
-    }
+    };
 
-    doLoad();
-    return () => { cancelled = true; };
+    loadConfig();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Save both venue and bookingPolicy
-  async function doSave() {
-    const e = validate(venue);
-    setErrors(e);
-    if (Object.keys(e).length) return;
+  const validate = () => {
+    const newErrors = {};
+
+    if (!venue.name || venue.name.trim() === "") {
+      newErrors.name = "Venue name is required";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      setActiveTab("venue");
+      return false;
+    }
+    return true;
+  };
+
+  const doSave = async () => {
+    setSaveMessage("");
+
+    if (!validate()) {
+      return;
+    }
+
+    const payload = {
+      venue,
+      bookingPolicy,
+    };
 
     setSaving(true);
-    setSaveMessage(null);
+
     try {
-      const payload = { venue, bookingPolicy };
       const res = await fetch("/.netlify/functions/save_config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const json = await res.json();
-      setSaveMessage(json.ok ? "Saved" : "Save completed");
+
+      let json = null;
+      try {
+        json = await res.json();
+      } catch (e) {
+        // If response is not JSON, json stays null
+      }
+
+      if (res.ok) {
+        if (json && json.ok === true) {
+          setSaveMessage("Saved");
+        } else {
+          setSaveMessage("Save completed");
+        }
+      } else {
+        console.error("Save failed with status:", res.status, res.statusText);
+        setSaveMessage("Save failed");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error saving config:", err);
       setSaveMessage("Save failed");
     } finally {
       setSaving(false);
     }
-  }
+  };
 
-  // ---- Venue form (unchanged) ----
-  function renderVenueForm() {
-    return (
-      <div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", fontWeight: 600 }}>Venue name</label>
-          <input
-            type="text"
-            value={venue.name}
-            onChange={(e) => setField({ name: e.target.value })}
-            style={{ width: "100%", padding: 8 }}
-          />
-          {errors.name && <div style={{ color: "red" }}>{errors.name}</div>}
-        </div>
+  const handleVenueChange = (field, value) => {
+    setVenue((prev) => {
+      const next = {
+        ...prev,
+        [field]: value,
+      };
+      return next;
+    });
 
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", fontWeight: 600 }}>Address</label>
-          <input
-            type="text"
-            value={venue.address}
-            onChange={(e) => setField({ address: e.target.value })}
-            style={{ width: "100%", padding: 8 }}
-          />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label style={{ display: "block", fontWeight: 600 }}>Email</label>
-            <input
-              type="email"
-              value={venue.email}
-              onChange={(e) => setField({ email: e.target.value })}
-              style={{ width: "100%", padding: 8 }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontWeight: 600 }}>Phone</label>
-            <input
-              type="tel"
-              value={venue.phone}
-              onChange={(e) => setField({ phone: e.target.value })}
-              style={{ width: "100%", padding: 8 }}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <label style={{ display: "block", fontWeight: 600 }}>Notes</label>
-          <textarea
-            value={venue.notes}
-            onChange={(e) => setField({ notes: e.target.value })}
-            style={{ width: "100%", minHeight: 100, padding: 8 }}
-          />
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <button onClick={doSave} disabled={saving} style={{ padding: "8px 12px" }}>
-            {saving ? "Saving..." : "Save"}
-          </button>
-          {saveMessage && <span style={{ marginLeft: 12 }}>{saveMessage}</span>}
-        </div>
-      </div>
-    );
-  }
+    if (field === "name" && errors.name) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.name;
+        return next;
+      });
+    }
+  };
 
   const tabs = [
-    { key: "venue", label: "Venue", content: renderVenueForm() },
+    {
+      key: "venue",
+      label: "Venue",
+      content: (
+        <div style={{ padding: "1rem" }}>
+          <h2>Venue details</h2>
+          {!initialised && <p>Loading...</p>}
+          {initialised && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                doSave();
+              }}
+            >
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="venue-name"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Name *
+                </label>
+                <input
+                  id="venue-name"
+                  type="text"
+                  value={venue.name}
+                  onChange={(e) =>
+                    handleVenueChange("name", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+                {errors.name && (
+                  <div style={{ color: "red", marginTop: "0.25rem" }}>
+                    {errors.name}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="venue-address"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Address
+                </label>
+                <input
+                  id="venue-address"
+                  type="text"
+                  value={venue.address}
+                  onChange={(e) =>
+                    handleVenueChange("address", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="venue-email"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Email
+                </label>
+                <input
+                  id="venue-email"
+                  type="email"
+                  value={venue.email}
+                  onChange={(e) =>
+                    handleVenueChange("email", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="venue-phone"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Phone
+                </label>
+                <input
+                  id="venue-phone"
+                  type="tel"
+                  value={venue.phone}
+                  onChange={(e) =>
+                    handleVenueChange("phone", e.target.value || "")
+                  }
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="venue-notes"
+                  style={{ display: "block", fontWeight: "bold" }}
+                >
+                  Notes
+                </label>
+                <textarea
+                  id="venue-notes"
+                  value={venue.notes}
+                  onChange={(e) =>
+                    handleVenueChange("notes", e.target.value || "")
+                  }
+                  rows={4}
+                  style={{ width: "100%", padding: "0.5rem" }}
+                />
+              </div>
+
+              <div
+                style={{
+                  marginTop: "1.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    cursor: saving ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                {saveMessage && (
+                  <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
+                )}
+              </div>
+            </form>
+          )}
+        </div>
+      ),
+    },
     {
       key: "booking",
       label: "Booking Policy / Terms",
-   content: (
-  <BookingPolicyTab
-    config={{ bookingPolicy }}
-    setConfig={({ bookingPolicy: next }) => setBookingPolicy(next)}
-    onSave={doSave} // NEW: allows saving from the tab
-  />
-),
-
-    
+      content: (
+        <div style={{ padding: "1rem" }}>
+          {!initialised && <p>Loading...</p>}
+          {initialised && (
+            <BookingPolicyTab
+              bookingPolicy={bookingPolicy}
+              onChange={setBookingPolicy}
+              onSave={doSave}
+              saving={saving}
+              saveMessage={saveMessage}
+            />
+          )}
+        </div>
+      ),
     },
   ];
 
-  if (!initialised) return <div>Loading…</div>;
-
   return (
     <div>
-      <h1>Venue Setup</h1>
-      <AdminTabs tabs={tabs} activeKey={activeTab} onChange={setActiveTab} />
+      <h1>Venue setup</h1>
+      <AdminTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
     </div>
   );
-}
+};
+
+export default VenueSetup;
