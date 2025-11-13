@@ -1,0 +1,5 @@
+- UI does not POST bookingPolicy to save_config.
+- UI does not hydrate bookingPolicy on load.
+- save button in BookingPolicyTab not wired.
+- Environment confusion between Netlify/UI.
+- File path naming inconsistencies.
