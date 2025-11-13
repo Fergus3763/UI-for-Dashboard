@@ -10,9 +10,16 @@ const BookingPolicyTab = ({
   saveMessage,
 }) => {
   const hold = bookingPolicy?.holdTimeMinutes || {};
+  const attendees = bookingPolicy?.holdAttendees || {};
   const fee = bookingPolicy?.reservationFee || {};
   const documents = Array.isArray(bookingPolicy?.documents)
     ? bookingPolicy.documents
+    : [];
+  const termsDocuments = Array.isArray(bookingPolicy?.termsDocuments)
+    ? bookingPolicy.termsDocuments
+    : [];
+  const privacyDocuments = Array.isArray(bookingPolicy?.privacyDocuments)
+    ? bookingPolicy.privacyDocuments
     : [];
 
   const updateBookingPolicy = (update) => {
@@ -22,36 +29,82 @@ const BookingPolicyTab = ({
     });
   };
 
-  const updateHoldTime = (sizeKey, value) => {
-    const parsed =
-      value === "" ? "" : Number.isNaN(Number(value)) ? 0 : Number(value);
-    const nextHold = {
-      small:
-        hold.small !== undefined
-          ? hold.small
-          : bookingPolicy?.holdTimeMinutes?.small ?? 30,
-      medium:
-        hold.medium !== undefined
-          ? hold.medium
-          : bookingPolicy?.holdTimeMinutes?.medium ?? 60,
-      large:
-        hold.large !== undefined
-          ? hold.large
-          : bookingPolicy?.holdTimeMinutes?.large ?? 120,
-    };
-    nextHold[sizeKey] = parsed === "" ? "" : parsed;
+  // ----- Hold times helpers -----
 
+  const safeNumber = (value) => {
+    if (value === "" || value === null || value === undefined) return "";
+    const n = Number(value);
+    if (Number.isNaN(n)) return "";
+    return n;
+  };
+
+  // Stored as minutes; convert for display
+  const smallMinutes =
+    typeof hold.small === "number" ? hold.small : 0; // minutes
+  const mediumHours =
+    typeof hold.medium === "number" ? hold.medium / 60 : 0; // hours
+  const largeDays =
+    typeof hold.large === "number" ? hold.large / (60 * 24) : 0; // days
+
+  const updateSmallMinutes = (value) => {
+    const n = value === "" ? "" : Number(value);
+    const minutes = n === "" || Number.isNaN(n) ? 0 : n;
     updateBookingPolicy({
-      holdTimeMinutes: nextHold,
+      holdTimeMinutes: {
+        small: minutes,
+        medium: hold.medium ?? 0,
+        large: hold.large ?? 0,
+      },
     });
   };
+
+  const updateMediumHours = (value) => {
+    const n = value === "" ? "" : Number(value);
+    const minutes = n === "" || Number.isNaN(n) ? 0 : n * 60;
+    updateBookingPolicy({
+      holdTimeMinutes: {
+        small: hold.small ?? 0,
+        medium: minutes,
+        large: hold.large ?? 0,
+      },
+    });
+  };
+
+  const updateLargeDays = (value) => {
+    const n = value === "" ? "" : Number(value);
+    const minutes = n === "" || Number.isNaN(n) ? 0 : n * 60 * 24;
+    updateBookingPolicy({
+      holdTimeMinutes: {
+        small: hold.small ?? 0,
+        medium: hold.medium ?? 0,
+        large: minutes,
+      },
+    });
+  };
+
+  const updateAttendees = (sizeKey, value) => {
+    updateBookingPolicy({
+      holdAttendees: {
+        small: attendees.small || "",
+        medium: attendees.medium || "",
+        large: attendees.large || "",
+        [sizeKey]: value,
+      },
+    });
+  };
+
+  // ----- Reservation fee helpers -----
 
   const updateReservationFee = (field, value) => {
     let nextValue = value;
 
     if (field === "percentage" || field === "minimum") {
-      nextValue =
-        value === "" ? "" : Number.isNaN(Number(value)) ? 0 : Number(value);
+      if (value === "") {
+        nextValue = "";
+      } else {
+        const n = Number(value);
+        nextValue = Number.isNaN(n) ? 0 : n;
+      }
     }
 
     const nextFee = {
@@ -78,8 +131,16 @@ const BookingPolicyTab = ({
     });
   };
 
-  const handleDocumentChange = (index, field, value) => {
-    const nextDocs = documents.map((doc, i) =>
+  // ----- Document helpers (generic list) -----
+
+  const updateDocumentList = (key, nextDocs) => {
+    updateBookingPolicy({
+      [key]: nextDocs,
+    });
+  };
+
+  const handleDocumentChange = (key, docs, index, field, value) => {
+    const nextDocs = docs.map((doc, i) =>
       i === index
         ? {
             ...doc,
@@ -87,23 +148,17 @@ const BookingPolicyTab = ({
           }
         : doc
     );
-    updateBookingPolicy({
-      documents: nextDocs,
-    });
+    updateDocumentList(key, nextDocs);
   };
 
-  const addDocument = () => {
-    const nextDocs = [...documents, { title: "", url: "" }];
-    updateBookingPolicy({
-      documents: nextDocs,
-    });
+  const addDocument = (key, docs) => {
+    const nextDocs = [...docs, { title: "", url: "" }];
+    updateDocumentList(key, nextDocs);
   };
 
-  const removeDocument = (index) => {
-    const nextDocs = documents.filter((_, i) => i !== index);
-    updateBookingPolicy({
-      documents: nextDocs,
-    });
+  const removeDocument = (key, docs, index) => {
+    const nextDocs = docs.filter((_, i) => i !== index);
+    updateDocumentList(key, nextDocs);
   };
 
   return (
@@ -111,7 +166,7 @@ const BookingPolicyTab = ({
       <h2>Booking policy &amp; terms</h2>
 
       {/* Terms & Conditions */}
-      <div style={{ marginBottom: "1rem" }}>
+      <div style={{ marginBottom: "1.5rem" }}>
         <label
           htmlFor="booking-terms-text"
           style={{ display: "block", fontWeight: "bold" }}
@@ -127,10 +182,103 @@ const BookingPolicyTab = ({
           }
           style={{ width: "100%", padding: "0.5rem" }}
         />
+
+        <h4 style={{ marginTop: "0.75rem" }}>Terms documents</h4>
+        {termsDocuments.length === 0 && (
+          <p style={{ fontSize: "0.9rem", color: "#555" }}>
+            No documents attached to Terms yet.
+          </p>
+        )}
+        {termsDocuments.map((doc, index) => (
+          <div
+            key={index}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "2fr 2fr auto",
+              gap: "0.5rem",
+              marginBottom: "0.5rem",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <label
+                htmlFor={`terms-doc-title-${index}`}
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                Title
+              </label>
+              <input
+                id={`terms-doc-title-${index}`}
+                type="text"
+                value={doc.title || ""}
+                onChange={(e) =>
+                  handleDocumentChange(
+                    "termsDocuments",
+                    termsDocuments,
+                    index,
+                    "title",
+                    e.target.value || ""
+                  )
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor={`terms-doc-url-${index}`}
+                style={{ display: "block", fontWeight: "bold" }}
+              >
+                URL
+              </label>
+              <input
+                id={`terms-doc-url-${index}`}
+                type="url"
+                value={doc.url || ""}
+                onChange={(e) =>
+                  handleDocumentChange(
+                    "termsDocuments",
+                    termsDocuments,
+                    index,
+                    "url",
+                    e.target.value || ""
+                  )
+                }
+                style={{ width: "100%", padding: "0.5rem" }}
+              />
+            </div>
+            <div style={{ marginTop: "1.4rem" }}>
+              <button
+                type="button"
+                onClick={() =>
+                  removeDocument("termsDocuments", termsDocuments, index)
+                }
+                style={{
+                  padding: "0.4rem 0.75rem",
+                  cursor: "pointer",
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => addDocument("termsDocuments", termsDocuments)}
+          style={{
+            padding: "0.5rem 1rem",
+            marginTop: "0.5rem",
+            cursor: "pointer",
+          }}
+        >
+          {termsDocuments.length === 0
+            ? "Add document"
+            : "Add another document"}
+        </button>
       </div>
 
       {/* Privacy Statement */}
-      <div style={{ marginBottom: "1rem" }}>
+      <div style={{ marginBottom: "1.5rem" }}>
         <label
           htmlFor="booking-privacy-statement"
           style={{ display: "block", fontWeight: "bold" }}
@@ -146,140 +294,14 @@ const BookingPolicyTab = ({
           }
           style={{ width: "100%", padding: "0.5rem" }}
         />
-      </div>
 
-      {/* Hold Times */}
-      <div style={{ marginBottom: "1rem" }}>
-        <h3>Hold times (minutes)</h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "0.75rem",
-            maxWidth: "500px",
-          }}
-        >
-          <div>
-            <label
-              htmlFor="hold-small"
-              style={{ display: "block", fontWeight: "bold" }}
-            >
-              Small
-            </label>
-            <input
-              id="hold-small"
-              type="number"
-              min="0"
-              value={hold.small === "" ? "" : hold.small ?? 30}
-              onChange={(e) => updateHoldTime("small", e.target.value)}
-              style={{ width: "100%", padding: "0.5rem" }}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="hold-medium"
-              style={{ display: "block", fontWeight: "bold" }}
-            >
-              Medium
-            </label>
-            <input
-              id="hold-medium"
-              type="number"
-              min="0"
-              value={hold.medium === "" ? "" : hold.medium ?? 60}
-              onChange={(e) => updateHoldTime("medium", e.target.value)}
-              style={{ width: "100%", padding: "0.5rem" }}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="hold-large"
-              style={{ display: "block", fontWeight: "bold" }}
-            >
-              Large
-            </label>
-            <input
-              id="hold-large"
-              type="number"
-              min="0"
-              value={hold.large === "" ? "" : hold.large ?? 120}
-              onChange={(e) => updateHoldTime("large", e.target.value)}
-              style={{ width: "100%", padding: "0.5rem" }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Reservation Fee */}
-      <div style={{ marginBottom: "1rem" }}>
-        <h3>Reservation fee</h3>
-        <div style={{ marginBottom: "0.5rem" }}>
-          <label style={{ display: "inline-flex", alignItems: "center" }}>
-            <input
-              type="checkbox"
-              checked={!!fee.enabled}
-              onChange={toggleReservationFee}
-              style={{ marginRight: "0.5rem" }}
-            />
-            Enable reservation fee
-          </label>
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "0.75rem",
-            maxWidth: "400px",
-          }}
-        >
-          <div>
-            <label
-              htmlFor="reservation-percentage"
-              style={{ display: "block", fontWeight: "bold" }}
-            >
-              Percentage (%)
-            </label>
-            <input
-              id="reservation-percentage"
-              type="number"
-              min="0"
-              value={fee.percentage === "" ? "" : fee.percentage ?? 0}
-              disabled={!fee.enabled}
-              onChange={(e) =>
-                updateReservationFee("percentage", e.target.value)
-              }
-              style={{ width: "100%", padding: "0.5rem" }}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="reservation-minimum"
-              style={{ display: "block", fontWeight: "bold" }}
-            >
-              Minimum amount
-            </label>
-            <input
-              id="reservation-minimum"
-              type="number"
-              min="0"
-              value={fee.minimum === "" ? "" : fee.minimum ?? 0}
-              disabled={!fee.enabled}
-              onChange={(e) => updateReservationFee("minimum", e.target.value)}
-              style={{ width: "100%", padding: "0.5rem" }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Documents */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <h3>Documents</h3>
-        {documents.length === 0 && (
+        <h4 style={{ marginTop: "0.75rem" }}>Privacy documents</h4>
+        {privacyDocuments.length === 0 && (
           <p style={{ fontSize: "0.9rem", color: "#555" }}>
-            No documents added yet.
+            No documents attached to Privacy statement yet.
           </p>
         )}
-        {documents.map((doc, index) => (
+        {privacyDocuments.map((doc, index) => (
           <div
             key={index}
             style={{
@@ -292,34 +314,46 @@ const BookingPolicyTab = ({
           >
             <div>
               <label
-                htmlFor={`doc-title-${index}`}
+                htmlFor={`privacy-doc-title-${index}`}
                 style={{ display: "block", fontWeight: "bold" }}
               >
                 Title
               </label>
               <input
-                id={`doc-title-${index}`}
+                id={`privacy-doc-title-${index}`}
                 type="text"
                 value={doc.title || ""}
                 onChange={(e) =>
-                  handleDocumentChange(index, "title", e.target.value || "")
+                  handleDocumentChange(
+                    "privacyDocuments",
+                    privacyDocuments,
+                    index,
+                    "title",
+                    e.target.value || ""
+                  )
                 }
                 style={{ width: "100%", padding: "0.5rem" }}
               />
             </div>
             <div>
               <label
-                htmlFor={`doc-url-${index}`}
+                htmlFor={`privacy-doc-url-${index}`}
                 style={{ display: "block", fontWeight: "bold" }}
               >
                 URL
               </label>
               <input
-                id={`doc-url-${index}`}
+                id={`privacy-doc-url-${index}`}
                 type="url"
                 value={doc.url || ""}
                 onChange={(e) =>
-                  handleDocumentChange(index, "url", e.target.value || "")
+                  handleDocumentChange(
+                    "privacyDocuments",
+                    privacyDocuments,
+                    index,
+                    "url",
+                    e.target.value || ""
+                  )
                 }
                 style={{ width: "100%", padding: "0.5rem" }}
               />
@@ -327,7 +361,9 @@ const BookingPolicyTab = ({
             <div style={{ marginTop: "1.4rem" }}>
               <button
                 type="button"
-                onClick={() => removeDocument(index)}
+                onClick={() =>
+                  removeDocument("privacyDocuments", privacyDocuments, index)
+                }
                 style={{
                   padding: "0.4rem 0.75rem",
                   cursor: "pointer",
@@ -340,43 +376,102 @@ const BookingPolicyTab = ({
         ))}
         <button
           type="button"
-          onClick={addDocument}
+          onClick={() => addDocument("privacyDocuments", privacyDocuments)}
           style={{
             padding: "0.5rem 1rem",
             marginTop: "0.5rem",
             cursor: "pointer",
           }}
         >
-          Add document
+          {privacyDocuments.length === 0
+            ? "Add document"
+            : "Add another document"}
         </button>
       </div>
 
-      {/* Save controls */}
-      <div
-        style={{
-          marginTop: "1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.75rem",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
+      {/* Hold Times */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h3>Hold Times</h3>
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.5rem" }}>
+          Define what counts as Small, Medium and Large bookings, and how long
+          each size is held before being released.
+        </p>
+        <div
           style={{
-            padding: "0.5rem 1rem",
-            cursor: saving ? "not-allowed" : "pointer",
+            display: "grid",
+            gridTemplateColumns: "1fr 2fr 2fr 1fr",
+            gap: "0.5rem",
+            alignItems: "center",
+            fontWeight: "bold",
+            marginBottom: "0.5rem",
           }}
         >
-          {saving ? "Saving..." : "Save"}
-        </button>
-        {saveMessage && (
-          <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
-        )}
-      </div>
-    </div>
-  );
-};
+          <div>Size</div>
+          <div>Attendees definition</div>
+          <div>Hold time</div>
+          <div>Unit</div>
+        </div>
 
-export default BookingPolicyTab;
+        {/* Small */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 2fr 2fr 1fr",
+            gap: "0.5rem",
+            marginBottom: "0.5rem",
+            alignItems: "center",
+          }}
+        >
+          <div>Small</div>
+          <div>
+            <input
+              type="text"
+              value={attendees.small || ""}
+              onChange={(e) => updateAttendees("small", e.target.value || "")}
+              placeholder="e.g. 1–4 attendees"
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>
+            <input
+              type="number"
+              min="0"
+              value={safeNumber(smallMinutes)}
+              onChange={(e) => updateSmallMinutes(e.target.value)}
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>Minutes</div>
+        </div>
+
+        {/* Medium */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 2fr 2fr 1fr",
+            gap: "0.5rem",
+            marginBottom: "0.5rem",
+            alignItems: "center",
+          }}
+        >
+          <div>Medium</div>
+          <div>
+            <input
+              type="text"
+              value={attendees.medium || ""}
+              onChange={(e) => updateAttendees("medium", e.target.value || "")}
+              placeholder="e.g. 5–10 attendees"
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>
+            <input
+              type="number"
+              min="0"
+              value={safeNumber(mediumHours)}
+              onChange={(e) => updateMediumHours(e.target.value)}
+              style={{ width: "100%", padding: "0.5rem" }}
+            />
+          </div>
+          <div>Hours</div>
+        </div>
