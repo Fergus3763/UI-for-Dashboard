@@ -257,5 +257,14 @@ The final HUB#4 will consolidate all Spokes (UI, API, Data, Calendar, Analytics)
 _This section is appended at the end of `handover/STATUS_SUMMARY.md` for each HUB.  
 Never delete older checklists—just add the new one below them._
 
+## HUB #5 — Final Status (Failed / Incomplete)
+- Booking Policy persistence not fully connected to UI.
+- Backend save_config works when called manually.
+- UI save button does not POST correctly.
+- Config hydration incomplete.
+- HUB #5 terminated early due to instability.
+- HUB #6 will resume with new prompts defined in:
+  - HUB6_MASTER_PROMPT_1.md
+  - HUB6_MASTER_PROMPT_2.md
 
 
