@@ -27,11 +27,17 @@ const BookingPolicyTab = ({
       value === "" ? "" : Number.isNaN(Number(value)) ? 0 : Number(value);
     const nextHold = {
       small:
-        hold.small !== undefined ? hold.small : bookingPolicy?.holdTimeMinutes?.small ?? 30,
+        hold.small !== undefined
+          ? hold.small
+          : bookingPolicy?.holdTimeMinutes?.small ?? 30,
       medium:
-        hold.medium !== undefined ? hold.medium : bookingPolicy?.holdTimeMinutes?.medium ?? 60,
+        hold.medium !== undefined
+          ? hold.medium
+          : bookingPolicy?.holdTimeMinutes?.medium ?? 60,
       large:
-        hold.large !== undefined ? hold.large : bookingPolicy?.holdTimeMinutes?.large ?? 120,
+        hold.large !== undefined
+          ? hold.large
+          : bookingPolicy?.holdTimeMinutes?.large ?? 120,
     };
     nextHold[sizeKey] = parsed === "" ? "" : parsed;
 
