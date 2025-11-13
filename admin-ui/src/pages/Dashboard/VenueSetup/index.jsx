@@ -535,4 +535,92 @@ const VenueSetup = () => {
                   style={{ width: "100%", padding: "0.5rem" }}
                 />
               </div>
-              {[0, 1, 2].map((index) =
+              {[0, 1, 2].map((index) => (
+                <div style={{ marginBottom: "0.75rem" }} key={index}>
+                  <label
+                    htmlFor={`venue-image-${index + 2}`}
+                    style={{ display: "block", fontWeight: "bold" }}
+                  >
+                    Image {index + 2}
+                  </label>
+                  <input
+                    id={`venue-image-${index + 2}`}
+                    type="text"
+                    value={
+                      Array.isArray(venue.more_images)
+                        ? venue.more_images[index] || ""
+                        : ""
+                    }
+                    onChange={(e) =>
+                      handleMoreImageChange(index, e.target.value || "")
+                    }
+                    style={{ width: "100%", padding: "0.5rem" }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Save controls */}
+            <div
+              style={{
+                marginTop: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+              }}
+            >
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  padding: "0.5rem 1rem",
+                  cursor: saving ? "not-allowed" : "pointer",
+                }}
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+              {saveMessage && (
+                <span style={{ fontSize: "0.9rem" }}>{saveMessage}</span>
+              )}
+            </div>
+          </form>
+        </div>
+      ),
+    },
+    {
+      key: "booking",
+      label: "Booking Policy / Terms",
+      content: (
+        <div style={{ padding: "1rem" }}>
+          {!initialised && (
+            <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
+          )}
+          <BookingPolicyTab
+            bookingPolicy={bookingPolicy}
+            onChange={setBookingPolicy}
+            onSave={doSave}
+            saving={saving}
+            saveMessage={saveMessage}
+          />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <h1>Venue setup</h1>
+      <AdminTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        activeKey={activeTab}
+        value={activeTab}
+        onTabChange={setActiveTab}
+        onChange={setActiveTab}
+        onValueChange={setActiveTab}
+      />
+    </div>
+  );
+};
+
+export default VenueSetup;
