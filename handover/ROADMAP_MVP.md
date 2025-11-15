@@ -71,7 +71,7 @@ flowchart LR
   - Enforce hold time for unpaid reservations.
   - Display Terms & Conditions link before final confirmation.
   - Apply reservation fee if enabled.
-
+“Add-ons Upsell Preview UI (Booker + Admin) – spec in /handover/AddOns_Upsell_Preview.md.”
 **Later Enhancements (post-demo)**
 - Adjustable “capacity tolerance” per venue.  
 - Dynamic pricing based on capacity utilisation.  
