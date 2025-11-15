@@ -1,4 +1,3 @@
-ou can paste this into GitHub as:
 
 /handover/AddOns_SPEC_MVP.md
 
