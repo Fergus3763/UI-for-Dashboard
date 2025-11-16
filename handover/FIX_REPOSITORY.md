@@ -1,105 +1,98 @@
 # FIX_REPOSITORY.md  
-Central backlog of fixes, improvements, refactors, and “return later” tasks  
-Owner: HUB#6  
-Location: /handover/FIX_REPOSITORY.md
+Central repository of issues, improvements, architectural tasks, and future fixes.  
+Maintained by HUB#6.
 
 ---
 
 ## 1. Purpose
-This file tracks **known issues**, **future improvements**, and **non-urgent work**  
-across the Admin UI, Booker UI, and Netlify Functions.
+This file stores **all** issues and deferred fixes that should NOT be solved immediately but must NOT be forgotten.
 
-It prevents losing tasks during HUB/SPOKE handovers and protects the roadmap  
-from forgotten context.
-
-- If something is too large for the current sprint → record it here.  
-- If a bug is noticed but not critical → record it here.  
-- If an architectural improvement is spotted → record it here.  
-
-This is a **living document**.
+A separate quick-reference file contains only the headlines.  
+This file contains the **full detail** and reasoning.
 
 ---
 
-## 2. Current Known Issues / Deferred Fixes
-
-### Admin UI – Venue Setup
-- Move Add-ons Master UI from Venue sub-tab → top-level tab (**now planned**).
-- Add-ons filtered panels in category tabs (Rooms, F&B, AV, Labour, Other) — *planned for later*.
-- Improve alignment and spacing in Booking Policy tab.
-- Review form components to use consistent inputs across system.
-
-### Admin UI – Global Add-ons
-- Add-ons should appear as a top-level item in the VenueSetup tab menu.
-- Planned: ability to duplicate add-ons (template copy feature).
-- Planned: support quantity for PER_UNIT pricing (Phase 2).
-- Need validation errors for missing name, negative price, invalid category.
-
-### Booker UI
-- Add-ons integration into price breakdown (**Phase 2**).
-- “Last Minute Add-ons” upsell placeholders working (from `/handover/AddOns_Upsell_Preview.md`).
-- Improve display of Included items (icon + tooltip).
-
-### Persistence / API
-- Standardise config merge rules across save_config.
-- Consider adding schema validation to reject malformed addOns objects.
-- Introduce type-checking layer for future complex Rules engines.
+## 2. Current Known Issues / Deferred Fixes  
+(Updated by HUB#6 — includes Add-ons relocation + integration tasks)
 
 ---
 
-## 3. Future Enhancements (Not MVP)
-
-### Add-ons Phase 2
-- Add-ons rules engine (conditional logic).
-- “Popular Add-ons” scoring.
-- End-of-flow upsell (“Before you book, would you like to add…”).
-- Multi-quantity support for PER_UNIT.
-
-### Room Booker – Roadmap
-- Multi-day bookings.
-- Layout configurator.
-- Dynamic pricing engine.
-- VAT calculation by category.
-
-### Admin UI – General
-- Convert all tabs to use a shared `<AdminFormSection>` component.
-- Light/dark mode (optional).
-- Keyboard shortcuts for Save/Undo/Redo.
+### Admin UI – Add-ons (Global)
+- **Move Global Add-ons out of the Venue sub-tab and into its own top-level tab.**  
+  Add-ons are global, cross-category items and should not live under Venue.
+- **Ensure the new top-level Add-ons tab appears alongside:**  
+  Venue, Rooms, F&B, AV, Labour, Other.
+- **Refactor routing/navigation** if needed to properly separate Add-ons.
+- **Maintain existing functionality exactly during the move** (master list, create/edit/deactivate, save/hydration).
+- Verify AddOnsTab.jsx continues to receive:  
+  - `addOns`  
+  - `setAddOns`  
+  - `onSave`
+- Add top-of-page description text (simple plain-English introduction).
+- Optional UI polish: Category colour badges, consistent spacing.
 
 ---
 
-## 4. How to Add New Items  
-When a bug/improvement is found:
+### Admin UI – Category Tabs (Rooms, F&B, AV, Labour, Other)
+Each category tab must be extended with a **filtered Add-ons panel**:
+- Shows only items where `addOn.category === "<category>"`.
+- Must be **read-only for MVP**.
+- Includes a “Manage Add-ons” button linking to the Master Add-ons page.
+- Deactivated Add-ons (`active:false`) must be hidden.
+- Styling should match existing Venue Setup panel patterns.
 
-1. Add a new bullet under the correct section.  
-2. Write a short, clear description.  
-3. Add `(origin: HUB#6)`, `(origin: SPOKE)`, or `(origin: OWNER)` if useful.  
-4. No need for dates — Git tracks history.
-
-Example:
-
-- Dropdown flickers when switching tabs (origin: HUB#6).
-
----
-
-## 5. When to Clear Items  
-Only remove an item when:
-
-- It is completed AND  
-- It appears in commit history with a clear commit message.
-
-Example acceptable commit message:
-
-```
-fix(addons): correct category filtering in Rooms panel
-```
+Future (not MVP):
+- Inline editor.
+- Sorting / grouping.
+- Category-specific suggestions.
 
 ---
 
-## 6. Ownership  
-HUB#6 maintains accuracy of this document.  
-SPOKES rely on it during implementation.  
-The OWNER uses it to track progress between phases.
+### Admin UI – Venue Tab
+- Remove Add-ons from inside the Venue navigation to avoid confusion.
+- Confirm tab-switching/routing behaviour remains unaffected.
 
 ---
 
-End of File
+### Persistence / Load–Save Behaviour
+- After relocation, re-verify:
+  - `addOns` hydrates correctly from load_config.
+  - `addOns` saves correctly via save_config.
+  - Other config shapes (`venue`, `bookingPolicy`, `rooms`, etc.) are untouched.
+- Add fallback guard:  
+  ```
+  if (!Array.isArray(data.addOns)) addOns = [];
+  ```
+
+---
+
+### Visual / UX Enhancements (Add-ons)
+- Improve table spacing and responsiveness.
+- Replace HTML table with shared admin table component (if exists).
+- Add clearer “Included” badge (green label).
+- Display human-readable pricing labels (“Per event”, “Per hour”).
+- Optional: category icons.
+
+---
+
+### Booker UI – Add-ons Behaviour (Deferred)
+- Display relevant Add-ons in Booker flow.
+- Include “Included” items visibly.
+- Compute add-on pricing using spec formulas.
+- Hide inactive items.
+- Add pricing breakdown to the summary panel.
+
+---
+
+### Coming Soon / Upsell Preview (From AddOns_Upsell_Preview.md)
+- Verify “Coming Soon” placeholders appear correctly in Booker Results page.
+- Confirm admin-facing placeholder (Save as Last Minute Add-on) displays correctly.
+- Future fields (`isPopular`, `isLastMinute`) must remain unused for now.
+
+---
+
+### Documentation Tasks
+- Update /handover/ROADMAP_MVP.md to reflect new Add-ons tab.
+- Add reference to Add-ons in VenueSetup_Enhancements.md.
+- Consider creating /handover/CONFIG_EXAMPLES.md for sample JSON structures.
+
