@@ -169,7 +169,7 @@ function hydrateBookingPolicy(rawBookingPolicy) {
 const VenueSetup = () => {
   const [venue, setVenue] = useState(defaultVenue);
   const [bookingPolicy, setBookingPolicy] = useState(defaultBookingPolicy);
-  const [addOns, setAddOns] = useState([]);
+  
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -193,14 +193,12 @@ const VenueSetup = () => {
 
           const hydratedVenue = hydrateVenue(data.venue);
           const hydratedBooking = hydrateBookingPolicy(data.bookingPolicy);
-          const hydratedAddOns = Array.isArray(data.addOns)
-            ? data.addOns
-            : [];
+          
 
           if (!cancelled) {
             setVenue(hydratedVenue);
             setBookingPolicy(hydratedBooking);
-            setAddOns(hydratedAddOns);
+           
           }
         }
       } catch (err) {
@@ -245,8 +243,7 @@ const VenueSetup = () => {
     const payload = {
       venue,
       bookingPolicy,
-      addOns,
-    };
+      };
 
     setSaving(true);
 
