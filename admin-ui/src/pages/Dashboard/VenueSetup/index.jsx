@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import AdminTabs from "../../../components/AdminTabs";
 import BookingPolicyTab from "./Tabs/BookingPolicyTab";
-import AddOnsTab from "./Tabs/AddOnsTab";
 
 const defaultVenue = {
   name: "",
