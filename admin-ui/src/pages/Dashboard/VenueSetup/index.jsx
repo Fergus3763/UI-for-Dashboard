@@ -611,23 +611,7 @@ const VenueSetup = () => {
         </div>
       ),
     },
-    {
-      key: "addons",
-      label: "Add-ons",
-      content: (
-        <div style={{ padding: "1rem" }}>
-          {!initialised && (
-            <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
-          )}
-          <AddOnsTab addOns={addOns} setAddOns={setAddOns} onSave={doSave} />
-          {saveMessage && (
-            <div style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
-              {saveMessage}
-            </div>
-          )}
-        </div>
-      ),
-    },
+    
   ];
 
   return (
