@@ -505,7 +505,7 @@ const inputStyle = {
   width: "100%",
   padding: "0.3rem 0.4rem",
   borderRadius: "3px",
-  border: "1px solid "#ccc",
+  border: "1px solid #ccc",
   fontSize: "0.9rem",
   boxSizing: "border-box",
 };
