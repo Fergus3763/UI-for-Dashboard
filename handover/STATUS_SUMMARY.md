@@ -283,5 +283,19 @@ Never delete older checklists—just add the new one below them._
 - Do not change backend endpoints without updating `/handover` first.
 
 **Next HUB:** Implement Room Setup (MVP), validate Add-Ons interactions, and prepare for Availability reintegration work.
+## HUB #6 — Final Status
+
+### Summary
+- Venue Setup + Booking Policy scaffolding completed.
+- Room Setup spec written; implementation pending for HUB #7.
+- Navigation Spoke (Room Overview + Addon DB) drafted, pending build under HUB #7.
+- Identified drift in handover files; canonical prompt corrected and normalised.
+- Introduced `HUB7_REQUIRED_FILES.md` requirement for all future HUBs.
+
+### Pending for HUB #7
+- Rebuild availability + blackout logic cleanly (ignore old Availability Spoke).
+- Implement Room Setup MVP end-to-end with Supabase persistence.
+- Build Room Overview + Addon DB placeholder screens.
+- Validate load/save chain across all tabs.
 
 
