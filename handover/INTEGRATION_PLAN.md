@@ -1,41 +1,65 @@
-# Integration Plan — to v0.3 “DB-linked Availability”
+# Integration Plan — v0.3 → v0.4 (Canonical for HUB#7)
 
-## Phase 1 — API ↔ Supabase
-- Add Supabase client; read keys from env vars.
-- Replace in-memory stores with DB CRUD in functions.
-- Add unit tests for create/delete blackout, list availability.
-- Smoke test via curl/Postman.
+This file defines the required integration sequence for Admin UI, API, and Supabase.
 
-## Phase 2 — Admin UI ↔ API
-- Replace local “Add Blackout” with POST /blackout_periods.
-- Render existing blackouts by fetching on load.
-- Show toasts on success/failure; disable buttons while pending.
+---
 
-## Phase 3 — Public UI ↔ API (read)
-- Populate availability with GET /availability.
-- Cache recent queries (SWR/localStorage).
+# Phase 1 — Persistence (Admin UI ↔ save_config)
+Goal: Move all configuration into Supabase through `admin_ui_config.data`.
 
-## Phase 4 — Release
-- Update `/handover/RELEASE_NOTES.md`; tag v0.3.
-- Add `/handover/ENV_SAMPLE.md` with required env names.
-```md
-## Status Snapshot (post-HUB#2)
-- [x] Netlify functions live: `blackout_periods`, `availability`
-- [x] Env vars aligned (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NODE_VERSION=18`)
-- [x] Schema updated: `blackout_periods.title`
-- [ ] Formalise `availability` API spec in `API_CONTRACT.md`
-- [ ] Add E2E smoke script (CI) to hit both endpoints and validate basic responses
-- [ ] Document Room ID/Name mapping rules (Design doc → upcoming Spoke)
-Deliverable: persistent availability + admin changes reflected after refresh.
+Required keys in `.data`:
+- `venue`
+- `bookingPolicy`
+- `rooms`
+- `addOns`
 
-## HUB#4 Plan (first 1–2 sprints)
-1) Persistence for Admin UI
-   - Define Supabase tables for: Venue, Rooms, F&B items, AV items, Labour roles, Upsell rules
-   - Add simple service layer (fetch/save) and wire UI forms → Supabase
-2) API Contract
-   - Finalise availability/blackouts endpoints and payloads in `API_CONTRACT.md`
-3) CI Smoke
-   - Add a basic smoke run that hits admin-ui routes and functions endpoints post-deploy
-4) Migration Note
-   - Provide seed scripts or snapshot docs for initial test data
+Admin UI duties:
+1. Load → `/.netlify/functions/load_config`
+2. Save → `/.netlify/functions/save_config`
+3. Always POST **full objects**:
+   ```json
+   { "rooms": [ ... ] }
+   ```
 
+No Supabase direct writes from the UI.
+
+---
+
+# Phase 2 — Availability Layer (HUB #7)
+Goal: Rebuild availability engine cleanly.
+
+Requirements:
+- Use Supabase `blackout_periods` as the persistent event list.
+- Prepare for future `bookings` table.
+- Export logic as a modular library.
+- Finalise full spec in `API_CONTRACT.md`.
+
+---
+
+# Phase 3 — Booker MVP (Reader Only)
+Goal: Booker can read availability + room config.
+
+Steps:
+1. Load rooms from Admin UI config.
+2. Display rooms + date/time search.
+3. Call `/availability`.
+4. Render result state (available / not available).
+
+No pricing, payments, or booking flows yet.
+
+---
+
+# Phase 4 — Release v0.4
+- Update `RELEASE_NOTES.md`.
+- Update `STATUS_SUMMARY.md`.
+- Add Supabase seed snapshot.
+- Smoke test:
+  - GET /availability
+  - POST /blackout_periods
+  - Confirm round-trip works.
+
+---
+
+# Versioning
+- v0.3 — Availability + blackout API live  
+- v0.4 — Persistent config + Room Setup + Rebuilt availability engine  
