@@ -17,6 +17,11 @@ This single file now represents the **complete authoritative HUB prompt**.
 # 1. PROJECT PURPOSE (CORE)
 The platform enables **hotels and venues** to automate **small meeting-room sales**  
 (2–20 people, short lead time).
+> Note for future HUBs:
+> This project *is* a SaaS platform for hotels and other venues with bookable meeting rooms. 
+> This is intentional and correct — not an inference or assumption.
+> Phrasing must remain generic enough for multi-venue use, 
+> but “hotel” and “meeting room” are accurate domain terms.
 
 ### Guest Journey Goal:
 **Search → Configure → Price → Pay → Confirm**  
@@ -255,6 +260,9 @@ and shared config, not by directly reaching into each other’s storage.
 6. STARTING ANY NEW HUB (MANDATORY PROCEDURE)
 A new HUB session must not begin development work until it has received,
 in this order, each pasted as a separate message:
+1a. The HUB must ask the Owner to paste all files listed in 
+    `handover/HUB7_REQUIRED_FILES.md`. 
+    No work may begin until these have been provided in full.
 
 
 HUB_PROMPT_CANONICAL.md (this file)
@@ -330,6 +338,12 @@ Always respect the owner’s limited time and mental bandwidth.
 
 Stability and clarity always outrank speed.
 
+---
+## HUB#6 Update Notes
+- Added a new required-file index: `handover/HUB7_REQUIRED_FILES.md`.
+- Added archive clarification for the old Availability Spoke (`handover/AVAILABILITY_SPOKE_ARCHIVE.md`).
+- Corrected interpretation risks around project domain (hotel/venue SaaS).
+- These updates ensure Hub #7 and beyond have full visibility before starting work.
 
 
 END OF FILE
