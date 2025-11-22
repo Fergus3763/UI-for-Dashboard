@@ -1,101 +1,99 @@
 # HUB7_REQUIRED_FILES.md  
-**Purpose:**  
-This file tells every new HUB (Hub #7, Hub #8, etc.) which files they MUST see in full before doing any work.
+## Mandatory Inputs for Every New HUB
 
-The HUB must **explicitly ask the Owner** to paste the full contents of these files into the new chat at the start of the session.
+A new HUB session must **not begin any development or produce any code** until  
+the OWNER has pasted **all of the following files in full**, each as a separate message.
 
----
-
-## 1. Canonical Hub Prompts & Context
-
-These define how the HUB should think and behave:
-
-1. `handover/HUB_PROMPT_CANONICAL.md`  
-2. `handover/HUB_PROMPT.md`  
-3. `handover/HUB_CONTEXT.md`
-
-The HUB must **read these first**, in this order, before doing anything else.
+This prevents drift, missing context, and architectural mistakes.
 
 ---
 
-## 2. Status & Next Actions
+# 1️⃣ Canonical Prompts (foundation)
+These establish role, behaviour, guardrails, and governance.
 
-These describe where the project is now and what this HUB should do:
-
-4. `handover/STATUS_SUMMARY.md`  
-5. `handover/NEXT_ACTIONS_HUB6.md` (or `NEXT_ACTIONS_HUB7.md` once created)  
-6. `handover/RELEASE_NOTES.md`
-
-The HUB must use these to understand:
-- What has been finished
-- What is in progress
-- What is expected in this HUB
+1. `/handover/HUB_PROMPT_CANONICAL.md`
+2. `HUB6_MASTER_PROMPT_1.md`
+3. `HUB6_MASTER_PROMPT_2.md`
 
 ---
 
-## 3. Key Specs & Spoke Handover Files
+# 2️⃣ Context Spine (architecture & history)
 
-These describe specific areas that are already defined or in progress:
-
-7. `handover/AddOns_SPEC_MVP.md`  
-8. `handover/RoomSetup_SPEC_MVP.md`  
-9. `handover/Nav_RoomOverview_AddonDB_SPOKE.md`  
-10. `handover/API_CONTRACT.md`  
-11. `handover/INTEGRATION_PLAN.md`  
-
-If any of these files are missing or obviously outdated, the HUB must:
-- Pause
-- Tell the Owner which file looks wrong
-- Propose a small, clear plan to repair it **before** writing new code
+4. `/handover/HUB_CONTEXT.md`
+5. `/handover/STATUS_SUMMARY.md`
 
 ---
 
-## 4. Supabase / Data Grounding
+# 3️⃣ Active Specs Required by HUB #7
 
-These describe the underlying schema and seeds that may affect behaviour:
+These define the tasks HUB #7 must operate on.
 
-12. `handover/supabase/001_schema.sql`  
-13. `handover/supabase/002_seed_instructions.md`  
-
-The HUB should **not** change these lightly.  
-Any schema change must be:
-- Discussed with the Owner
-- Documented in `RELEASE_NOTES.md`
-- Reflected in `STATUS_SUMMARY.md`
+6. `/handover/RoomSetup_SPEC_MVP.md`
+7. `/handover/Nav_RoomOverview_AddonDB_SPOKE.md`
 
 ---
 
-## 5. Availability & Blackouts (Context Only)
+# 4️⃣ API / Data Layer (needed for continuity)
 
-14. `handover/API_CONTRACT.md` (availability + blackout sections)  
-15. `handover/AVAILABILITY_SPOKE_ARCHIVE.md` (see next file)
-
-The HUB must understand that:
-- Availability and blackout logic live in **Netlify Functions + Supabase**, not in the Admin UI.  
-- The old “Availability Spoke” (separate repo) is **historical** and must not be treated as live source of truth.
+8. `/handover/API_CONTRACT.md`  
+9. `/handover/INTEGRATION_PLAN.md`  
+10. `/handover/DATA_BOUNDARY.md`
 
 ---
 
-## 6. Mandatory Start-Up Behaviour for New HUBs
+# 5️⃣ Environment & Supabase (minimal required)
 
-Before doing ANY work, a new HUB must:
-
-1. Ask the Owner to paste the full contents of **all files in this list** (or at minimum sections 1–3).  
-2. Confirm, in its own words, that it understands:
-   - The project purpose  
-   - The current status  
-   - The specific goals for this HUB  
-3. Only then propose a **short plan** (2–4 steps) for this HUB.
-
-If any of these steps are skipped, the HUB risks repeating past mistakes:
-- Guessing file paths  
-- Ignoring handover docs  
-- Re-implementing already-solved problems  
-
-This file exists to prevent that.
+11. `/handover/supabase/ENV_SAMPLE.md`  
+12. `/handover/supabase/001_schema.sql`  
+13. `/handover/supabase/VALIDATION.md` *(if present)*  
+14. `/handover/supabase/seed_instructions.md` *(historical: optional)*
 
 ---
 
-_Last updated: HUB #6_  
-- Added initial list for Hub #7 and beyond.  
-- Future HUBs may add new required files but must not remove existing ones without discussion and documentation.
+# 6️⃣ Admin UI Critical Components
+
+These ensure the new HUB understands where UI state is loaded, saved, and hydrated.
+
+15. `admin-ui/netlify/functions/load_config.mjs`
+16. `admin-ui/netlify/functions/save_config.mjs`
+17. `admin-ui/src/pages/Dashboard/VenueSetup/Tabs/VenueTab.jsx`
+18. `admin-ui/src/pages/Dashboard/VenueSetup/Tabs/BookingPolicyTab.jsx`
+19. `admin-ui/src/pages/Dashboard/Rooms/index.jsx`
+20. `admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx` *(if present)*
+
+---
+
+# 7️⃣ Add-On System (needed for Room Setup continuity)
+
+21. Any file under:  
+    `admin-ui/src/pages/Dashboard/Rooms/AddOns/*`
+
+---
+
+# 8️⃣ Availability (historical reference only — DO NOT REUSE CODE)
+
+22. *One-paragraph explanation from OWNER:*  
+    - “The old ‘Availability Spoke’ repo existed historically but must NOT be used.  
+      It was an early prototype, failed repeatedly, and was superseded by  
+      the clean rebuild planned under HUB #7.  
+      It exists only as historical reference.  
+      HUB #7 must ignore its code entirely.”
+
+---
+
+# 9️⃣ HUB7 Successor Checklist
+
+23. `/handover/NEXT_ACTIONS_HUB7.md`  
+   (HUB #7 works from this file throughout its life.)
+
+---
+
+#  🔒 Final Rule
+
+If ANY file above is missing, incomplete, or unclear:  
+**The HUB must stop immediately and request the missing item.**
+
+No work may start until the full set is provided.
+
+This rule is mandatory and permanent.
+
