@@ -1,6 +1,9 @@
 # HUB_CONTEXT — Companion to Operational Handover Prompts
 
-## Purpose
+#> NOTE: This file contains historical and architectural context only.
+> It is *not* the operational prompt.  
+> Hub #7 must always follow the canonical prompt at `/handover/HUB_PROMPT_CANONICAL.md`.
+# Purpose
 This document preserves deep context between HUBs without overloading the live operational prompt.
 
 New HUBs should:
@@ -59,3 +62,7 @@ _(Do not delete previous HUB notes; append only.)_
 ---
 
 ### Last Updated: HUB #5 initialization
+### HUB #6 → HUB #7
+- HUB #7 must request all files listed in `handover/HUB7_REQUIRED_FILES.md` before doing any work.
+- Availability Spoke (archived at availability-spoke repo) should NOT be used; a clean rebuild will be done under HUB #7.
+- Admin UI logic for Venue, Booking Policy, Rooms, Add-Ons is stored in `admin_ui_config.data`.
