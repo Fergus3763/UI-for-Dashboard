@@ -1,6 +1,11 @@
 # HUB_PROMPT_CANONICAL.md
 ### Canonical Prompt for All Future HUBs  
 ### Version 1.0 — Created during HUB #5 → HUB #6 transition
+### Version 2.0 — Updated during HUB #6 → HUB #7 transition
+- Added HUB7_REQUIRED_FILES.md handshake requirement.
+- Clarified mandatory file visibility before any work begins.
+- Updated governance around canonical vs. pointer prompts.
+- Normalised early-HUB ambiguities about project scope.
 
 This file **must** be pasted into every new HUB session before any work begins.  
 It establishes the full context, rules, architecture, working style, and governance of the project.
