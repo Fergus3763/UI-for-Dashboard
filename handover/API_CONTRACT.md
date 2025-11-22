@@ -1,121 +1,129 @@
-# API Contract — Availability & Blackouts (Canonical v1.1 — HUB#6 → HUB#7)
+API Contract — Admin UI ↔ Netlify Functions ↔ Supabase
 
-This file defines the **only authoritative API behaviour** for the Availability & Blackouts subsystem.
+Canonical version — updated under HUB #6 for HUB #7
 
-These endpoints run on **Netlify Functions** in the Admin UI repo:
+This file defines the authoritative API shapes, payloads, and expectations
+for the Admin UI, the serverless API, and the database.
 
-```
-/.netlify/functions/availability
-/.netlify/functions/blackout_periods
-```
+Only Netlify Functions communicate with Supabase.
+Only the Admin UI communicates with the Netlify Functions.
+The Booker will later use the same endpoints in read-only mode.
 
-Supabase is the **persistent layer**, not the UI.
+1. Shared Concepts
 
----
+All timestamps must be UTC ISO 8601 (2025-10-29T10:00:00Z).
 
-# 1. POST /blackout_periods  
-Create a blackout period for a room.
+All API responses must be JSON.
 
-### Request Body
-```json
+All errors must include { ok:false, error:"…" }.
+
+2. Configuration Endpoints
+2.1 GET /.netlify/functions/load_config
+Purpose
+
+Retrieve the entire configuration from Supabase.
+
+Response
+{
+  "ok": true,
+  "id": "default",
+  "data": {
+    "venue": { … },
+    "bookingPolicy": { … },
+    "rooms": [ … ],
+    "addOns": [ … ]
+  },
+  "updated_at": "2025-01-11T10:20:00Z"
+}
+
+Rules
+
+Missing keys must be returned as {} or [], never null.
+
+data must always be an object.
+
+2.2 POST /.netlify/functions/save_config
+Purpose
+
+Merge new config fragments into the existing Supabase admin_ui_config.data JSON.
+
+Request Body
+{
+  "venue": { … },
+  "bookingPolicy": { … },
+  "rooms": [ … ],
+  "addOns": [ … ]
+}
+
+Behaviour
+
+The function merges keys into the existing JSONB.
+
+No key is deleted unless explicitly overwritten.
+
+Unknown keys are ignored with an error.
+
+Response
+{ "ok": true, "saved": ["venue", "rooms"] }
+
+3. Availability Endpoints
+3.1 POST /.netlify/functions/blackout_periods
+Purpose
+
+Insert a blackout period for a room.
+
+Request
 {
   "roomId": "RM-002",
   "startsAt": "2025-10-29T10:00:00Z",
   "endsAt": "2025-10-29T12:00:00Z",
   "title": "Admin Blackout"
 }
-```
 
-### Response (200 OK)
-```json
+Response
 {
-  "id": "uuid-string",
-  "room_id": "RM-002",
-  "starts_at": "2025-10-29T10:00:00Z",
-  "ends_at": "2025-10-29T12:00:00Z",
-  "title": "Admin Blackout"
-}
-```
-
-### Rules
-- `roomId` **must exist** in `public.rooms.id` (FK enforced).
-- `startsAt` < `endsAt`.
-- Timestamps must be **UTC** (`Z` suffix).
-- If input invalid → `400`.
-- If DB error → `500`.
-
----
-
-# 2. GET /blackout_periods?roomId=RM-002  
-List all blackout periods for a room.
-
-### Response
-```json
-[
-  {
+  "ok": true,
+  "data": {
     "id": "uuid",
     "room_id": "RM-002",
-    "title": "Admin Blackout",
     "starts_at": "2025-10-29T10:00:00Z",
-    "ends_at": "2025-10-29T12:00:00Z"
+    "ends_at": "2025-10-29T12:00:00Z",
+    "title": "Admin Blackout"
   }
-]
-```
-
----
-
-# 3. DELETE /blackout_periods/:id  
-Remove a blackout period.
-
-### Response (200 OK)
-```json
-{ "deleted": true }
-```
-
----
-
-# 4. GET /availability  
-Query room availability over a date/time window.
-
-### Query Parameters
-```
-roomId=RM-002
-from=2025-11-10T09:00:00Z
-to=2025-11-10T18:00:00Z
-```
-
-### Response (shape stable)
-```json
-{
-  "roomId": "RM-002",
-  "available": true,
-  "billableHours": 4,
-  "events": [
-    {
-      "type": "blackout",
-      "starts_at": "2025-11-10T12:00:00Z",
-      "ends_at": "2025-11-10T14:00:00Z",
-      "title": "Maintenance"
-    }
-  ],
-  "ooh": false
 }
-```
 
-### Notes
-- Formal extended spec will be completed under HUB #7.
-- Booker will rely on this endpoint; do not change field names casually.
-- Times always returned in **UTC**.
+3.2 GET /.netlify/functions/blackout_periods?roomId=RM-002
+Response
+{
+  "ok": true,
+  "data": [
+    { "id": "uuid", "room_id": "RM-002", "starts_at": "...", "ends_at": "...", "title": "..." }
+  ]
+}
 
----
+3.3 GET /.netlify/functions/availability?...
+Purpose
 
-# Required Implementation Notes (for HUB #7)
-- Availability logic currently lives inside the function; it must migrate to a reusable module during refactor.
-- Blackouts are the **only persisted events** at this stage.
-- Future features (e.g. bookings) must follow the same shape.
+Return the availability window for a room.
 
----
+Status
 
-# Versioning
-- **v1.0** — HUB #2 (initial contract)  
-- **v1.1** — HUB #6 (cleanup & canonicalisation)
+API exists and works.
+
+Formal spec will be produced by the Availability Spoke under HUB #7.
+
+4. Validation Requirements
+
+Every function must respond:
+
+200 on success
+
+400 on malformed input
+
+404 if entity not found
+
+500 on server error
+
+5. Version
+
+API Contract v1.2 — Updated by HUB #6 for HUB #7
