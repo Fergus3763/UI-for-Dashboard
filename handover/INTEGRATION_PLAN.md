@@ -1,65 +1,59 @@
-# Integration Plan — v0.3 → v0.4 (Canonical for HUB#7)
+Integration Plan — Toward v0.3 “DB-Linked Availability”
 
-This file defines the required integration sequence for Admin UI, API, and Supabase.
+Canonical version — updated by HUB #6
 
----
+This plan defines the sequence for integrating Admin UI → API → Supabase → Booker.
 
-# Phase 1 — Persistence (Admin UI ↔ save_config)
-Goal: Move all configuration into Supabase through `admin_ui_config.data`.
+Phase 1 — API → Supabase (Persistence Layer)
+Required
 
-Required keys in `.data`:
-- `venue`
-- `bookingPolicy`
-- `rooms`
-- `addOns`
+Attach blackout_periods to Supabase
 
-Admin UI duties:
-1. Load → `/.netlify/functions/load_config`
-2. Save → `/.netlify/functions/save_config`
-3. Always POST **full objects**:
-   ```json
-   { "rooms": [ ... ] }
-   ```
+Maintain availability calculation in code (Luxon)
 
-No Supabase direct writes from the UI.
+Replace any in-memory structures with DB reads/writes
 
----
+Keep API response shapes unchanged
 
-# Phase 2 — Availability Layer (HUB #7)
-Goal: Rebuild availability engine cleanly.
+Deliverables
 
-Requirements:
-- Use Supabase `blackout_periods` as the persistent event list.
-- Prepare for future `bookings` table.
-- Export logic as a modular library.
-- Finalise full spec in `API_CONTRACT.md`.
+All API calls round-trip from database
 
----
+Validation: GET + POST + DELETE blackouts all work via Supabase
 
-# Phase 3 — Booker MVP (Reader Only)
-Goal: Booker can read availability + room config.
+/handover/API_CONTRACT.md updated accordingly
 
-Steps:
-1. Load rooms from Admin UI config.
-2. Display rooms + date/time search.
-3. Call `/availability`.
-4. Render result state (available / not available).
+Phase 2 — Admin UI → API
+Required
 
-No pricing, payments, or booking flows yet.
+Rooms → Add-Ons: reads/writes via save_config / load_config
 
----
+Venue / BookingPolicy: same pattern
 
-# Phase 4 — Release v0.4
-- Update `RELEASE_NOTES.md`.
-- Update `STATUS_SUMMARY.md`.
-- Add Supabase seed snapshot.
-- Smoke test:
-  - GET /availability
-  - POST /blackout_periods
-  - Confirm round-trip works.
+Room Setup Spoke: rooms saved through POST save_config
 
----
+Deliverables
 
-# Versioning
-- v0.3 — Availability + blackout API live  
-- v0.4 — Persistent config + Room Setup + Rebuilt availability engine  
+After refresh, UI shows persisted state
+
+Save button triggers POST → DB → GET → UI hydration
+
+Phase 3 — Booker (Read-only)
+Required
+
+Booker fetches availability
+
+Booker fetches rooms
+
+Booker uses all policy and venue config
+
+Phase 4 — Release v0.3
+Required
+
+Update RELEASE_NOTES.md
+
+Snapshot DB structure
+
+Move Availability spec from “draft” to “formal”
+
+Integration Plan v1.1 — Updated by HUB #6
