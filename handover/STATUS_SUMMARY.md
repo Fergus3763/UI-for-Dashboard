@@ -266,5 +266,22 @@ Never delete older checklists—just add the new one below them._
 - HUB #6 will resume with new prompts defined in:
   - HUB6_MASTER_PROMPT_1.md
   - HUB6_MASTER_PROMPT_2.md
+---
+## HUB #6 — Status Summary (Complete)
+
+### Key Achievements
+- Migrated Add-Ons out of VenueSetup into Rooms → Add-Ons (canonical structure).
+- Introduced Room Setup tab placeholder and defined its MVP spec (`RoomSetup_SPEC_MVP.md`).
+- Removed obsolete top-level tabs (F&B, AV, Labour) and added Room Overview + Addon DB.
+- Stabilised save/load pipeline for Add-Ons (Rooms/index.jsx is now source of truth).
+- Created `HUB7_REQUIRED_FILES.md` and `AVAILABILITY_SPOKE_ARCHIVE.md`.
+
+### Important Notes for Hub #7
+- Availability Spoke is archived — follow API_CONTRACT + integration plan only.
+- Room Setup needs implementation using the Supabase-backed config model.
+- Ensure new work continues to follow: UI → save_config → Supabase → load_config → UI.
+- Do not change backend endpoints without updating `/handover` first.
+
+**Next HUB:** Implement Room Setup (MVP), validate Add-Ons interactions, and prepare for Availability reintegration work.
 
 
