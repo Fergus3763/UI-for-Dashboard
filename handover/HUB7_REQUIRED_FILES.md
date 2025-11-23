@@ -73,11 +73,11 @@ These ensure the new HUB understands where UI state is loaded, saved, and hydrat
 # 8️⃣ Availability (historical reference only — DO NOT REUSE CODE)
 
 22. *One-paragraph explanation from OWNER:*  
-    - “The old ‘Availability Spoke’ repo existed historically but must NOT be used.  
-      It was an early prototype, failed repeatedly, and was superseded by  
-      the clean rebuild planned under HUB #7.  
-      It exists only as historical reference.  
-      HUB #7 must ignore its code entirely.”
+    “The old ‘availability-spoke’ repo existed only as an early prototype.  
+     It repeatedly failed, was replaced during HUB#6 by a clean rebuild,  
+     and must NOT be reused.  
+     HUB #7 should ignore the old code entirely — it is archival only.”
+
 
 ---
 
