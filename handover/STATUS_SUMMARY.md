@@ -298,4 +298,29 @@ Never delete older checklists—just add the new one below them._
 - Build Room Overview + Addon DB placeholder screens.
 - Validate load/save chain across all tabs.
 
+## HUB #6 — Final Status (2025-11-22)
+
+### Summary
+- Completed Add-Ons migration from VenueSetup to Rooms (stable, persistent, fully working).
+- Introduced new Admin navigation structure (Venue, Rooms, Room Overview, Addon DB).
+- Added placeholder pages for Room Overview and Addon DB.
+- Recovered and restored lost Rooms/index.jsx from GitHub commit history.
+- Created MVP Room Setup specification (`RoomSetup_SPEC_MVP.md`) for next Spoke.
+- Cleaned and corrected all handover documentation.
+- Added API_LAYER.md (canonical rules for API → Supabase → UI).
+- Added HUB7_REQUIRED_FILES.md to enforce strict startup procedure.
+- Archived the historical Availability Spoke; added official note.
+
+### Changes to Repo Structure
+- `/handover` folder now fully canonical and internally consistent.
+- Added new files: API_LAYER.md, HUB7_REQUIRED_FILES.md.
+- Corrected multiple outdated references and removed drift.
+
+### Remaining Work for HUB #7
+- Implement Room Setup UI + persistence.
+- Rebuild Availability Spoke (clean, simple, aligned with current Admin UI).
+- Validate save/load pipeline across all config keys.
+- Prepare first integrated Admin–API–DB workflow.
+
+**Handover: Ready for Hub #7.**
 
