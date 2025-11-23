@@ -133,8 +133,10 @@ admin-ui/HUB_PROMPT_TEMPLATE.md   → points to /handover/HUB_PROMPT_CANONICAL.m
 
 3.3 No Local Fixes (MANDATORY)
 Nothing is allowed to be fixed “locally” on a machine.
-All updates must be:
+If the OWNER does not paste HUB7_REQUIRED_FILES.md during HUB startup,  
+the HUB must stop immediately and request it.
 
+All updates must be:
 
 Visible in GitHub
 
