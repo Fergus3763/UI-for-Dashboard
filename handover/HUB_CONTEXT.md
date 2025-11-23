@@ -60,6 +60,12 @@ Use this simple format:
 
 ### HUB #N+1 → HUB #N+2
 - <next note>
+### HUB #6 → HUB #7
+- Add-Ons have been fully migrated into Rooms; VenueSetup no longer owns them.
+- Navigation now includes Room Overview and Addon DB — both placeholders.
+- RoomSetup_SPEC_MVP.md defines the next required Spoke.
+- The old Availability Spoke repository is archived and must not be reused.
+- HUB #7 must begin by implementing Room Setup, then rebuild availability cleanly.
 
 _(Do not delete previous HUB notes; append only.)_
 
@@ -71,3 +77,4 @@ _(Do not delete previous HUB notes; append only.)_
 - HUB #7 must request all files listed in `handover/HUB7_REQUIRED_FILES.md` before doing any work.
 - Availability Spoke (archived at availability-spoke repo) should NOT be used; a clean rebuild will be done under HUB #7.
 - Admin UI logic for Venue, Booking Policy, Rooms, Add-Ons is stored in `admin_ui_config.data`.
+(Do not delete previous HUB notes; append only.)_
