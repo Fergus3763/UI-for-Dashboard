@@ -1,526 +1,366 @@
 // admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx
-// NOTE: Room Setup tab component. Receives rooms, setRooms and onSave from Rooms/index.jsx.
-// This component does not make API calls; it only manages local UI state.
+// Room configuration UI + embedded blackout manager for the selected room.
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import RoomBlackoutsPanel from "./RoomBlackoutsPanel";
 
-function createId() {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).substring(2, 10)
-  ).toUpperCase();
-}
-
-function normaliseRoom(room) {
+function createEmptyRoom() {
+  const id =
+    (typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `room_${Date.now()}`);
   return {
-    id: room.id || createId(),
-    code: room.code || "",
-    name: room.name || "",
-    description: room.description || "",
-    capacityMin:
-      typeof room.capacityMin === "number" && room.capacityMin >= 1
-        ? room.capacityMin
-        : 1,
-    capacityMax:
-      typeof room.capacityMax === "number" && room.capacityMax >= 1
-        ? room.capacityMax
-        : 1,
-    active: typeof room.active === "boolean" ? room.active : true,
+    id,
+    code: "",
+    name: "",
+    description: "",
+    capacityMin: 1,
+    capacityMax: 20,
+    active: true,
   };
-}
-
-function getNextRoomCode(rooms) {
-  let maxNumber = 0;
-  (rooms || []).forEach((r) => {
-    if (typeof r.code !== "string") return;
-    const match = r.code.match(/R-(\d+)$/);
-    if (!match) return;
-    const num = parseInt(match[1], 10);
-    if (!Number.isNaN(num) && num > maxNumber) {
-      maxNumber = num;
-    }
-  });
-  const next = maxNumber + 1;
-  return `R-${String(next).padStart(3, "0")}`;
 }
 
 export default function RoomSetupTab({
   rooms,
   setRooms,
   onSave,
-  saving = false,
+  saving,
+  error,
+  message,
 }) {
-  const [editingId, setEditingId] = useState(null); // null, "new", or existing id
-  const [formState, setFormState] = useState({
-    id: null,
-    code: "",
-    name: "",
-    description: "",
-    capacityMin: "1",
-    capacityMax: "1",
-    active: true,
-  });
-  const [formErrors, setFormErrors] = useState({});
+  const [selectedId, setSelectedId] = useState(null);
+  const [form, setForm] = useState(createEmptyRoom());
+  const [validationError, setValidationError] = useState(null);
 
-  const normalisedRooms = useMemo(
-    () => (Array.isArray(rooms) ? rooms : []).map(normaliseRoom),
-    [rooms]
-  );
-
-  const startNewRoom = () => {
-    const suggestedCode = getNextRoomCode(normalisedRooms);
-    setEditingId("new");
-    setFormErrors({});
-    setFormState({
-      id: null,
-      code: suggestedCode,
-      name: "",
-      description: "",
-      capacityMin: "1",
-      capacityMax: "1",
-      active: true,
-    });
-  };
-
-  const startEditRoom = (room) => {
-    const n = normaliseRoom(room);
-    setEditingId(n.id);
-    setFormErrors({});
-    setFormState({
-      id: n.id,
-      code: n.code,
-      name: n.name,
-      description: n.description || "",
-      capacityMin: String(n.capacityMin),
-      capacityMax: String(n.capacityMax),
-      active: n.active,
-    });
-  };
-
-  const handleDeleteRoom = (roomId) => {
-    const nextRooms = (rooms || []).filter((r) => r.id !== roomId);
-    setRooms(nextRooms);
-    if (typeof onSave === "function") {
-      onSave(nextRooms);
-    }
-    if (editingId === roomId) {
-      setEditingId(null);
-      setFormState((prev) => ({
-        ...prev,
-        id: null,
-        code: "",
-        name: "",
-        description: "",
-        capacityMin: "1",
-        capacityMax: "1",
-        active: true,
-      }));
-    }
-  };
-
-  const handleFieldChange = (field, value) => {
-    setFormState((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    const trimmedCode = (formState.code || "").trim();
-    const trimmedName = (formState.name || "").trim();
-    const min = parseInt(formState.capacityMin, 10);
-    const max = parseInt(formState.capacityMax, 10);
-
-    if (!trimmedCode) {
-      errors.code = "Code is required.";
+  // Ensure we always have at least one room in view
+  useEffect(() => {
+    if (!rooms || rooms.length === 0) {
+      const initial = [createEmptyRoom()];
+      setRooms(initial);
+      setSelectedId(initial[0].id);
+      setForm(initial[0]);
+      return;
     }
 
-    if (!trimmedName) {
-      errors.name = "Name is required.";
+    if (!selectedId) {
+      setSelectedId(rooms[0].id);
+      setForm(rooms[0]);
+      return;
     }
 
-    if (Number.isNaN(min) || min < 1) {
-      errors.capacityMin = "Minimum capacity must be a number greater than or equal to 1.";
-    }
-
-    if (Number.isNaN(max)) {
-      errors.capacityMax = "Maximum capacity must be a number.";
-    } else if (!errors.capacityMin && max < min) {
-      errors.capacityMax = "Maximum capacity must be greater than or equal to minimum capacity.";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const buildRoomFromForm = () => {
-    const min = parseInt(formState.capacityMin, 10);
-    const max = parseInt(formState.capacityMax, 10);
-
-    return {
-      id: formState.id || createId(),
-      code: (formState.code || "").trim(),
-      name: (formState.name || "").trim(),
-      description: formState.description || "",
-      capacityMin: Number.isNaN(min) || min < 1 ? 1 : min,
-      capacityMax: Number.isNaN(max) || max < 1 ? 1 : max,
-      active: !!formState.active,
-    };
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const builtRoom = buildRoomFromForm();
-
-    let nextRooms;
-    if (editingId && editingId !== "new") {
-      nextRooms = (rooms || []).map((r) =>
-        r.id === editingId ? builtRoom : r
-      );
+    const match = rooms.find((r) => r.id === selectedId);
+    if (match) {
+      setForm(match);
     } else {
-      nextRooms = [...(rooms || []), builtRoom];
+      setSelectedId(rooms[0].id);
+      setForm(rooms[0]);
+    }
+  }, [rooms, selectedId, setRooms]);
+
+  function updateFormField(name, value) {
+    setForm((f) => ({ ...f, [name]: value }));
+  }
+
+  function handleSelectRoom(id) {
+    if (id === selectedId) return;
+    setSelectedId(id);
+    const match = rooms.find((r) => r.id === id);
+    if (match) {
+      setForm(match);
+      setValidationError(null);
+    }
+  }
+
+  function handleNewRoom() {
+    const next = createEmptyRoom();
+    setRooms([...rooms, next]);
+    setSelectedId(next.id);
+    setForm(next);
+    setValidationError(null);
+  }
+
+  function handleDeleteRoom(id) {
+    if (!window.confirm("Delete this room?")) return;
+    const remaining = rooms.filter((r) => r.id !== id);
+    setRooms(remaining);
+    if (remaining.length === 0) {
+      const next = createEmptyRoom();
+      setRooms([next]);
+      setSelectedId(next.id);
+      setForm(next);
+    } else {
+      setSelectedId(remaining[0].id);
+      setForm(remaining[0]);
+    }
+  }
+
+  function validate(room) {
+    if (!room.code.trim()) return "Code is required.";
+    if (!room.name.trim()) return "Name is required.";
+    const min = Number(room.capacityMin || 0);
+    const max = Number(room.capacityMax || 0);
+    if (!Number.isFinite(min) || min < 1)
+      return "Minimum capacity must be at least 1.";
+    if (!Number.isFinite(max) || max < min)
+      return "Maximum capacity must be greater than or equal to minimum.";
+    return null;
+  }
+
+  function handleSaveClick() {
+    const updatedRoom = { ...form };
+    const err = validate(updatedRoom);
+    if (err) {
+      setValidationError(err);
+      return;
     }
 
-    setRooms(nextRooms);
+    const updatedRooms = rooms.map((r) =>
+      r.id === updatedRoom.id ? updatedRoom : r
+    );
+    setRooms(updatedRooms);
+    setValidationError(null);
+    if (onSave) onSave(updatedRooms);
+  }
 
-    if (typeof onSave === "function") {
-      onSave(nextRooms);
-    }
+  const activeRoom =
+    rooms && rooms.length > 0
+      ? rooms.find((r) => r.id === selectedId) || rooms[0]
+      : null;
 
-    setEditingId(null);
-    setFormErrors({});
-    setFormState({
-      id: null,
-      code: "",
-      name: "",
-      description: "",
-      capacityMin: "1",
-      capacityMax: "1",
-      active: true,
-    });
-  };
+  return (
+    <div>
+      <h2>Room Setup</h2>
+      <p style={{ maxWidth: "640px" }}>
+        Define the meeting and event rooms that the hotel offers. These rooms
+        and their capacities will later drive availability and pricing in the
+        customer-facing Booker.
+      </p>
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setFormErrors({});
-    setFormState({
-      id: null,
-      code: "",
-      name: "",
-      description: "",
-      capacityMin: "1",
-      capacityMax: "1",
-      active: true,
-    });
-  };
-
-  const renderRoomsTable = () => {
-    if (!normalisedRooms.length) {
-      return (
-        <p style={{ fontStyle: "italic" }}>
-          No rooms defined yet. Click &ldquo;New room&rdquo; to add your first
-          room.
-        </p>
-      );
-    }
-
-    return (
-      <div style={{ overflowX: "auto", marginBottom: "1.25rem" }}>
-        <table
+      {/* Status messages from parent save */}
+      {error && (
+        <div
           style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "0.9rem",
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            border: "1px solid #e57373",
+            backgroundColor: "#ffebee",
+            borderRadius: "4px",
+            color: "#b71c1c",
           }}
         >
-          <thead>
-            <tr>
-              <th style={thStyle}>Code</th>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>Capacity (Min–Max)</th>
-              <th style={thStyle}>Active?</th>
-              <th style={thStyle}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {normalisedRooms.map((room) => (
-              <tr key={room.id}>
-                <td style={tdStyle}>{room.code}</td>
-                <td style={tdStyle}>{room.name}</td>
-                <td style={tdStyle}>
-                  {room.capacityMin} – {room.capacityMax}
-                </td>
-                <td style={tdStyle}>{room.active ? "Yes" : "No"}</td>
-                <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+          {error}
+        </div>
+      )}
+      {message && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            border: "1px solid #81c784",
+            backgroundColor: "#e8f5e9",
+            borderRadius: "4px",
+            color: "#1b5e20",
+          }}
+        >
+          {message}
+        </div>
+      )}
+      {validationError && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            border: "1px solid #e57373",
+            backgroundColor: "#fff3f3",
+            borderRadius: "4px",
+            color: "#b71c1c",
+          }}
+        >
+          {validationError}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "260px 1fr",
+          gap: "1.5rem",
+          alignItems: "flex-start",
+          marginTop: "1rem",
+        }}
+      >
+        {/* Room list */}
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Rooms</h3>
+            <button type="button" onClick={handleNewRoom}>
+              + New room
+            </button>
+          </div>
+          {rooms && rooms.length > 0 ? (
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+              }}
+            >
+              {rooms.map((room) => (
+                <li
+                  key={room.id}
+                  style={{
+                    padding: "0.5rem 0.75rem",
+                    borderBottom: "1px solid #eee",
+                    backgroundColor:
+                      room.id === selectedId ? "#f5f5f5" : "transparent",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => handleSelectRoom(room.id)}
+                >
+                  <span>
+                    <strong>{room.code || "No code"}</strong> –{" "}
+                    {room.name || "Unnamed room"}
+                    {!room.active && (
+                      <span style={{ marginLeft: "0.25rem", color: "#b71c1c" }}>
+                        (inactive)
+                      </span>
+                    )}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => startEditRoom(room)}
-                    style={smallButtonStyle}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteRoom(room.id)}
-                    style={{ ...smallButtonStyle, marginLeft: "0.5rem" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteRoom(room.id);
+                    }}
                   >
                     Delete
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No rooms defined yet.</p>
+          )}
+        </div>
 
-  const renderForm = () => {
-    if (!editingId) {
-      return null;
-    }
-
-    const { code, name, description, capacityMin, capacityMax, active } =
-      formState;
-
-    const isNew = editingId === "new";
-
-    return (
-      <div
-        style={{
-          border: "1px solid #ddd",
-          borderRadius: "4px",
-          padding: "1rem",
-          marginBottom: "1.25rem",
-        }}
-      >
-        <h3 style={{ marginTop: 0, marginBottom: "0.75rem" }}>
-          {isNew ? "New room" : "Edit room"}
-        </h3>
-        <form onSubmit={handleSubmit}>
-          {/* Code & Name */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>
+        {/* Room form */}
+        <div>
+          <h3 style={{ marginTop: 0 }}>Room details</h3>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "0.75rem",
+            }}
+          >
+            <div>
+              <label>
                 Code *
+                <br />
                 <input
                   type="text"
-                  value={code}
-                  onChange={(e) => handleFieldChange("code", e.target.value)}
-                  style={inputStyle}
+                  value={form.code}
+                  onChange={(e) => updateFormField("code", e.target.value)}
+                  placeholder="RM-001"
+                  style={{ width: "100%" }}
                 />
               </label>
-              {formErrors.code && (
-                <div style={errorTextStyle}>{formErrors.code}</div>
-              )}
-              <div style={{ fontSize: "0.8rem", color: "#555" }}>
-                Short identifier for the room, for example R-001.
-              </div>
             </div>
-
-            <div style={{ flex: 2 }}>
-              <label style={labelStyle}>
+            <div>
+              <label>
                 Name *
+                <br />
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => handleFieldChange("name", e.target.value)}
-                  style={inputStyle}
+                  value={form.name}
+                  onChange={(e) => updateFormField("name", e.target.value)}
+                  placeholder="Boardroom"
+                  style={{ width: "100%" }}
                 />
               </label>
-              {formErrors.name && (
-                <div style={errorTextStyle}>{formErrors.name}</div>
-              )}
+            </div>
+            <div>
+              <label>
+                Minimum capacity *
+                <br />
+                <input
+                  type="number"
+                  min="1"
+                  value={form.capacityMin}
+                  onChange={(e) =>
+                    updateFormField("capacityMin", e.target.value)
+                  }
+                  style={{ width: "100%" }}
+                />
+              </label>
+            </div>
+            <div>
+              <label>
+                Maximum capacity *
+                <br />
+                <input
+                  type="number"
+                  min="1"
+                  value={form.capacityMax}
+                  onChange={(e) =>
+                    updateFormField("capacityMax", e.target.value)
+                  }
+                  style={{ width: "100%" }}
+                />
+              </label>
             </div>
           </div>
 
-          {/* Description */}
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label style={labelStyle}>
+          <div style={{ marginTop: "0.75rem" }}>
+            <label>
               Description
+              <br />
               <textarea
-                value={description}
+                value={form.description}
                 onChange={(e) =>
-                  handleFieldChange("description", e.target.value)
+                  updateFormField("description", e.target.value)
                 }
-                style={{ ...inputStyle, minHeight: "70px", resize: "vertical" }}
+                rows={3}
+                style={{ width: "100%" }}
               />
             </label>
           </div>
 
-          {/* Capacity & Active */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>
-                Capacity – Min *
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={capacityMin}
-                  onChange={(e) =>
-                    handleFieldChange("capacityMin", e.target.value)
-                  }
-                  style={inputStyle}
-                />
-              </label>
-              {formErrors.capacityMin && (
-                <div style={errorTextStyle}>{formErrors.capacityMin}</div>
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>
-                Capacity – Max *
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={capacityMax}
-                  onChange={(e) =>
-                    handleFieldChange("capacityMax", e.target.value)
-                  }
-                  style={inputStyle}
-                />
-              </label>
-              {formErrors.capacityMax && (
-                <div style={errorTextStyle}>{formErrors.capacityMax}</div>
-              )}
-            </div>
-            <div style={{ flex: 1, paddingTop: "1.5rem" }}>
-              <label style={{ ...labelStyle, display: "inline-flex", gap: "0.25rem" }}>
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(e) =>
-                    handleFieldChange("active", e.target.checked)
-                  }
-                />
-                Active
-              </label>
-              <div style={{ fontSize: "0.8rem", color: "#555" }}>
-                Inactive rooms stay in config but are hidden from the Booker.
-              </div>
-            </div>
+          <div style={{ marginTop: "0.5rem" }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={!!form.active}
+                onChange={(e) => updateFormField("active", e.target.checked)}
+              />{" "}
+            Active (visible to Booker)
+            </label>
           </div>
 
-          {/* Form actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                padding: "0.4rem 0.9rem",
-                borderRadius: "4px",
-                border: "1px solid #1976d2",
-                backgroundColor: "#1976d2",
-                color: "#ffffff",
-                cursor: saving ? "default" : "pointer",
-                fontSize: "0.9rem",
-              }}
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={saving}
-              style={{
-                padding: "0.4rem 0.9rem",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                backgroundColor: "#ffffff",
-                cursor: saving ? "default" : "pointer",
-                fontSize: "0.9rem",
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  };
-
-  return (
-    <div>
-      <h2 style={{ marginTop: 0, marginBottom: "0.5rem" }}>Room Setup</h2>
-      <p style={{ marginBottom: "1rem", maxWidth: "720px" }}>
-        This configuration controls the meeting and event rooms that the Booker
-        can use. Define each space once, including its code, name, capacity and
-        whether it is currently active.
-      </p>
-
-      <div
-        style={{
-          marginBottom: "0.75rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h3 style={{ margin: 0 }}>Rooms</h3>
-        <button
-          type="button"
-          onClick={startNewRoom}
-          style={{
-            padding: "0.4rem 0.9rem",
-            borderRadius: "4px",
-            border: "1px solid #1976d2",
-            backgroundColor: "#1976d2",
-            color: "#ffffff",
-            cursor: "pointer",
-            fontSize: "0.9rem",
-          }}
-        >
-          + New room
-        </button>
+          <button
+            type="button"
+            onClick={handleSaveClick}
+            disabled={saving}
+            style={{ marginTop: "0.75rem" }}
+          >
+            {saving ? "Saving…" : "Save rooms"}
+          </button>
+        </div>
       </div>
 
-      {renderRoomsTable()}
-      {renderForm()}
+      {/* Blackout management for the active room */}
+      <RoomBlackoutsPanel room={activeRoom} />
     </div>
   );
 }
-
-const thStyle = {
-  textAlign: "left",
-  borderBottom: "1px solid #ddd",
-  padding: "0.5rem",
-  fontWeight: 600,
-};
-
-const tdStyle = {
-  borderBottom: "1px solid #eee",
-  padding: "0.5rem",
-  verticalAlign: "top",
-};
-
-const labelStyle = {
-  display: "block",
-  fontSize: "0.85rem",
-  fontWeight: 600,
-  marginBottom: "0.25rem",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.3rem 0.4rem",
-  borderRadius: "3px",
-  border: "1px solid #ccc",
-  fontSize: "0.9rem",
-  boxSizing: "border-box",
-};
-
-const errorTextStyle = {
-  color: "#b71c1c",
-  fontSize: "0.8rem",
-  marginTop: "0.1rem",
-};
-
-const smallButtonStyle = {
-  padding: "0.25rem 0.6rem",
-  borderRadius: "3px",
-  border: "1px solid #ccc",
-  backgroundColor: "#ffffff",
-  cursor: "pointer",
-  fontSize: "0.8rem",
-};
