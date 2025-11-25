@@ -56,10 +56,11 @@ These ensure the new HUB understands where UI state is loaded, saved, and hydrat
 
 15. `admin-ui/netlify/functions/load_config.mjs`
 16. `admin-ui/netlify/functions/save_config.mjs`
-17. `admin-ui/src/pages/Dashboard/VenueSetup/Tabs/VenueTab.jsx`
+17. `admin-ui/src/pages/Dashboard/VenueSetup/index.jsx`      <!-- Venue form + tab shell -->
 18. `admin-ui/src/pages/Dashboard/VenueSetup/Tabs/BookingPolicyTab.jsx`
 19. `admin-ui/src/pages/Dashboard/Rooms/index.jsx`
 20. `admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx` *(if present)*
+
 
 ---
 
