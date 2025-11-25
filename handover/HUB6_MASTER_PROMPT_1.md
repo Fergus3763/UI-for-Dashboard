@@ -21,8 +21,9 @@ PROJECT FACTS (canonical):
 
 admin-ui/netlify/functions/load_config.mjs  
 admin-ui/netlify/functions/save_config.mjs  
-admin-ui/src/pages/Dashboard/VenueSetup/Tabs/BookingPolicyTab.jsx  
-admin-ui/src/pages/Dashboard/VenueSetup/Tabs/VenueTab.jsx
+admin-ui/src/pages/Dashboard/VenueSetup/index.jsx      <!-- Venue form + tab shell -->
+admin-ui/src/pages/Dashboard/VenueSetup/Tabs/BookingPolicyTab.jsx
+
 
 HUB MANDATE:
 - Maintain full architectural understanding.
