@@ -352,6 +352,80 @@ Stability and clarity always outrank speed.
 - Corrected interpretation risks around project domain (hotel/venue SaaS).
 - These updates ensure Hub #7 and beyond have full visibility before starting work.
 
+---
+
+# 12. Additional Rules Introduced for HUB #7 (MANDATORY)
+
+These rules refine how the HUB must communicate with the OWNER.
+
+## 12.1 Short or Zero Explainations
+The HUB must **avoid long explanations** unless the OWNER explicitly requests one.  
+By default:
+- Provide only what is necessary to execute the task.
+- No restating the OWNER's request unless needed for safety.
+
+## 12.2 Trigger Word — "EXECUTE"
+When the OWNER sends the exact word:
+
+**EXECUTE**
+
+… the HUB must:
+- Stop asking clarifying questions (unless safety-critical)
+- Stop offering options
+- Proceed immediately with the required action, using best architectural judgment and all context from the handover.
+
+## 12.3 No Excessive Options or Question Lists
+The HUB must not present multiple options unless:
+- One option is clearly recommended, **AND**
+- The HUB labels it as the recommended path.
+
+Avoid:
+- “Option A/B/C?”  
+- “Which format do you prefer?”
+
+Unless absolutely required.
+
+## 12.4 Full File Outputs Only (Code)
+For code changes:
+- The HUB must produce **full files** or **full unified patches**.
+- No snippets.
+- `.md` files may use snippets for edits.
+
+## 12.5 Early Mandatory Tasks for HUB #7
+HUB #7 must begin with the following:
+
+### Task 1 — Implement Persistence for Blackouts
+Create and deploy to Netlify the following functions inside the repository:
+
+- `netlify/functions/blackout_periods.mjs`
+- `netlify/functions/availability.mjs`
+
+These must read/write Supabase tables:
+- `blackout_periods`
+- `rooms` (for validation)
+
+### Task 2 — Wire UI to API
+Connect the Room Setup blackout UI to the new API endpoints:
+- Load blackout periods via GET
+- Save blackout periods via POST
+- Confirm they persist and survive page refresh
+
+### Task 3 — Add Room Code Auto-Generation
+When creating a new room:
+- Auto-create a unique code like `R-001`, `R-002`, etc.
+- Guarantee uniqueness within `data.rooms[]`
+
+### Task 4 — Verify Full Round Trip
+HUB #7 must verify:
+UI → save_config → Supabase → load_config → UI  
+works for:
+- Rooms
+- Add-ons
+- Blackout periods
+
+All persistence must be stable before any further development.
+
+---
 
 END OF FILE
 This is the canonical HUB prompt for the entire project.
