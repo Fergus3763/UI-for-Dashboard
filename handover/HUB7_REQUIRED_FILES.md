@@ -43,10 +43,11 @@ These define the tasks HUB #7 must operate on.
 
 # 5️⃣ Environment & Supabase (minimal required)
 
-11. `/handover/supabase/ENV_SAMPLE.md`  
+11. `/handover/.env.sample`  
 12. `/handover/supabase/001_schema.sql`  
 13. `/handover/supabase/VALIDATION.md` *(if present)*  
-14. `/handover/supabase/seed_instructions.md` *(historical: optional)*
+14. `/handover/supabase/002_seed_instructions.md` *(historical: optional)*
+
 
 ---
 
