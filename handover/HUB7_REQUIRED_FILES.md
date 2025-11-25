@@ -67,8 +67,8 @@ These ensure the new HUB understands where UI state is loaded, saved, and hydrat
 
 # 7️⃣ Add-On System (needed for Room Setup continuity)
 
-21. Any file under:  
-    `admin-ui/src/pages/Dashboard/Rooms/AddOns/*`
+21. `admin-ui/src/pages/Dashboard/VenueSetup/Tabs/AddOnsTab.jsx`
+
 
 ---
 
