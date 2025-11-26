@@ -1,5 +1,2 @@
-# Explicit rule: serve the Booker stub HTML directly
 /booker-stub.html   /booker-stub.html   200
-
-# Existing SPA catch-all for the Admin UI
 /*                  /index.html         200
