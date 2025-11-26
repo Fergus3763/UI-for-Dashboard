@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Booker Availability Stub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        margin: 1.5rem;
+        line-height: 1.4;
+      }
+      h1 {
+        font-size: 1.6rem;
+        margin-bottom: 0.5rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-top: 0.75rem;
+      }
+      input {
+        width: 100%;
+        max-width: 480px;
+        padding: 0.4rem 0.5rem;
+        margin-top: 0.25rem;
+      }
+      button {
+        margin-top: 1rem;
+        padding: 0.5rem 1.25rem;
+        cursor: pointer;
+      }
+      .small {
+        font-size: 0.85rem;
+        color: #555;
+      }
+      pre {
+        background: #f6f6f6;
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        overflow-x: auto;
+        max-height: 320px;
+      }
+      .summary {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        background: #f0f7ff;
+        border: 1px solid #b3d4ff;
+      }
+      .error {
+        background: #ffebee;
+        border-color: #e57373;
+        color: #b71c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Booker Availability Stub</h1>
+    <p>
+      This page calls the <code>/.netlify/functions/availability</code> endpoint
+      directly and shows the response. It is a temporary testing tool only.
+    </p>
+
+    <form id="availability-form">
+      <label>
+        Room code
+        <input
+          id="roomId"
+          name="roomId"
+          type="text"
+          value="RM-001"
+          required
+        />
+        <span class="small"
+          >Use the room <strong>code</strong> exactly as shown in the Admin UI
+          (for example <code>RM-001</code>).</span
+        >
+      </label>
+
+      <label>
+        Starts at (UTC, ISO 8601)
+        <input
+          id="startsAt"
+          name="startsAt"
+          type="text"
+          value="2025-10-29T09:00:00Z"
+          required
+        />
+        <span class="small"
+          >Format: <code>YYYY-MM-DDTHH:MM:SSZ</code>, for example
+          <code>2025-10-29T09:00:00Z</code>.</span
+        >
+      </label>
+
+      <label>
+        Ends at (UTC, ISO 8601)
+        <input
+          id="endsAt"
+          name="endsAt"
+          type="text"
+          value="2025-10-29T13:00:00Z"
+          required
+        />
+      </label>
+
+      <button type="submit">Check availability</button>
+    </form>
+
+    <div id="summary" class="summary" style="display: none;"></div>
+
+    <h2>Raw API response</h2>
+    <pre id="raw-output">{ }</pre>
+
+    <script>
+      const form = document.getElementById("availability-form");
+      const summary = document.getElementById("summary");
+      const rawOutput = document.getElementById("raw-output");
+
+      function setSummary(text, isError) {
+        summary.style.display = "block";
+        summary.textContent = text;
+        summary.className = "summary" + (isError ? " error" : "");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const roomId = document.getElementById("roomId").value.trim();
+        const startsAt = document.getElementById("startsAt").value.trim();
+        const endsAt = document.getElementById("endsAt").value.trim();
+
+        if (!roomId || !startsAt || !endsAt) {
+          setSummary("Please fill in room code, start and end times.", true);
+          return;
+        }
+
+        const params = new URLSearchParams({
+          roomId,
+          startsAt,
+          endsAt,
+        });
+
+        const url = "/.netlify/functions/availability?" + params.toString();
+
+        setSummary("Loading availability…", false);
+        rawOutput.textContent = "";
+
+        try {
+          const res = await fetch(url);
+          const json = await res.json();
+
+          rawOutput.textContent = JSON.stringify(json, null, 2);
+
+          if (!res.ok || json.ok === false) {
+            const msg = json && json.error ? json.error : "Unknown error";
+            setSummary("API error: " + msg, true);
+            return;
+          }
+
+          const blackouts = Array.isArray(json.blackouts)
+            ? json.blackouts
+            : [];
+
+          if (blackouts.length === 0) {
+            setSummary(
+              "No blackouts returned for this room and window.",
+              false
+            );
+          } else {
+            const titles = blackouts
+              .map((b) => `${b.title || "(no title)"} [${b.startsAt} → ${
+                b.endsAt
+              }]`)
+              .join("; ");
+            setSummary(
+              `Blackouts returned: ${blackouts.length}. ` + titles,
+              false
+            );
+          }
+        } catch (err) {
+          console.error(err);
+          setSummary("Request failed: " + err.message, true);
+        }
+      });
+    </script>
+  </body>
+</html>
