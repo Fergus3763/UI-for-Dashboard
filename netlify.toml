@@ -6,15 +6,4 @@
 [functions]
   directory = "netlify/functions"
 
-# Booker stub must be served as a static HTML (NOT through React router)
-[[redirects]]
-  from = "/booker-stub.html"
-  to = "/booker-stub.html"
-  status = 200
-  force = true
 
-# SPA catch-all for everything else in admin UI
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
