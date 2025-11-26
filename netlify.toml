@@ -6,13 +6,12 @@
 [functions]
   directory = "netlify/functions"
 
-# Allow the smoke test page to load directly
 [[redirects]]
-  from = "/persistence-smoke.html"
-  to = "/persistence-smoke.html"
+  from = "/booker-stub.html"
+  to = "/booker-stub.html"
   status = 200
+  force = true
 
-# Catch-all for SPA routes (keep this last)
 [[redirects]]
   from = "/*"
   to = "/index.html"
