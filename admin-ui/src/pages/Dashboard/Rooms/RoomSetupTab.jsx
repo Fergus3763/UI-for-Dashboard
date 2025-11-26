@@ -6,9 +6,9 @@ import RoomBlackoutsPanel from "./RoomBlackoutsPanel";
 
 function createEmptyRoom() {
   const id =
-    (typeof crypto !== "undefined" && crypto.randomUUID
+    typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
-      : `room_${Date.now()}`);
+      : `room_${Date.now()}`;
   return {
     id,
     code: "",
@@ -18,6 +18,22 @@ function createEmptyRoom() {
     capacityMax: 20,
     active: true,
   };
+}
+
+// Auto-generate next room code in the form RM-001, RM-002, …
+function generateNextRoomCode(existingRooms) {
+  const prefix = "RM-";
+  const numbers = (existingRooms || [])
+    .map((r) => (typeof r.code === "string" ? r.code.trim() : ""))
+    .map((code) => {
+      const match = code.match(/^RM-(\d{3})$/);
+      return match ? parseInt(match[1], 10) : null;
+    })
+    .filter((n) => n !== null);
+
+  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  const padded = String(nextNumber).padStart(3, "0");
+  return `${prefix}${padded}`;
 }
 
 export default function RoomSetupTab({
@@ -73,7 +89,8 @@ export default function RoomSetupTab({
 
   function handleNewRoom() {
     const next = createEmptyRoom();
-    setRooms([...rooms, next]);
+    const nextRooms = [...rooms, next];
+    setRooms(nextRooms);
     setSelectedId(next.id);
     setForm(next);
     setValidationError(null);
@@ -94,9 +111,16 @@ export default function RoomSetupTab({
     }
   }
 
-  function validate(room) {
+  function validate(room, allRooms) {
     if (!room.code.trim()) return "Code is required.";
     if (!room.name.trim()) return "Name is required.";
+
+    // Code must be unique within the rooms array
+    const duplicate = (allRooms || []).some(
+      (r) => r.id !== room.id && r.code && r.code.trim() === room.code.trim()
+    );
+    if (duplicate) return "Code must be unique across rooms.";
+
     const min = Number(room.capacityMin || 0);
     const max = Number(room.capacityMax || 0);
     if (!Number.isFinite(min) || min < 1)
@@ -107,16 +131,25 @@ export default function RoomSetupTab({
   }
 
   function handleSaveClick() {
-    const updatedRoom = { ...form };
-    const err = validate(updatedRoom);
-    if (err) {
-      setValidationError(err);
-      return;
+    // Apply auto-code rule if Code is blank: generate RM-XXX
+    let updatedRoom = { ...form };
+    if (!updatedRoom.code || !updatedRoom.code.trim()) {
+      updatedRoom = {
+        ...updatedRoom,
+        code: generateNextRoomCode(rooms),
+      };
     }
 
     const updatedRooms = rooms.map((r) =>
       r.id === updatedRoom.id ? updatedRoom : r
     );
+
+    const err = validate(updatedRoom, updatedRooms);
+    if (err) {
+      setValidationError(err);
+      return;
+    }
+
     setRooms(updatedRooms);
     setValidationError(null);
     if (onSave) onSave(updatedRooms);
@@ -133,7 +166,9 @@ export default function RoomSetupTab({
       <p style={{ maxWidth: "640px" }}>
         Define the meeting and event rooms that the hotel offers. These rooms
         and their capacities will later drive availability and pricing in the
-        customer-facing Booker.
+        customer-facing Booker. Room codes follow the pattern{" "}
+        <code>RM-001</code>, <code>RM-002</code>, and so on. If you leave the
+        Code blank, the system will generate the next available code for you.
       </p>
 
       {/* Status messages from parent save */}
@@ -232,7 +267,9 @@ export default function RoomSetupTab({
                     <strong>{room.code || "No code"}</strong> –{" "}
                     {room.name || "Unnamed room"}
                     {!room.active && (
-                      <span style={{ marginLeft: "0.25rem", color: "#b71c1c" }}>
+                      <span
+                        style={{ marginLeft: "0.25rem", color: "#b71c1c" }}
+                      >
                         (inactive)
                       </span>
                     )}
@@ -344,7 +381,7 @@ export default function RoomSetupTab({
                 checked={!!form.active}
                 onChange={(e) => updateFormField("active", e.target.checked)}
               />{" "}
-            Active (visible to Booker)
+              Active (visible to Booker)
             </label>
           </div>
 
