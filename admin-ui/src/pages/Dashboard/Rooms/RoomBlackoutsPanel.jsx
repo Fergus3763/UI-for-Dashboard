@@ -1,9 +1,20 @@
 // admin-ui/src/pages/Dashboard/Rooms/RoomBlackoutsPanel.jsx
-// Blackout manager for a single room, using the blackout_periods API.
+// Blackout manager for the currently selected room.
+// This component talks to the blackout_periods Netlify Function only.
+// It NEVER talks to Supabase directly.
 
 import React, { useEffect, useState } from "react";
 
+function formatDateTime(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+}
+
 export default function RoomBlackoutsPanel({ room }) {
+  const roomKey = room?.code || room?.id || null;
+
   const [blackouts, setBlackouts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -11,347 +22,362 @@ export default function RoomBlackoutsPanel({ room }) {
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({
-    startDate: "",
-    startTime: "",
-    endDate: "",
-    endTime: "",
-    reason: "",
+    startsAt: "",
+    endsAt: "",
+    title: "",
   });
 
-  const roomId = room && (room.code || room.id || "").trim();
-
-  // Load blackouts whenever the active room changes
+  // Load blackouts whenever the selected room changes
   useEffect(() => {
-    if (!roomId) {
+    if (!roomKey) {
       setBlackouts([]);
       return;
     }
 
     let cancelled = false;
-    async function load() {
+
+    async function loadBlackouts() {
       setLoading(true);
       setError(null);
-      setMessage(null);
+
       try {
-        const res = await fetch(
+        const response = await fetch(
           `/.netlify/functions/blackout_periods?roomId=${encodeURIComponent(
-            roomId
+            roomKey
           )}`
         );
-        if (!res.ok) {
-          throw new Error(`Failed to load blackouts (status ${res.status})`);
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load blackouts (status ${response.status})`
+          );
         }
-        const data = await res.json();
+
+        const json = await response.json();
+        const items = Array.isArray(json.data) ? json.data : [];
+
         if (!cancelled) {
-          setBlackouts(Array.isArray(data) ? data : []);
+          setBlackouts(items);
         }
       } catch (err) {
-        console.error("Error loading blackouts", err);
-        if (!cancelled) setError("Could not load blackout periods.");
+        console.error("Error loading blackouts:", err);
+        if (!cancelled) {
+          setError(
+            "Could not load blackout periods for this room. Please try again."
+          );
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    load();
+    loadBlackouts();
+
     return () => {
       cancelled = true;
     };
-  }, [roomId]);
+  }, [roomKey]);
 
   function updateFormField(name, value) {
-    setForm((f) => ({ ...f, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function combineDateTime(date, time) {
-    if (!date || !time) return null;
-    // Browser-local → ISO; API and DB treat as UTC per contract.
-    const iso = new Date(`${date}T${time}:00`).toISOString();
-    return iso;
-  }
+  async function handleAddBlackout() {
+    setError(null);
+    setMessage(null);
 
-  async function handleCreate(e) {
-    e.preventDefault();
-    if (!roomId) return;
+    if (!roomKey) {
+      setError(
+        "Please select a room and assign a Code before adding blackout periods."
+      );
+      return;
+    }
 
-    const startsAt = combineDateTime(form.startDate, form.startTime);
-    const endsAt = combineDateTime(form.endDate, form.endTime);
-
-    if (!startsAt || !endsAt) {
+    if (!form.startsAt || !form.endsAt) {
       setError("Start and end date/time are required.");
       return;
     }
-    if (new Date(startsAt) >= new Date(endsAt)) {
-      setError("End must be after start.");
+
+    const startDate = new Date(form.startsAt);
+    const endDate = new Date(form.endsAt);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setError("Please enter valid start and end date/time values.");
       return;
     }
 
-    setSaving(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const res = await fetch("/.netlify/functions/blackout_periods", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roomId,
-          startsAt,
-          endsAt,
-          title: form.reason || "Admin blackout",
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to create blackout (status ${res.status})`);
-      }
-      // Expect API to return created row
-      const created = await res.json();
-      setBlackouts((prev) => [...prev, created]);
-      setForm({
-        startDate: "",
-        startTime: "",
-        endDate: "",
-        endTime: "",
-        reason: "",
-      });
-      setMessage("Blackout created.");
-    } catch (err) {
-      console.error("Error creating blackout", err);
-      setError("Could not create blackout period.");
-    } finally {
-      setSaving(false);
-      setTimeout(() => setMessage(null), 4000);
+    if (endDate <= startDate) {
+      setError("End time must be after start time.");
+      return;
     }
-  }
 
-  async function handleDelete(id) {
-    if (!id) return;
-    if (!window.confirm("Remove this blackout period?")) return;
+    const payload = {
+      roomId: roomKey,
+      startsAt: startDate.toISOString(),
+      endsAt: endDate.toISOString(),
+      title: form.title && form.title.trim()
+        ? form.title.trim()
+        : "Admin blackout",
+    };
 
     setSaving(true);
-    setError(null);
-    setMessage(null);
+
     try {
-      const res = await fetch(
-        `/.netlify/functions/blackout_periods/${encodeURIComponent(id)}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) {
-        throw new Error(`Failed to delete blackout (status ${res.status})`);
+      const response = await fetch("/.netlify/functions/blackout_periods", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to save blackout (status ${response.status})`
+        );
       }
-      setBlackouts((prev) => prev.filter((b) => b.id !== id));
-      setMessage("Blackout removed.");
+
+      const json = await response.json();
+
+      if (!json.ok || !json.data) {
+        throw new Error(json.error || "Unknown error from blackout API");
+      }
+
+      // Append the new blackout to the list
+      setBlackouts((prev) => [...prev, json.data]);
+
+      // Reset form
+      setForm({
+        startsAt: "",
+        endsAt: "",
+        title: "",
+      });
+
+      setMessage("Blackout added.");
+      setTimeout(() => setMessage(null), 4000);
     } catch (err) {
-      console.error("Error deleting blackout", err);
-      setError("Could not delete blackout period.");
+      console.error("Error saving blackout:", err);
+      setError("Could not save blackout. Please try again.");
     } finally {
       setSaving(false);
-      setTimeout(() => setMessage(null), 4000);
     }
   }
 
   if (!room) {
     return (
-      <section style={{ marginTop: "2rem" }}>
+      <div style={{ marginTop: "2rem" }}>
         <h3>Blackout periods</h3>
-        <p>Select a room to manage its blackout periods.</p>
-      </section>
-    );
-  }
-
-  if (!roomId) {
-    return (
-      <section style={{ marginTop: "2rem" }}>
-        <h3>Blackout periods</h3>
-        <p>
-          This room does not yet have a code or id. Please add a{" "}
-          <strong>Code</strong> and save the room before managing blackout
-          periods.
+        <p style={{ maxWidth: "640px" }}>
+          Select a room to view and manage blackout periods.
         </p>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section style={{ marginTop: "2rem" }}>
-      <h3>
-        Blackout periods for <strong>{room.name || room.code}</strong>
-      </h3>
+    <div style={{ marginTop: "2rem" }}>
+      <h3>Blackout periods</h3>
       <p style={{ maxWidth: "640px" }}>
-        Use this section to block out dates and times when this room cannot be
-        booked. These blackouts will be applied by the availability engine and
-        the Booker so guests cannot select these slots.
+        These periods block the room from being offered to guests during the
+        selected times. This panel uses the room{" "}
+        <strong>Code</strong> (for example <code>RM-001</code>) to link to the
+        database. Make sure the Code matches the room identifier used in your
+        system.
       </p>
 
-      {loading && <p>Loading blackout periods…</p>}
-      {error && (
-        <p style={{ color: "#b71c1c", marginTop: "0.5rem" }}>{error}</p>
-      )}
-      {message && (
-        <p style={{ color: "#1b5e20", marginTop: "0.5rem" }}>{message}</p>
-      )}
-
-      {/* Existing blackouts table */}
-      {blackouts.length === 0 && !loading ? (
-        <p>No blackout periods defined yet for this room.</p>
-      ) : (
-        <table
-          style={{
-            marginTop: "1rem",
-            borderCollapse: "collapse",
-            width: "100%",
-          }}
-        >
-          <thead>
-            <tr>
-              <th
-                style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}
-              >
-                From
-              </th>
-              <th
-                style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}
-              >
-                To
-              </th>
-              <th
-                style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}
-              >
-                Reason
-              </th>
-              <th
-                style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {blackouts.map((b) => (
-              <tr key={b.id}>
-                <td style={{ padding: "0.25rem 0.5rem" }}>
-                  {formatDateTime(b.starts_at || b.startsAt)}
-                </td>
-                <td style={{ padding: "0.25rem 0.5rem" }}>
-                  {formatDateTime(b.ends_at || b.endsAt)}
-                </td>
-                <td style={{ padding: "0.25rem 0.5rem" }}>{b.title || b.reason}</td>
-                <td style={{ padding: "0.25rem 0.5rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(b.id)}
-                    disabled={saving}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {/* Create form */}
-      <form
-        onSubmit={handleCreate}
+      <div
         style={{
-          marginTop: "1.5rem",
-          padding: "1rem",
-          border: "1px solid #ddd",
-          borderRadius: "4px",
+          marginBottom: "0.75rem",
         }}
       >
-        <h4 style={{ marginTop: 0 }}>Add blackout period</h4>
+        <strong>Current room:</strong>{" "}
+        {room.name || "Unnamed room"}{" "}
+        {room.code ? `(${room.code})` : "(no code set)"}
+      </div>
+
+      {error && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            border: "1px solid #e57373",
+            backgroundColor: "#ffebee",
+            borderRadius: "4px",
+            color: "#b71c1c",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {message && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.75rem 1rem",
+            border: "1px solid #81c784",
+            backgroundColor: "#e8f5e9",
+            borderRadius: "4px",
+            color: "#1b5e20",
+          }}
+        >
+          {message}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ marginBottom: "1rem" }}>Loading blackout periods…</div>
+      ) : (
+        <>
+          {blackouts.length === 0 ? (
+            <p style={{ marginBottom: "1rem" }}>
+              No blackout periods defined for this room yet.
+            </p>
+          ) : (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                marginBottom: "1rem",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      borderBottom: "1px solid #ddd",
+                      padding: "0.5rem",
+                    }}
+                  >
+                    Title
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      borderBottom: "1px solid #ddd",
+                      padding: "0.5rem",
+                    }}
+                  >
+                    Starts
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      borderBottom: "1px solid #ddd",
+                      padding: "0.5rem",
+                    }}
+                  >
+                    Ends
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {blackouts.map((b) => (
+                  <tr key={b.id}>
+                    <td
+                      style={{
+                        borderBottom: "1px solid #eee",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      {b.title || "Blackout"}
+                    </td>
+                    <td
+                      style={{
+                        borderBottom: "1px solid #eee",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      {formatDateTime(b.startsAt)}
+                    </td>
+                    <td
+                      style={{
+                        borderBottom: "1px solid #eee",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      {formatDateTime(b.endsAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+
+      <div
+        style={{
+          marginTop: "1rem",
+          paddingTop: "1rem",
+          borderTop: "1px solid #ddd",
+        }}
+      >
+        <h4 style={{ marginTop: 0 }}>Add blackout</h4>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "0.75rem",
+            gridTemplateColumns: "2fr 2fr 2fr auto",
+            gap: "0.5rem",
             alignItems: "flex-end",
+            maxWidth: "100%",
           }}
         >
           <div>
             <label>
-              Start date
+              Starts at
               <br />
               <input
-                type="date"
-                value={form.startDate}
-                onChange={(e) =>
-                  updateFormField("startDate", e.target.value)
-                }
+                type="datetime-local"
+                value={form.startsAt}
+                onChange={(e) => updateFormField("startsAt", e.target.value)}
+                style={{ width: "100%" }}
               />
             </label>
           </div>
           <div>
             <label>
-              Start time
+              Ends at
               <br />
               <input
-                type="time"
-                value={form.startTime}
-                onChange={(e) =>
-                  updateFormField("startTime", e.target.value)
-                }
+                type="datetime-local"
+                value={form.endsAt}
+                onChange={(e) => updateFormField("endsAt", e.target.value)}
+                style={{ width: "100%" }}
               />
             </label>
           </div>
           <div>
             <label>
-              End date
+              Title (optional)
               <br />
               <input
-                type="date"
-                value={form.endDate}
-                onChange={(e) => updateFormField("endDate", e.target.value)}
+                type="text"
+                value={form.title}
+                onChange={(e) => updateFormField("title", e.target.value)}
+                placeholder="e.g. Maintenance"
+                style={{ width: "100%" }}
               />
             </label>
           </div>
           <div>
-            <label>
-              End time
-              <br />
-              <input
-                type="time"
-                value={form.endTime}
-                onChange={(e) => updateFormField("endTime", e.target.value)}
-              />
-            </label>
+            <button
+              type="button"
+              onClick={handleAddBlackout}
+              disabled={saving}
+              style={{
+                padding: "0.5rem 1rem",
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              {saving ? "Saving…" : "Add blackout"}
+            </button>
           </div>
         </div>
-
-        <div style={{ marginTop: "0.75rem" }}>
-          <label>
-            Reason / label
-            <br />
-            <input
-              type="text"
-              placeholder="Renovation, private event, maintenance…"
-              value={form.reason}
-              onChange={(e) => updateFormField("reason", e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          style={{ marginTop: "0.75rem" }}
-          disabled={saving || !roomId}
-        >
-          {saving ? "Saving…" : "Add blackout"}
-        </button>
-      </form>
-    </section>
+      </div>
+    </div>
   );
-}
-
-function formatDateTime(value) {
-  if (!value) return "";
-  try {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleString();
-  } catch {
-    return value;
-  }
 }
