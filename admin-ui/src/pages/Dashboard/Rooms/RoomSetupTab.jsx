@@ -1,403 +1,559 @@
 // admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx
-// Room configuration UI + embedded blackout manager for the selected room.
+import React, { useMemo, useState } from 'react';
 
-import React, { useEffect, useState } from "react";
-import RoomBlackoutsPanel from "./RoomBlackoutsPanel";
+// Simple helper to create a unique id for new rooms
+const createRoomId = () => `room_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
-function createEmptyRoom() {
-  const id =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `room_${Date.now()}`;
-  return {
-    id,
-    code: "",
-    name: "",
-    description: "",
-    capacityMin: 1,
-    capacityMax: 20,
-    active: true,
+const EMPTY_ROOM = {
+  id: '',
+  code: '',
+  name: '',
+  description: '',
+  capacityMin: 1,
+  capacityMax: 10,
+  active: true,
+  layoutPricing: [],
+};
+
+// Common layouts to make it easier for the admin
+const DEFAULT_LAYOUT_OPTIONS = [
+  { layoutCode: 'BOARDROOM', layoutLabel: 'Boardroom' },
+  { layoutCode: 'CLASSROOM', layoutLabel: 'Classroom' },
+  { layoutCode: 'THEATRE', layoutLabel: 'Theatre' },
+  { layoutCode: 'INTERVIEW', layoutLabel: 'Interview' },
+];
+
+const RoomSetupTab = ({ rooms, onChangeRooms }) => {
+  const [editingRoom, setEditingRoom] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+
+  // Make sure each room always has layoutPricing as an array
+  const normalisedRooms = useMemo(
+    () =>
+      (rooms || []).map((r) => ({
+        ...r,
+        layoutPricing: Array.isArray(r.layoutPricing) ? r.layoutPricing : [],
+      })),
+    [rooms]
+  );
+
+  const handleAddRoom = () => {
+    setFormErrors({});
+    setEditingRoom({
+      ...EMPTY_ROOM,
+      id: createRoomId(),
+    });
   };
-}
 
-// Auto-generate next room code in the form RM-001, RM-002, …
-function generateNextRoomCode(existingRooms) {
-  const prefix = "RM-";
-  const numbers = (existingRooms || [])
-    .map((r) => (typeof r.code === "string" ? r.code.trim() : ""))
-    .map((code) => {
-      const match = code.match(/^RM-(\d{3})$/);
-      return match ? parseInt(match[1], 10) : null;
-    })
-    .filter((n) => n !== null);
+  const handleEditRoom = (room) => {
+    setFormErrors({});
+    setEditingRoom({
+      ...EMPTY_ROOM,
+      ...room,
+      layoutPricing: Array.isArray(room.layoutPricing) ? room.layoutPricing : [],
+    });
+  };
 
-  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
-  const padded = String(nextNumber).padStart(3, "0");
-  return `${prefix}${padded}`;
-}
+  const handleDeleteRoom = (roomId) => {
+    if (!window.confirm('Delete this room?')) return;
+    const updated = normalisedRooms.filter((r) => r.id !== roomId);
+    onChangeRooms(updated);
+  };
 
-export default function RoomSetupTab({
-  rooms,
-  setRooms,
-  onSave,
-  saving,
-  error,
-  message,
-}) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [form, setForm] = useState(createEmptyRoom());
-  const [validationError, setValidationError] = useState(null);
+  const handleChangeField = (field, value) => {
+    setEditingRoom((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-  // Ensure we always have at least one room in view
-  useEffect(() => {
-    if (!rooms || rooms.length === 0) {
-      const initial = [createEmptyRoom()];
-      setRooms(initial);
-      setSelectedId(initial[0].id);
-      setForm(initial[0]);
-      return;
-    }
+  const handleChangeNumberField = (field, rawValue) => {
+    const value = rawValue === '' ? '' : Number(rawValue);
+    setEditingRoom((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-    if (!selectedId) {
-      setSelectedId(rooms[0].id);
-      setForm(rooms[0]);
-      return;
-    }
+  const handleToggleActive = () => {
+    setEditingRoom((prev) => ({
+      ...prev,
+      active: !prev.active,
+    }));
+  };
 
-    const match = rooms.find((r) => r.id === selectedId);
-    if (match) {
-      setForm(match);
-    } else {
-      setSelectedId(rooms[0].id);
-      setForm(rooms[0]);
-    }
-  }, [rooms, selectedId, setRooms]);
+  const handleAddLayoutPricing = () => {
+    setEditingRoom((prev) => ({
+      ...prev,
+      layoutPricing: [
+        ...prev.layoutPricing,
+        {
+          layoutCode: '',
+          layoutLabel: '',
+          perPerson: {
+            perHour: null,
+            halfDay: null,
+            day: null,
+          },
+          perBooking: {
+            perHour: null,
+            halfDay: null,
+            day: null,
+          },
+          comparisonRule: 'higher',
+        },
+      ],
+    }));
+  };
 
-  function updateFormField(name, value) {
-    setForm((f) => ({ ...f, [name]: value }));
-  }
+  const handleRemoveLayoutPricing = (index) => {
+    setEditingRoom((prev) => ({
+      ...prev,
+      layoutPricing: prev.layoutPricing.filter((_, i) => i !== index),
+    }));
+  };
 
-  function handleSelectRoom(id) {
-    if (id === selectedId) return;
-    setSelectedId(id);
-    const match = rooms.find((r) => r.id === id);
-    if (match) {
-      setForm(match);
-      setValidationError(null);
-    }
-  }
+  const handleLayoutFieldChange = (index, path, value) => {
+    setEditingRoom((prev) => {
+      const lp = [...prev.layoutPricing];
+      const item = { ...lp[index] };
 
-  function handleNewRoom() {
-    const next = createEmptyRoom();
-    const nextRooms = [...rooms, next];
-    setRooms(nextRooms);
-    setSelectedId(next.id);
-    setForm(next);
-    setValidationError(null);
-  }
+      if (path === 'layoutCode' || path === 'layoutLabel' || path === 'comparisonRule') {
+        item[path] = value;
+      } else if (path.startsWith('perPerson.') || path.startsWith('perBooking.')) {
+        const [group, key] = path.split('.');
+        const currentGroup = { ...(item[group] || {}) };
+        currentGroup[key] = value === '' ? null : Number(value);
+        item[group] = currentGroup;
+      }
 
-  function handleDeleteRoom(id) {
-    if (!window.confirm("Delete this room?")) return;
-    const remaining = rooms.filter((r) => r.id !== id);
-    setRooms(remaining);
-    if (remaining.length === 0) {
-      const next = createEmptyRoom();
-      setRooms([next]);
-      setSelectedId(next.id);
-      setForm(next);
-    } else {
-      setSelectedId(remaining[0].id);
-      setForm(remaining[0]);
-    }
-  }
-
-  function validate(room, allRooms) {
-    if (!room.code.trim()) return "Code is required.";
-    if (!room.name.trim()) return "Name is required.";
-
-    // Code must be unique within the rooms array
-    const duplicate = (allRooms || []).some(
-      (r) => r.id !== room.id && r.code && r.code.trim() === room.code.trim()
-    );
-    if (duplicate) return "Code must be unique across rooms.";
-
-    const min = Number(room.capacityMin || 0);
-    const max = Number(room.capacityMax || 0);
-    if (!Number.isFinite(min) || min < 1)
-      return "Minimum capacity must be at least 1.";
-    if (!Number.isFinite(max) || max < min)
-      return "Maximum capacity must be greater than or equal to minimum.";
-    return null;
-  }
-
-  function handleSaveClick() {
-    // Apply auto-code rule if Code is blank: generate RM-XXX
-    let updatedRoom = { ...form };
-    if (!updatedRoom.code || !updatedRoom.code.trim()) {
-      updatedRoom = {
-        ...updatedRoom,
-        code: generateNextRoomCode(rooms),
+      lp[index] = item;
+      return {
+        ...prev,
+        layoutPricing: lp,
       };
+    });
+  };
+
+  const validateRoom = (room) => {
+    const errors = {};
+
+    if (!room.code) errors.code = 'Room code is required.';
+    if (!room.name) errors.name = 'Room name is required.';
+
+    if (room.capacityMin === '' || room.capacityMin == null) {
+      errors.capacityMin = 'Minimum capacity is required.';
+    }
+    if (room.capacityMax === '' || room.capacityMax == null) {
+      errors.capacityMax = 'Maximum capacity is required.';
     }
 
-    const updatedRooms = rooms.map((r) =>
-      r.id === updatedRoom.id ? updatedRoom : r
-    );
+    if (
+      typeof room.capacityMin === 'number' &&
+      typeof room.capacityMax === 'number' &&
+      room.capacityMin > room.capacityMax
+    ) {
+      errors.capacityMax = 'Maximum capacity must be greater than or equal to minimum capacity.';
+    }
 
-    const err = validate(updatedRoom, updatedRooms);
-    if (err) {
-      setValidationError(err);
+    // Room code must be unique within all rooms
+    const codeClash = normalisedRooms.some(
+      (r) => r.code === room.code && r.id !== room.id
+    );
+    if (codeClash) {
+      errors.code = 'Room code must be unique.';
+    }
+
+    // Layout pricing validation: if any rate is set, code + label are needed
+    room.layoutPricing.forEach((lp, index) => {
+      const hasAnyRate =
+        !!lp?.perPerson?.perHour ||
+        !!lp?.perPerson?.halfDay ||
+        !!lp?.perPerson?.day ||
+        !!lp?.perBooking?.perHour ||
+        !!lp?.perBooking?.halfDay ||
+        !!lp?.perBooking?.day;
+
+      if (hasAnyRate) {
+        if (!lp.layoutCode) {
+          errors[`layoutPricing_${index}_layoutCode`] =
+            'Layout code is required when rates are set.';
+        }
+        if (!lp.layoutLabel) {
+          errors[`layoutPricing_${index}_layoutLabel`] =
+            'Layout label is required when rates are set.';
+        }
+      }
+    });
+
+    return errors;
+  };
+
+  const handleSaveRoom = () => {
+    if (!editingRoom) return;
+
+    const cleanedRoom = {
+      ...editingRoom,
+      layoutPricing: editingRoom.layoutPricing.map((lp) => ({
+        ...lp,
+        perPerson: lp.perPerson || { perHour: null, halfDay: null, day: null },
+        perBooking: lp.perBooking || { perHour: null, halfDay: null, day: null },
+        comparisonRule: lp.comparisonRule === 'lower' ? 'lower' : 'higher',
+      })),
+    };
+
+    const errors = validateRoom(cleanedRoom);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
       return;
     }
 
-    setRooms(updatedRooms);
-    setValidationError(null);
-    if (onSave) onSave(updatedRooms);
-  }
+    const exists = normalisedRooms.find((r) => r.id === cleanedRoom.id);
+    let updatedRooms;
+    if (exists) {
+      updatedRooms = normalisedRooms.map((r) =>
+        r.id === cleanedRoom.id ? cleanedRoom : r
+      );
+    } else {
+      updatedRooms = [...normalisedRooms, cleanedRoom];
+    }
 
-  const activeRoom =
-    rooms && rooms.length > 0
-      ? rooms.find((r) => r.id === selectedId) || rooms[0]
-      : null;
+    onChangeRooms(updatedRooms);
+    setEditingRoom(null);
+    setFormErrors({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRoom(null);
+    setFormErrors({});
+  };
 
   return (
     <div>
-      <h2>Room Setup</h2>
-      <p style={{ maxWidth: "640px" }}>
-        Define the meeting and event rooms that the hotel offers. These rooms
-        and their capacities will later drive availability and pricing in the
-        customer-facing Booker. Room codes follow the pattern{" "}
-        <code>RM-001</code>, <code>RM-002</code>, and so on. If you leave the
-        Code blank, the system will generate the next available code for you.
-      </p>
-
-      {/* Status messages from parent save */}
-      {error && (
-        <div
-          style={{
-            marginBottom: "0.75rem",
-            padding: "0.75rem 1rem",
-            border: "1px solid #e57373",
-            backgroundColor: "#ffebee",
-            borderRadius: "4px",
-            color: "#b71c1c",
-          }}
-        >
-          {error}
-        </div>
-      )}
-      {message && (
-        <div
-          style={{
-            marginBottom: "0.75rem",
-            padding: "0.75rem 1rem",
-            border: "1px solid #81c784",
-            backgroundColor: "#e8f5e9",
-            borderRadius: "4px",
-            color: "#1b5e20",
-          }}
-        >
-          {message}
-        </div>
-      )}
-      {validationError && (
-        <div
-          style={{
-            marginBottom: "0.75rem",
-            padding: "0.75rem 1rem",
-            border: "1px solid #e57373",
-            backgroundColor: "#fff3f3",
-            borderRadius: "4px",
-            color: "#b71c1c",
-          }}
-        >
-          {validationError}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "260px 1fr",
-          gap: "1.5rem",
-          alignItems: "flex-start",
-          marginTop: "1rem",
-        }}
-      >
-        {/* Room list */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "0.5rem",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>Rooms</h3>
-            <button type="button" onClick={handleNewRoom}>
-              + New room
-            </button>
-          </div>
-          {rooms && rooms.length > 0 ? (
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-              }}
-            >
-              {rooms.map((room) => (
-                <li
-                  key={room.id}
-                  style={{
-                    padding: "0.5rem 0.75rem",
-                    borderBottom: "1px solid #eee",
-                    backgroundColor:
-                      room.id === selectedId ? "#f5f5f5" : "transparent",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => handleSelectRoom(room.id)}
-                >
-                  <span>
-                    <strong>{room.code || "No code"}</strong> –{" "}
-                    {room.name || "Unnamed room"}
-                    {!room.active && (
-                      <span
-                        style={{ marginLeft: "0.25rem", color: "#b71c1c" }}
-                      >
-                        (inactive)
-                      </span>
-                    )}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteRoom(room.id);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No rooms defined yet.</p>
-          )}
-        </div>
-
-        {/* Room form */}
-        <div>
-          <h3 style={{ marginTop: 0 }}>Room details</h3>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "0.75rem",
-            }}
-          >
-            <div>
-              <label>
-                Code *
-                <br />
-                <input
-                  type="text"
-                  value={form.code}
-                  onChange={(e) => updateFormField("code", e.target.value)}
-                  placeholder="RM-001"
-                  style={{ width: "100%" }}
-                />
-              </label>
-            </div>
-            <div>
-              <label>
-                Name *
-                <br />
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateFormField("name", e.target.value)}
-                  placeholder="Boardroom"
-                  style={{ width: "100%" }}
-                />
-              </label>
-            </div>
-            <div>
-              <label>
-                Minimum capacity *
-                <br />
-                <input
-                  type="number"
-                  min="1"
-                  value={form.capacityMin}
-                  onChange={(e) =>
-                    updateFormField("capacityMin", e.target.value)
-                  }
-                  style={{ width: "100%" }}
-                />
-              </label>
-            </div>
-            <div>
-              <label>
-                Maximum capacity *
-                <br />
-                <input
-                  type="number"
-                  min="1"
-                  value={form.capacityMax}
-                  onChange={(e) =>
-                    updateFormField("capacityMax", e.target.value)
-                  }
-                  style={{ width: "100%" }}
-                />
-              </label>
-            </div>
-          </div>
-
-          <div style={{ marginTop: "0.75rem" }}>
-            <label>
-              Description
-              <br />
-              <textarea
-                value={form.description}
-                onChange={(e) =>
-                  updateFormField("description", e.target.value)
-                }
-                rows={3}
-                style={{ width: "100%" }}
-              />
-            </label>
-          </div>
-
-          <div style={{ marginTop: "0.5rem" }}>
-            <label>
-              <input
-                type="checkbox"
-                checked={!!form.active}
-                onChange={(e) => updateFormField("active", e.target.checked)}
-              />{" "}
-              Active (visible to Booker)
-            </label>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSaveClick}
-            disabled={saving}
-            style={{ marginTop: "0.75rem" }}
-          >
-            {saving ? "Saving…" : "Save rooms"}
-          </button>
-        </div>
+      <div style={{ marginBottom: '1rem' }}>
+        <button onClick={handleAddRoom}>Add Room</button>
       </div>
 
-      {/* Blackout management for the active room */}
-      <RoomBlackoutsPanel room={activeRoom} />
+      {/* Rooms table */}
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Capacity</th>
+            <th>Active</th>
+            <th>Layouts</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {normalisedRooms.map((room) => (
+            <tr key={room.id}>
+              <td>{room.code}</td>
+              <td>{room.name}</td>
+              <td>
+                {room.capacityMin} – {room.capacityMax}
+              </td>
+              <td>{room.active ? 'Yes' : 'No'}</td>
+              <td>{room.layoutPricing?.length || 0}</td>
+              <td>
+                <button onClick={() => handleEditRoom(room)}>Edit</button>
+                <button onClick={() => handleDeleteRoom(room.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+          {normalisedRooms.length === 0 && (
+            <tr>
+              <td colSpan={6}>No rooms configured yet.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Edit / Create form */}
+      {editingRoom && (
+        <div className="room-edit-panel" style={{ marginTop: '2rem' }}>
+          <h2>
+            {normalisedRooms.some((r) => r.id === editingRoom.id)
+              ? 'Edit Room'
+              : 'New Room'}
+          </h2>
+
+          <div className="form-grid">
+            <div className="form-field">
+              <label>Room Code</label>
+              <input
+                type="text"
+                value={editingRoom.code}
+                onChange={(e) => handleChangeField('code', e.target.value)}
+              />
+              {formErrors.code && <div className="error">{formErrors.code}</div>}
+            </div>
+
+            <div className="form-field">
+              <label>Room Name</label>
+              <input
+                type="text"
+                value={editingRoom.name}
+                onChange={(e) => handleChangeField('name', e.target.value)}
+              />
+              {formErrors.name && <div className="error">{formErrors.name}</div>}
+            </div>
+
+            <div className="form-field">
+              <label>Description</label>
+              <textarea
+                value={editingRoom.description || ''}
+                onChange={(e) => handleChangeField('description', e.target.value)}
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Minimum Capacity</label>
+              <input
+                type="number"
+                min="1"
+                value={editingRoom.capacityMin}
+                onChange={(e) => handleChangeNumberField('capacityMin', e.target.value)}
+              />
+              {formErrors.capacityMin && (
+                <div className="error">{formErrors.capacityMin}</div>
+              )}
+            </div>
+
+            <div className="form-field">
+              <label>Maximum Capacity</label>
+              <input
+                type="number"
+                min="1"
+                value={editingRoom.capacityMax}
+                onChange={(e) => handleChangeNumberField('capacityMax', e.target.value)}
+              />
+              {formErrors.capacityMax && (
+                <div className="error">{formErrors.capacityMax}</div>
+              )}
+            </div>
+
+            <div className="form-field">
+              <label>Active</label>
+              <input
+                type="checkbox"
+                checked={editingRoom.active}
+                onChange={handleToggleActive}
+              />
+            </div>
+          </div>
+
+          {/* Layout pricing editor */}
+          <h3 style={{ marginTop: '2rem' }}>Per-Layout Base Pricing</h3>
+          <p>
+            For each layout, you can set optional per-person rates and optional per-booking
+            rates. The comparison rule only stores whether to use the higher or lower later
+            on — it does not calculate pricing here.
+          </p>
+
+          {editingRoom.layoutPricing.map((lp, index) => {
+            const layoutCodeError = formErrors[`layoutPricing_${index}_layoutCode`];
+            const layoutLabelError = formErrors[`layoutPricing_${index}_layoutLabel`];
+
+            return (
+              <div
+                key={index}
+                className="layout-pricing-card"
+                style={{
+                  border: '1px solid #ccc',
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <h4>Layout #{index + 1}</h4>
+                  <button onClick={() => handleRemoveLayoutPricing(index)}>Remove</button>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label>Layout Code</label>
+                    <input
+                      list={`layout-code-options-${index}`}
+                      type="text"
+                      value={lp.layoutCode || ''}
+                      onChange={(e) =>
+                        handleLayoutFieldChange(index, 'layoutCode', e.target.value)
+                      }
+                    />
+                    <datalist id={`layout-code-options-${index}`}>
+                      {DEFAULT_LAYOUT_OPTIONS.map((opt) => (
+                        <option key={opt.layoutCode} value={opt.layoutCode} />
+                      ))}
+                    </datalist>
+                    {layoutCodeError && <div className="error">{layoutCodeError}</div>}
+                  </div>
+
+                  <div className="form-field">
+                    <label>Layout Label</label>
+                    <input
+                      type="text"
+                      value={lp.layoutLabel || ''}
+                      onChange={(e) =>
+                        handleLayoutFieldChange(index, 'layoutLabel', e.target.value)
+                      }
+                    />
+                    {layoutLabelError && <div className="error">{layoutLabelError}</div>}
+                  </div>
+
+                  <div className="form-field">
+                    <label>Comparison Rule</label>
+                    <select
+                      value={lp.comparisonRule || 'higher'}
+                      onChange={(e) =>
+                        handleLayoutFieldChange(index, 'comparisonRule', e.target.value)
+                      }
+                    >
+                      <option value="higher">Whichever is higher</option>
+                      <option value="lower">Whichever is lower</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="layout-pricing-rates">
+                  <h5>Per Person</h5>
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label>Per Hour</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={
+                          lp.perPerson && lp.perPerson.perHour !== null
+                            ? lp.perPerson.perHour
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleLayoutFieldChange(
+                            index,
+                            'perPerson.perHour',
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Half Day</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={
+                          lp.perPerson && lp.perPerson.halfDay !== null
+                            ? lp.perPerson.halfDay
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleLayoutFieldChange(
+                            index,
+                            'perPerson.halfDay',
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Day</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={
+                          lp.perPerson && lp.perPerson.day !== null
+                            ? lp.perPerson.day
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleLayoutFieldChange(index, 'perPerson.day', e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <h5 style={{ marginTop: '1rem' }}>Per Booking</h5>
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label>Per Hour</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value(
+                          lp.perBooking && lp.perBooking.perHour !== null
+                            ? lp.perBooking.perHour
+                            : ''
+                        )
+                        onChange={(e) =>
+                          handleLayoutFieldChange(
+                            index,
+                            'perBooking.perHour',
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Half Day</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={
+                          lp.perBooking && lp.perBooking.halfDay !== null
+                            ? lp.perBooking.halfDay
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleLayoutFieldChange(
+                            index,
+                            'perBooking.halfDay',
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Day</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={
+                          lp.perBooking && lp.perBooking.day !== null
+                            ? lp.perBooking.day
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleLayoutFieldChange(index, 'perBooking.day', e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <button onClick={handleAddLayoutPricing}>Add Layout Pricing</button>
+
+          <div style={{ marginTop: '1.5rem' }}>
+            <button onClick={handleSaveRoom}>Save Room</button>
+            <button onClick={handleCancelEdit} style={{ marginLeft: '0.5rem' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default RoomSetupTab;
