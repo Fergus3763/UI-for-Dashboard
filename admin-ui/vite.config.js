@@ -3,5 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  build: { outDir: "public" }   // ⟵ change: build into /public
+  // Use Vite defaults:
+  // - Build output: /dist
+  // - Copies everything from /public into /dist as static assets
 });
