@@ -3,12 +3,12 @@
 File: /handover/BOOKER_VIEW_SPOKE_PROMPT.md
 Owner: HUB #7 → Booker View Spoke
 Scope:
-Create the Basic Booker View UI (read-only) that displays all rooms and their attributes, using only Admin-configured data and simple availability logic.
+Create the Basic Booker View UI (read-only) that displays all Meeting Rooms and their attributes, using only Admin-configured data and simple availability logic.
 No pricing engine, no payments, no booking creation.
 
 1. 🎯 Purpose (Plain English)
 
-Your job is to build a simple front-facing Booker View page that shows a hotel administrator what a guest would see when browsing available rooms.
+Your job is to build a simple front-facing Booker View page that shows a hotel administrator what a guest would see when browsing available Meeting Rooms.
 
 This is a demo/MVP, not the final Booker product.
 
@@ -26,7 +26,7 @@ NEVER call blackout APIs directly.
 
 Show rooms in a clean, simple, public-facing style.
 
-This is essentially a public version of "Room Overview", built for guests.
+This is essentially a public version of "Room Overview", built for Meeting Room Bookers.
 
 2. 🔒 Hard Constraints (Do NOT break these)
 ❌ You MUST NOT:
