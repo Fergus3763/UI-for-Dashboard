@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Booker View</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!--
+    Basic Booker View (read-only)
+
+    Assumptions (single note, per HUB rules):
+    - /load_config returns JSON with a top-level "data" object containing:
+      { data: { rooms: [], addOns: [], venue: {}, bookingPolicy: {} } }
+      but we also fall back to treating the root as the config if "data" is missing.
+    - Each room has:
+      - id (primary identifier for availability calls) OR code (fallback)
+      - name or roomName
+      - code or roomCode
+      - description (optional)
+      - minCapacity / maxCapacity OR capacityMin / capacityMax (any pair)
+      - isActive or active (truthy = active). Inactive rooms are fully hidden.
+      - featuresJSON and layoutsJSON may be JSON strings or already-parsed arrays.
+      - images may be:
+           room.images (array of URLs), or
+           room.imagesJSON (JSON string of array of URLs).
+    - Add-ons:
+      - Global list in config: addOns = [{ id, name, description, ... }]
+      - Rooms may contain:
+          room.includedAddOnIds (array of addOn ids) for “included”
+          room.optionalAddOnIds (array of addOn ids) for “optional”
+        If those arrays are missing, room shows “No add-ons for this room”.
+    - /availability?roomId=XXX&start=YYYY-MM-DD&end=YYYY-MM-DD
+      returns { ok: true, available: true/false }.
+      On any error or malformed response we show: “Unavailable (API error)”.
+  -->
+
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+      color: #111827;
+      background-color: #f3f4f6;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f3f4f6;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    header.page-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .hotel-name {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0 0 0.25rem;
+    }
+
+    .hotel-subtitle {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .intro {
+      font-size: 0.95rem;
+      color: #374151;
+      margin-bottom: 1rem;
+    }
+
+    .date-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+      padding: 0.75rem 0.9rem;
+      border-radius: 0.75rem;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+      margin-bottom: 1rem;
+    }
+
+    .date-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      min-width: 150px;
+      flex: 1 1 150px;
+    }
+
+    .date-field label {
+      font-size: 0.8rem;
+      color: #4b5563;
+    }
+
+    .date-field input[type="date"] {
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.45rem;
+      border: 1px solid #d1d5db;
+      font-size: 0.9rem;
+      color: #111827;
+      background-color: #ffffff;
+    }
+
+    .date-field input[type="date"]:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb22;
+    }
+
+    .btn {
+      padding: 0.55rem 1.2rem;
+      border-radius: 9999px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .status-message {
+      font-size: 0.85rem;
+      margin-top: 0.2rem;
+      color: #6b7280;
+    }
+
+    .status-message.error {
+      color: #b91c1c;
+    }
+
+    .rooms-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.75rem;
+      color: #111827;
+    }
+
+    .rooms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .room-card {
+      background-color: #ffffff;
+      border-radius: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .room-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .room-title-block {
+      min-width: 0;
+    }
+
+    .room-name {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      color: #111827;
+    }
+
+    .room-code {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 0.1rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge-availability {
+      border-width: 1px;
+    }
+
+    .badge-available {
+      background-color: #ecfdf5;
+      border-color: #22c55e;
+      color: #166534;
+    }
+
+    .badge-unavailable {
+      background-color: #fef2f2;
+      border-color: #ef4444;
+      color: #b91c1c;
+    }
+
+    .badge-unknown {
+      background-color: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+    }
+
+    .room-description {
+      font-size: 0.9rem;
+      color: #4b5563;
+      margin-top: 0.1rem;
+    }
+
+    .room-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 0.1rem;
+    }
+
+    .room-meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #374151;
+      margin-top: 0.4rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+    }
+
+    .chip {
+      border-radius: 9999px;
+      padding: 0.15rem 0.5rem;
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .chip-included {
+      background-color: #ecfdf5;
+      color: #166534;
+    }
+
+    .chip-optional {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .images-strip {
+      display: flex;
+      gap: 0.4rem;
+      overflow-x: auto;
+      padding-bottom: 0.2rem;
+      margin-top: 0.2rem;
+    }
+
+    .images-strip img {
+      display: block;
+      height: 80px;
+      width: auto;
+      border-radius: 0.45rem;
+      object-fit: cover;
+      flex: 0 0 auto;
+      border: 1px solid #e5e7eb;
+    }
+
+    .small-note {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .date-form {
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <h1 class="hotel-name" id="hotelName">Loading hotel…</h1>
+      <div class="hotel-subtitle" id="hotelSubtitle"></div>
+      <p class="intro">
+        Browse our rooms and check simple availability between your chosen dates.
+        This is a read-only preview — no bookings or payments are made here.
+      </p>
+
+      <form class="date-form" id="availabilityForm">
+        <div class="date-field">
+          <label for="startDate">Start date</label>
+          <input type="date" id="startDate" name="startDate" />
+        </div>
+
+        <div class="date-field">
+          <label for="endDate">End date</label>
+          <input type="date" id="endDate" name="endDate" />
+        </div>
+
+        <button type="submit" class="btn" id="checkAvailabilityBtn">
+          Check availability
+        </button>
+
+        <div class="status-message" id="availabilityStatus">
+          Choose your dates and click “Check availability”.
+        </div>
+      </form>
+    </header>
+
+    <section>
+      <h2 class="rooms-section-title">Rooms</h2>
+      <div id="roomsContainer" class="rooms-grid" aria-live="polite"></div>
+      <div id="roomsEmptyMessage" class="status-message" style="display:none;">
+        No active rooms are available in this configuration.
+      </div>
+    </section>
+
+    <p class="small-note">
+      Basic Booker View (read-only demo). Data is loaded from configuration and
+      availability APIs — this page never writes to the database.
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const state = {
+        rooms: [],
+        addOns: [],
+        venue: {},
+        bookingPolicy: {},
+        lastAvailabilityParams: null
+      };
+
+      const hotelNameEl = document.getElementById("hotelName");
+      const hotelSubtitleEl = document.getElementById("hotelSubtitle");
+      const roomsContainerEl = document.getElementById("roomsContainer");
+      const roomsEmptyMessageEl = document.getElementById("roomsEmptyMessage");
+      const availabilityFormEl = document.getElementById("availabilityForm");
+      const availabilityStatusEl = document.getElementById("availabilityStatus");
+      const checkAvailabilityBtnEl = document.getElementById("checkAvailabilityBtn");
+
+      /**
+       * Utility: safely parse JSON if given a string, otherwise return as-is.
+       */
+      function safeParseJSON(maybeJSON) {
+        if (!maybeJSON) return null;
+        if (Array.isArray(maybeJSON) || typeof maybeJSON === "object") {
+          return maybeJSON;
+        }
+        if (typeof maybeJSON === "string") {
+          try {
+            return JSON.parse(maybeJSON);
+          } catch (err) {
+            console.warn("Failed to parse JSON field:", err);
+            return null;
+          }
+        }
+        return null;
+      }
+
+      /**
+       * Load configuration from /load_config.
+       * Fully read-only; no DB writes.
+       */
+      async function loadConfig() {
+        try {
+          const res = await fetch("/load_config", {
+            method: "GET",
+            headers: {
+              "Accept": "application/json"
+            }
+          });
+
+          if (!res.ok) {
+            throw new Error("Config request failed with status " + res.status);
+          }
+
+          const json = await res.json();
+          const data = json && json.data ? json.data : json || {};
+
+          state.rooms = Array.isArray(data.rooms) ? data.rooms : [];
+          state.addOns = Array.isArray(data.addOns) ? data.addOns : [];
+          state.venue = data.venue || {};
+          state.bookingPolicy = data.bookingPolicy || {};
+
+          renderVenue(state.venue);
+          renderRooms(state.rooms, state.addOns);
+        } catch (error) {
+          console.error("Error loading configuration:", error);
+          hotelNameEl.textContent = "Hotel unavailable";
+          hotelSubtitleEl.textContent = "";
+          availabilityStatusEl.textContent = "We could not load room configuration. Please try again later.";
+          availabilityStatusEl.classList.add("error");
+        }
+      }
+
+      /**
+       * Render venue header from configuration.
+       */
+      function renderVenue(venue) {
+        const name = venue.name || venue.hotelName || "Hotel";
+        hotelNameEl.textContent = name;
+
+        const locationPieces = [];
+        if (venue.city) locationPieces.push(venue.city);
+        if (venue.country) locationPieces.push(venue.country);
+
+        hotelSubtitleEl.textContent = locationPieces.join(" · ") || "";
+      }
+
+      /**
+       * Determine whether a room is active.
+       * Inactive rooms must not be displayed.
+       */
+      function isRoomActive(room) {
+        if (Object.prototype.hasOwnProperty.call(room, "isActive")) {
+          return !!room.isActive;
+        }
+        if (Object.prototype.hasOwnProperty.call(room, "active")) {
+          return !!room.active;
+        }
+        // Default to active if flag is missing.
+        return true;
+      }
+
+      /**
+       * Get a human-readable room name and code.
+       */
+      function getRoomDisplayName(room) {
+        const name = room.name || room.roomName || "Room";
+        const code = room.code || room.roomCode || room.id || "";
+        return { name, code };
+      }
+
+      /**
+       * Get room capacity (min → max) from possible fields.
+       */
+      function getRoomCapacity(room) {
+        const min =
+          room.minCapacity ??
+          room.capacityMin ??
+          null;
+        const max =
+          room.maxCapacity ??
+          room.capacityMax ??
+          null;
+        return { min, max };
+      }
+
+      /**
+       * Extract room images as an array of URLs.
+       */
+      function getRoomImages(room) {
+        let images = [];
+
+        if (Array.isArray(room.images)) {
+          images = room.images;
+        } else if (room.imagesJSON) {
+          const parsed = safeParseJSON(room.imagesJSON);
+          if (Array.isArray(parsed)) {
+            images = parsed;
+          }
+        }
+
+        // Filter to simple string URLs.
+        return images.filter(function (img) {
+          return typeof img === "string" && img.trim().length > 0;
+        });
+      }
+
+      /**
+       * Extract a simple array of strings from a features/layouts JSON field.
+       */
+      function normaliseStringArray(fromField) {
+        const parsed = safeParseJSON(fromField);
+        if (!parsed) return [];
+
+        if (Array.isArray(parsed)) {
+          return parsed.map(function (item) {
+            if (typeof item === "string") return item;
+            if (item && typeof item === "object") {
+              return item.name || item.label || JSON.stringify(item);
+            }
+            return String(item);
+          });
+        }
+
+        // If object, treat values as items.
+        if (typeof parsed === "object") {
+          return Object.values(parsed).map(function (item) {
+            if (typeof item === "string") return item;
+            if (item && typeof item === "object") {
+              return item.name || item.label || JSON.stringify(item);
+            }
+            return String(item);
+          });
+        }
+
+        return [];
+      }
+
+      /**
+       * Get room features from featuresJSON.
+       */
+      function getRoomFeatures(room) {
+        return normaliseStringArray(room.featuresJSON);
+      }
+
+      /**
+       * Get room layouts from layoutsJSON.
+       */
+      function getRoomLayouts(room) {
+        return normaliseStringArray(room.layoutsJSON);
+      }
+
+      /**
+       * Resolve add-ons for a room into included vs optional lists.
+       */
+      function getRoomAddOns(room, allAddOns) {
+        const includedIds = Array.isArray(room.includedAddOnIds)
+          ? room.includedAddOnIds
+          : [];
+        const optionalIds = Array.isArray(room.optionalAddOnIds)
+          ? room.optionalAddOnIds
+          : [];
+
+        const byId = {};
+        allAddOns.forEach(function (a) {
+          if (a && a.id != null) {
+            byId[a.id] = a;
+          }
+        });
+
+        const included = includedIds
+          .map(function (id) { return byId[id]; })
+          .filter(Boolean);
+
+        const optional = optionalIds
+          .map(function (id) { return byId[id]; })
+          .filter(Boolean);
+
+        return { included, optional };
+      }
+
+      /**
+       * Render all active rooms as cards.
+       */
+      function renderRooms(rooms, addOns) {
+        roomsContainerEl.innerHTML = "";
+        roomsEmptyMessageEl.style.display = "none";
+
+        const activeRooms = rooms.filter(isRoomActive);
+
+        if (!activeRooms.length) {
+          roomsEmptyMessageEl.style.display = "block";
+          return;
+        }
+
+        activeRooms.forEach(function (room) {
+          const cardEl = document.createElement("article");
+          cardEl.className = "room-card";
+
+          const headerRow = document.createElement("div");
+          headerRow.className = "room-header-row";
+
+          const titleBlock = document.createElement("div");
+          titleBlock.className = "room-title-block";
+
+          const { name, code } = getRoomDisplayName(room);
+          const nameEl = document.createElement("h3");
+          nameEl.className = "room-name";
+          nameEl.textContent = name;
+
+          const codeEl = document.createElement("div");
+          codeEl.className = "room-code";
+          codeEl.textContent = code ? "Code: " + code : "";
+
+          titleBlock.appendChild(nameEl);
+          if (code) titleBlock.appendChild(codeEl);
+
+          const badge = document.createElement("div");
+          badge.className = "badge badge-availability badge-unknown";
+          badge.dataset.roomId = getRoomIdentifier(room);
+          badge.textContent = "Availability: not checked";
+
+          headerRow.appendChild(titleBlock);
+          headerRow.appendChild(badge);
+          cardEl.appendChild(headerRow);
+
+          if (room.description) {
+            const descEl = document.createElement("p");
+            descEl.className = "room-description";
+            descEl.textContent = room.description;
+            cardEl.appendChild(descEl);
+          }
+
+          const cap = getRoomCapacity(room);
+          if (cap.min != null || cap.max != null) {
+            const metaRow = document.createElement("div");
+            metaRow.className = "room-meta";
+
+            const capItem = document.createElement("div");
+            capItem.className = "room-meta-item";
+
+            let capText = "Capacity:";
+            if (cap.min != null && cap.max != null && cap.min !== cap.max) {
+              capText += " " + cap.min + "–" + cap.max + " people";
+            } else if (cap.max != null) {
+              capText += " up to " + cap.max + " people";
+            } else if (cap.min != null) {
+              capText += " from " + cap.min + " people";
+            }
+
+            capItem.textContent = capText;
+            metaRow.appendChild(capItem);
+            cardEl.appendChild(metaRow);
+          }
+
+          const images = getRoomImages(room);
+          if (images.length) {
+            const label = document.createElement("div");
+            label.className = "section-label";
+            label.textContent = "Photos";
+            cardEl.appendChild(label);
+
+            const strip = document.createElement("div");
+            strip.className = "images-strip";
+
+            images.forEach(function (src, index) {
+              const img = document.createElement("img");
+              img.src = src;
+              img.alt = name + " image " + (index + 1);
+              strip.appendChild(img);
+            });
+
+            cardEl.appendChild(strip);
+          }
+
+          const features = getRoomFeatures(room);
+          if (features.length) {
+            const label = document.createElement("div");
+            label.className = "section-label";
+            label.textContent = "Features";
+            cardEl.appendChild(label);
+
+            const chips = document.createElement("div");
+            chips.className = "chips";
+
+            features.forEach(function (feat) {
+              const chip = document.createElement("span");
+              chip.className = "chip";
+              chip.textContent = feat;
+              chips.appendChild(chip);
+            });
+
+            cardEl.appendChild(chips);
+          }
+
+          const layouts = getRoomLayouts(room);
+          if (layouts.length) {
+            const label = document.createElement("div");
+            label.className = "section-label";
+            label.textContent = "Layouts";
+            cardEl.appendChild(label);
+
+            const chips = document.createElement("div");
+            chips.className = "chips";
+
+            layouts.forEach(function (layout) {
+              const chip = document.createElement("span");
+              chip.className = "chip";
+              chip.textContent = layout;
+              chips.appendChild(chip);
+            });
+
+            cardEl.appendChild(chips);
+          }
+
+          const roomAddOns = getRoomAddOns(room, addOns);
+          if (roomAddOns.included.length || roomAddOns.optional.length) {
+            const label = document.createElement("div");
+            label.className = "section-label";
+            label.textContent = "Add-ons";
+            cardEl.appendChild(label);
+
+            const chips = document.createElement("div");
+            chips.className = "chips";
+
+            roomAddOns.included.forEach(function (addOn) {
+              const chip = document.createElement("span");
+              chip.className = "chip chip-included";
+              chip.textContent = (addOn.name || "Included add-on");
+              chips.appendChild(chip);
+            });
+
+            roomAddOns.optional.forEach(function (addOn) {
+              const chip = document.createElement("span");
+              chip.className = "chip chip-optional";
+              chip.textContent = (addOn.name || "Optional add-on");
+              chips.appendChild(chip);
+            });
+
+            cardEl.appendChild(chips);
+          } else {
+            const label = document.createElement("div");
+            label.className = "section-label";
+            label.textContent = "Add-ons";
+            cardEl.appendChild(label);
+
+            const msg = document.createElement("div");
+            msg.className = "status-message";
+            msg.textContent = "No add-ons configured for this room.";
+            cardEl.appendChild(msg);
+          }
+
+          roomsContainerEl.appendChild(cardEl);
+        });
+      }
+
+      /**
+       * Determine the identifier used for availability calls.
+       * Prefer id, fall back to code.
+       */
+      function getRoomIdentifier(room) {
+        return room.id || room.code || room.roomCode || "";
+      }
+
+      /**
+       * Update a room's availability badge by identifier.
+       */
+      function updateRoomAvailabilityBadge(roomId, status) {
+        const selector = '.badge-availability[data-room-id="' + roomId + '"]';
+        const el = roomsContainerEl.querySelector(selector);
+        if (!el) return;
+
+        el.classList.remove("badge-available", "badge-unavailable", "badge-unknown");
+
+        if (status === "available") {
+          el.classList.add("badge-available");
+          el.textContent = "✓ Available";
+        } else if (status === "unavailable") {
+          el.classList.add("badge-unavailable");
+          el.textContent = "✗ Unavailable";
+        } else if (status === "error") {
+          el.classList.add("badge-unavailable");
+          el.textContent = "Unavailable (API error)";
+        } else {
+          el.classList.add("badge-unknown");
+          el.textContent = "Availability: not checked";
+        }
+      }
+
+      /**
+       * Reset all badges to "not checked".
+       */
+      function resetAllAvailabilityBadges() {
+        const badges = roomsContainerEl.querySelectorAll(".badge-availability");
+        badges.forEach(function (el) {
+          el.classList.remove("badge-available", "badge-unavailable", "badge-unknown");
+          el.classList.add("badge-unknown");
+          el.textContent = "Availability: not checked";
+        });
+      }
+
+      /**
+       * Call /availability for a single room.
+       */
+      async function fetchRoomAvailability(room, startDate, endDate) {
+        const roomId = encodeURIComponent(getRoomIdentifier(room));
+        if (!roomId) {
+          updateRoomAvailabilityBadge("", "error");
+          return;
+        }
+
+        const url = "/availability?roomId=" + roomId +
+          "&start=" + encodeURIComponent(startDate) +
+          "&end=" + encodeURIComponent(endDate);
+
+        try {
+          const res = await fetch(url, {
+            method: "GET",
+            headers: {
+              "Accept": "application/json"
+            }
+          });
+
+          if (!res.ok) {
+            throw new Error("Availability request failed: " + res.status);
+          }
+
+          const json = await res.json();
+          if (!json || json.ok !== true || typeof json.available !== "boolean") {
+            throw new Error("Unexpected availability response");
+          }
+
+          updateRoomAvailabilityBadge(
+            getRoomIdentifier(room),
+            json.available ? "available" : "unavailable"
+          );
+        } catch (error) {
+          console.error("Availability error for room", room, error);
+          updateRoomAvailabilityBadge(getRoomIdentifier(room), "error");
+        }
+      }
+
+      /**
+       * Handle the availability form submit.
+       */
+      async function onAvailabilitySubmit(event) {
+        event.preventDefault();
+
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        availabilityStatusEl.classList.remove("error");
+
+        if (!startDate || !endDate) {
+          availabilityStatusEl.textContent = "Please select both a start and end date.";
+          availabilityStatusEl.classList.add("error");
+          resetAllAvailabilityBadges();
+          return;
+        }
+
+        if (endDate < startDate) {
+          availabilityStatusEl.textContent = "End date must be on or after the start date.";
+          availabilityStatusEl.classList.add("error");
+          resetAllAvailabilityBadges();
+          return;
+        }
+
+        const activeRooms = state.rooms.filter(isRoomActive);
+        if (!activeRooms.length) {
+          availabilityStatusEl.textContent = "No active rooms to check.";
+          availabilityStatusEl.classList.add("error");
+          resetAllAvailabilityBadges();
+          return;
+        }
+
+        availabilityStatusEl.textContent = "Checking availability…";
+        checkAvailabilityBtnEl.disabled = true;
+
+        state.lastAvailabilityParams = { startDate, endDate };
+        resetAllAvailabilityBadges();
+
+        try {
+          // One availability call per room.
+          await Promise.all(
+            activeRooms.map(function (room) {
+              return fetchRoomAvailability(room, startDate, endDate);
+            })
+          );
+          availabilityStatusEl.textContent = "Availability updated for all rooms.";
+        } catch (err) {
+          // We already mark per-room errors; this is a safety net.
+          console.error("Unexpected availability error:", err);
+          availabilityStatusEl.textContent = "We encountered an error while checking availability.";
+          availabilityStatusEl.classList.add("error");
+        } finally {
+          checkAvailabilityBtnEl.disabled = false;
+        }
+      }
+
+      /**
+       * Initialize page.
+       */
+      function init() {
+        availabilityFormEl.addEventListener("submit", onAvailabilitySubmit);
+        loadConfig();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
