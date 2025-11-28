@@ -421,24 +421,25 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                   <h5>Per Person</h5>
                   <div className="form-grid">
                     <div className="form-field">
-                      <label>Per Hour</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={
-                          lp.perPerson && lp.perPerson.perHour !== null
-                            ? lp.perPerson.perHour
-                            : ''
-                        }
-                        onChange={(e) =>
-                          handleLayoutFieldChange(
-                            index,
-                            'perPerson.perHour',
-                            e.target.value
-                          )
-                        }
-                      />
+                    <label>Per Hour</label>
+<input
+  type="number"
+  min="0"
+  step="0.01"
+  value={
+    lp.perBooking && lp.perBooking.perHour !== null
+      ? lp.perBooking.perHour
+      : ''
+  }
+  onChange={(e) =>
+    handleLayoutFieldChange(
+      index,
+      'perBooking.perHour',
+      e.target.value
+    )
+  }
+/>
+  
                     </div>
                     <div className="form-field">
                       <label>Half Day</label>
