@@ -1,7 +1,8 @@
 // admin-ui/src/pages/Dashboard/Rooms/index.jsx
 import React, { useEffect, useState } from 'react';
 import RoomSetupTab from './RoomSetupTab';
-import AddOnsTab from './AddOnsTab';
+// IMPORTANT: reuse the AddOnsTab from VenueSetup
+import AddOnsTab from '../VenueSetup/Tabs/AddOnsTab.jsx';
 
 const RoomsPage = () => {
   const [config, setConfig] = useState(null);
