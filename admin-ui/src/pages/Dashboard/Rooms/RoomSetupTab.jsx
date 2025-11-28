@@ -2,7 +2,8 @@
 import React, { useMemo, useState } from 'react';
 
 // Simple helper to create a unique id for new rooms
-const createRoomId = () => `room_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+const createRoomId = () =>
+  `room_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
 const EMPTY_ROOM = {
   id: '',
@@ -50,7 +51,9 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
     setEditingRoom({
       ...EMPTY_ROOM,
       ...room,
-      layoutPricing: Array.isArray(room.layoutPricing) ? room.layoutPricing : [],
+      layoutPricing: Array.isArray(room.layoutPricing)
+        ? room.layoutPricing
+        : [],
     });
   };
 
@@ -118,9 +121,16 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
       const lp = [...prev.layoutPricing];
       const item = { ...lp[index] };
 
-      if (path === 'layoutCode' || path === 'layoutLabel' || path === 'comparisonRule') {
+      if (
+        path === 'layoutCode' ||
+        path === 'layoutLabel' ||
+        path === 'comparisonRule'
+      ) {
         item[path] = value;
-      } else if (path.startsWith('perPerson.') || path.startsWith('perBooking.')) {
+      } else if (
+        path.startsWith('perPerson.') ||
+        path.startsWith('perBooking.')
+      ) {
         const [group, key] = path.split('.');
         const currentGroup = { ...(item[group] || {}) };
         currentGroup[key] = value === '' ? null : Number(value);
@@ -153,7 +163,8 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
       typeof room.capacityMax === 'number' &&
       room.capacityMin > room.capacityMax
     ) {
-      errors.capacityMax = 'Maximum capacity must be greater than or equal to minimum capacity.';
+      errors.capacityMax =
+        'Maximum capacity must be greater than or equal to minimum capacity.';
     }
 
     // Room code must be unique within all rooms
@@ -196,8 +207,16 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
       ...editingRoom,
       layoutPricing: editingRoom.layoutPricing.map((lp) => ({
         ...lp,
-        perPerson: lp.perPerson || { perHour: null, halfDay: null, day: null },
-        perBooking: lp.perBooking || { perHour: null, halfDay: null, day: null },
+        perPerson: lp.perPerson || {
+          perHour: null,
+          halfDay: null,
+          day: null,
+        },
+        perBooking: lp.perBooking || {
+          perHour: null,
+          halfDay: null,
+          day: null,
+        },
         comparisonRule: lp.comparisonRule === 'lower' ? 'lower' : 'higher',
       })),
     };
@@ -288,7 +307,9 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                 value={editingRoom.code}
                 onChange={(e) => handleChangeField('code', e.target.value)}
               />
-              {formErrors.code && <div className="error">{formErrors.code}</div>}
+              {formErrors.code && (
+                <div className="error">{formErrors.code}</div>
+              )}
             </div>
 
             <div className="form-field">
@@ -298,14 +319,18 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                 value={editingRoom.name}
                 onChange={(e) => handleChangeField('name', e.target.value)}
               />
-              {formErrors.name && <div className="error">{formErrors.name}</div>}
+              {formErrors.name && (
+                <div className="error">{formErrors.name}</div>
+              )}
             </div>
 
             <div className="form-field">
               <label>Description</label>
               <textarea
                 value={editingRoom.description || ''}
-                onChange={(e) => handleChangeField('description', e.target.value)}
+                onChange={(e) =>
+                  handleChangeField('description', e.target.value)
+                }
               />
             </div>
 
@@ -315,7 +340,9 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                 type="number"
                 min="1"
                 value={editingRoom.capacityMin}
-                onChange={(e) => handleChangeNumberField('capacityMin', e.target.value)}
+                onChange={(e) =>
+                  handleChangeNumberField('capacityMin', e.target.value)
+                }
               />
               {formErrors.capacityMin && (
                 <div className="error">{formErrors.capacityMin}</div>
@@ -328,7 +355,9 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                 type="number"
                 min="1"
                 value={editingRoom.capacityMax}
-                onChange={(e) => handleChangeNumberField('capacityMax', e.target.value)}
+                onChange={(e) =>
+                  handleChangeNumberField('capacityMax', e.target.value)
+                }
               />
               {formErrors.capacityMax && (
                 <div className="error">{formErrors.capacityMax}</div>
@@ -348,14 +377,16 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
           {/* Layout pricing editor */}
           <h3 style={{ marginTop: '2rem' }}>Per-Layout Base Pricing</h3>
           <p>
-            For each layout, you can set optional per-person rates and optional per-booking
-            rates. The comparison rule only stores whether to use the higher or lower later
-            on — it does not calculate pricing here.
+            For each layout, you can set optional per-person rates and optional
+            per-booking rates. The comparison rule only stores whether to use
+            the higher or lower later on — it does not calculate pricing here.
           </p>
 
           {editingRoom.layoutPricing.map((lp, index) => {
-            const layoutCodeError = formErrors[`layoutPricing_${index}_layoutCode`];
-            const layoutLabelError = formErrors[`layoutPricing_${index}_layoutLabel`];
+            const layoutCodeError =
+              formErrors[`layoutPricing_${index}_layoutCode`];
+            const layoutLabelError =
+              formErrors[`layoutPricing_${index}_layoutLabel`];
 
             return (
               <div
@@ -367,9 +398,16 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                   marginBottom: '1rem',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
                   <h4>Layout #{index + 1}</h4>
-                  <button onClick={() => handleRemoveLayoutPricing(index)}>Remove</button>
+                  <button onClick={() => handleRemoveLayoutPricing(index)}>
+                    Remove
+                  </button>
                 </div>
 
                 <div className="form-grid">
@@ -380,15 +418,24 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                       type="text"
                       value={lp.layoutCode || ''}
                       onChange={(e) =>
-                        handleLayoutFieldChange(index, 'layoutCode', e.target.value)
+                        handleLayoutFieldChange(
+                          index,
+                          'layoutCode',
+                          e.target.value
+                        )
                       }
                     />
                     <datalist id={`layout-code-options-${index}`}>
                       {DEFAULT_LAYOUT_OPTIONS.map((opt) => (
-                        <option key={opt.layoutCode} value={opt.layoutCode} />
+                        <option
+                          key={opt.layoutCode}
+                          value={opt.layoutCode}
+                        />
                       ))}
                     </datalist>
-                    {layoutCodeError && <div className="error">{layoutCodeError}</div>}
+                    {layoutCodeError && (
+                      <div className="error">{layoutCodeError}</div>
+                    )}
                   </div>
 
                   <div className="form-field">
@@ -397,10 +444,16 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                       type="text"
                       value={lp.layoutLabel || ''}
                       onChange={(e) =>
-                        handleLayoutFieldChange(index, 'layoutLabel', e.target.value)
+                        handleLayoutFieldChange(
+                          index,
+                          'layoutLabel',
+                          e.target.value
+                        )
                       }
                     />
-                    {layoutLabelError && <div className="error">{layoutLabelError}</div>}
+                    {layoutLabelError && (
+                      <div className="error">{layoutLabelError}</div>
+                    )}
                   </div>
 
                   <div className="form-field">
@@ -408,7 +461,11 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                     <select
                       value={lp.comparisonRule || 'higher'}
                       onChange={(e) =>
-                        handleLayoutFieldChange(index, 'comparisonRule', e.target.value)
+                        handleLayoutFieldChange(
+                          index,
+                          'comparisonRule',
+                          e.target.value
+                        )
                       }
                     >
                       <option value="higher">Whichever is higher</option>
@@ -421,25 +478,24 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                   <h5>Per Person</h5>
                   <div className="form-grid">
                     <div className="form-field">
-                    <label>Per Hour</label>
-<input
-  type="number"
-  min="0"
-  step="0.01"
-  value={
-    lp.perBooking && lp.perBooking.perHour !== null
-      ? lp.perBooking.perHour
-      : ''
-  }
-  onChange={(e) =>
-    handleLayoutFieldChange(
-      index,
-      'perBooking.perHour',
-      e.target.value
-    )
-  }
-/>
-  
+                      <label>Per Hour</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={
+                          lp.perPerson && lp.perPerson.perHour !== null
+                            ? lp.perPerson.perHour
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleLayoutFieldChange(
+                            index,
+                            'perPerson.perHour',
+                            e.target.value
+                          )
+                        }
+                      />
                     </div>
                     <div className="form-field">
                       <label>Half Day</label>
@@ -473,7 +529,11 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                             : ''
                         }
                         onChange={(e) =>
-                          handleLayoutFieldChange(index, 'perPerson.day', e.target.value)
+                          handleLayoutFieldChange(
+                            index,
+                            'perPerson.day',
+                            e.target.value
+                          )
                         }
                       />
                     </div>
@@ -487,11 +547,11 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                         type="number"
                         min="0"
                         step="0.01"
-                        value(
+                        value={
                           lp.perBooking && lp.perBooking.perHour !== null
                             ? lp.perBooking.perHour
                             : ''
-                        )
+                        }
                         onChange={(e) =>
                           handleLayoutFieldChange(
                             index,
@@ -533,7 +593,11 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
                             : ''
                         }
                         onChange={(e) =>
-                          handleLayoutFieldChange(index, 'perBooking.day', e.target.value)
+                          handleLayoutFieldChange(
+                            index,
+                            'perBooking.day',
+                            e.target.value
+                          )
                         }
                       />
                     </div>
@@ -547,7 +611,10 @@ const RoomSetupTab = ({ rooms, onChangeRooms }) => {
 
           <div style={{ marginTop: '1.5rem' }}>
             <button onClick={handleSaveRoom}>Save Room</button>
-            <button onClick={handleCancelEdit} style={{ marginLeft: '0.5rem' }}>
+            <button
+              onClick={handleCancelEdit}
+              style={{ marginLeft: '0.5rem' }}
+            >
               Cancel
             </button>
           </div>
