@@ -322,5 +322,42 @@ Never delete older checklists—just add the new one below them._
 - Validate save/load pipeline across all config keys.
 - Prepare first integrated Admin–API–DB workflow.
 
+---
+
+### 10. `/handover/STATUS_SUMMARY.md` (append this section)
+
+```md
+### HUB #7 – Room Setup Spoke Status
+
+**Status:** Complete (pending wiring of image upload helper).
+
+**What’s done**
+
+- Rebuilt Room Setup tab under `Dashboard/Rooms` with:
+  - Left panel: room list + New/Delete actions.
+  - Main panel: full room editor including:
+    - Basic details (code with auto-generation, name, description, active).
+    - Room images (max 6; upload/replace/delete/reorder; URL-only storage).
+    - Room features (predefined list).
+    - Room layouts (predefined + custom, with min/max capacities).
+    - Base pricing (per-person, per-room, rule: higher/lower).
+    - Buffer times before/after in minutes.
+    - Included add-ons (by add-on ID).
+- Integrated with `admin_ui_config.data.rooms` via `load_config` / `save_config` in `Rooms/index.jsx`.
+- Enforced uniqueness of room codes across all rooms, with auto-generation when blank.
+
+**Open items / wiring**
+
+- `RoomImagesEditor.uploadImageFile` is a placeholder and must be connected to the existing AddOnsTab upload logic (same Netlify function / storage helper) so that uploads persist correctly.
+- If `load_config` / `save_config` have a different API signature to the assumed POST `{ key, data }`, adjust the fetch calls in `Rooms/index.jsx` accordingly; all other components remain valid.
+
+**No changes made to**
+
+- Availability logic
+- Booking flow
+- Pricing engine internals
+- Netlify deployment / build configuration
+- Other Admin tabs or database schema
+
 **Handover: Ready for Hub #7.**
 
