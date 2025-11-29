@@ -52,6 +52,39 @@ Focus on:
 - A decision or design choice that might not be obvious later.
 - A pain point or friction you encountered that should be avoided.
 - A clarification of project intent or architecture that matured during your cycle.
+## Room Setup Spoke (HUB #7)
+
+**Scope**
+
+This spoke implements a complete Room Setup system for the Admin UI. It does **not** modify availability, booking flow, pricing engine logic, Netlify functions, or other admin tabs.
+
+**Data Model**
+
+All room data is stored in `admin_ui_config.data.rooms` as an array of room objects with the following shape:
+
+```json
+{
+  "id": "string",                 // stable unique id (uuid)
+  "code": "string",               // auto-generated: RM-001 etc unless admin overrides
+  "name": "string",
+  "description": "string",
+  "active": true,
+  "images": ["url1", "url2", "..."],   // max 6
+  "features": ["WiFi", "Projector", "..."],
+  "layouts": [
+    { "type": "Boardroom", "min": 4, "max": 20 },
+    { "type": "U-Shape", "min": 6, "max": 18 },
+    { "type": "Custom", "name": "My Special Layout", "min": 5, "max": 12 }
+  ],
+  "bufferBefore": 0,
+  "bufferAfter": 0,
+  "pricing": {
+    "perPerson": 20,
+    "perRoom": 100,
+    "rule": "higher"
+  },
+  "includedAddOns": ["id1", "id2"]
+}
 
 Use this simple format:
 
