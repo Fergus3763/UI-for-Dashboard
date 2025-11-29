@@ -1,104 +1,121 @@
 // admin-ui/src/pages/Dashboard/Rooms/index.jsx
-import React, { useEffect, useState } from 'react';
-import RoomSetupTab from './RoomSetupTab';
-// IMPORTANT: reuse the AddOnsTab from VenueSetup
-import AddOnsTab from '../VenueSetup/Tabs/AddOnsTab.jsx';
+
+import React, { useEffect, useState, useCallback } from "react";
+import RoomSetupTab from "./RoomSetupTab";
+
+const CONFIG_KEY = "admin_ui_config";
 
 const RoomsPage = () => {
-  const [config, setConfig] = useState(null);
-  const [activeTab, setActiveTab] = useState('roomSetup');
-  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const res = await fetch('/.netlify/functions/load_config');
-        const json = await res.json();
-        setConfig(json);
-      } catch (e) {
-        console.error(e);
-        setError('Could not load configuration.');
-      }
-    };
-    loadConfig();
-  }, []);
+  const [configData, setConfigData] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [addOns, setAddOns] = useState([]);
 
-  const handleSave = async (updatedConfig) => {
-    setIsSaving(true);
+  const loadConfig = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/.netlify/functions/save_config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedConfig),
+      // NOTE:
+      // This assumes load_config Netlify function expects a POST with { key }.
+      // Align with existing implementation if different.
+      const res = await fetch("/.netlify/functions/load_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: CONFIG_KEY }),
       });
 
       if (!res.ok) {
-        throw new Error('Save failed');
+        throw new Error(`load_config failed: ${res.status}`);
       }
+
       const json = await res.json();
-      setConfig(json);
-    } catch (e) {
-      console.error(e);
-      setError('Could not save configuration.');
+      const data = json?.data || {};
+
+      setConfigData(data);
+      setRooms(Array.isArray(data.rooms) ? data.rooms : []);
+      setAddOns(Array.isArray(data.addOns) ? data.addOns : []);
+    } catch (err) {
+      console.error("Error loading config:", err);
+      setError("Failed to load configuration. Please try again.");
     } finally {
-      setIsSaving(false);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  const handleSaveRooms = async (updatedRooms) => {
+    if (!configData) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const newConfigData = {
+        ...configData,
+        rooms: updatedRooms,
+      };
+
+      const res = await fetch("/.netlify/functions/save_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: CONFIG_KEY,
+          data: newConfigData,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`save_config failed: ${res.status}`);
+      }
+
+      const json = await res.json();
+      const savedData = json?.data || newConfigData;
+
+      setConfigData(savedData);
+      setRooms(Array.isArray(savedData.rooms) ? savedData.rooms : []);
+      setAddOns(Array.isArray(savedData.addOns) ? savedData.addOns : addOns);
+
+      return true;
+    } catch (err) {
+      console.error("Error saving rooms:", err);
+      setError("Failed to save rooms. Please try again.");
+      return false;
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (!config) return <div>Loading…</div>;
-
-  const rooms = config.data?.rooms || [];
-
-  const updateRooms = (newRooms) => {
-    setConfig((prev) => ({
-      ...prev,
-      data: {
-        ...prev.data,
-        rooms: newRooms,
-      },
-    }));
-  };
-
-  const handleSaveClick = () => {
-    handleSave(config);
-  };
+  if (loading) {
+    return (
+      <div className="rooms-page">
+        <h2>Room Setup</h2>
+        <p>Loading configuration…</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1>Rooms</h1>
+    <div className="rooms-page">
+      <h2>Room Setup</h2>
 
-      {/* Tabs header */}
-      <div className="tabs">
-        <button
-          className={activeTab === 'roomSetup' ? 'active' : ''}
-          onClick={() => setActiveTab('roomSetup')}
-        >
-          Room Setup
-        </button>
-        <button
-          className={activeTab === 'addOns' ? 'active' : ''}
-          onClick={() => setActiveTab('addOns')}
-        >
-          Add-Ons
-        </button>
-      </div>
-
-      {/* Tabs content */}
-      {activeTab === 'roomSetup' && (
-        <RoomSetupTab rooms={rooms} onChangeRooms={updateRooms} />
-      )}
-      {activeTab === 'addOns' && (
-        <AddOnsTab />
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
+          {error}
+        </div>
       )}
 
-      <div style={{ marginTop: '1rem' }}>
-        {error && <div className="error">{error}</div>}
-        <button onClick={handleSaveClick} disabled={isSaving}>
-          {isSaving ? 'Saving…' : 'Save Changes'}
-        </button>
-      </div>
+      <RoomSetupTab
+        rooms={rooms}
+        addOns={addOns}
+        onSaveRooms={handleSaveRooms}
+        saving={saving}
+      />
     </div>
   );
 };
