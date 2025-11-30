@@ -1,112 +1,179 @@
 // admin-ui/src/pages/Dashboard/Rooms/index.jsx
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import RoomSetupTab from "./RoomSetupTab";
 
-const CONFIG_KEY = "admin_ui_config";
+const CONFIG_KEY = "default";
 
 const RoomsPage = () => {
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+  const [configError, setConfigError] = useState(null);
+
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
 
-  const [configData, setConfigData] = useState(null);
-  const [rooms, setRooms] = useState([]);
-  const [addOns, setAddOns] = useState([]);
+  const rooms = useMemo(() => (config?.rooms ?? []), [config]);
+  const addOns = useMemo(() => (config?.addOns ?? []), [config]);
 
-  const loadConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const normaliseRoom = (room) => {
+    const withDefaults = {
+      id: room.id ?? crypto.randomUUID(),
+      code: room.code ?? "",
+      name: room.name ?? "",
+      description: room.description ?? "",
+      active: room.active ?? true,
+      capacityMin: room.capacityMin ?? 0,
+      capacityMax: room.capacityMax ?? 0,
+      images: Array.isArray(room.images) ? room.images : [],
+      layouts: Array.isArray(room.layouts) ? room.layouts : [],
+      perPersonRate:
+        room.perPersonRate != null ? Number(room.perPersonRate) : null,
+      flatRoomRate: room.flatRoomRate != null ? Number(room.flatRoomRate) : null,
+      priceRule: room.priceRule ?? null,
+      bufferBeforeMinutes: room.bufferBeforeMinutes ?? 0,
+      bufferAfterMinutes: room.bufferAfterMinutes ?? 0,
+      includedAddOnIds: Array.isArray(room.includedAddOnIds)
+        ? room.includedAddOnIds
+        : [],
+      optionalAddOnIds: Array.isArray(room.optionalAddOnIds)
+        ? room.optionalAddOnIds
+        : [],
+    };
+
+    // Derive capacity from layouts if they exist
+    if (withDefaults.layouts.length > 0) {
+      const mins = withDefaults.layouts
+        .map((l) => Number(l.capacityMin ?? 0))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+      const maxs = withDefaults.layouts
+        .map((l) => Number(l.capacityMax ?? 0))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+
+      if (mins.length > 0) {
+        withDefaults.capacityMin = Math.min(...mins);
+      }
+      if (maxs.length > 0) {
+        withDefaults.capacityMax = Math.max(...maxs);
+      }
+    }
+
+    return withDefaults;
+  };
+
+  const normaliseConfig = (raw) => {
+    return {
+      ...raw,
+      rooms: Array.isArray(raw.rooms)
+        ? raw.rooms.map((room) => normaliseRoom(room))
+        : [],
+      addOns: Array.isArray(raw.addOns) ? raw.addOns : [],
+    };
+  };
+
+  const loadConfig = async () => {
+    setLoadingConfig(true);
+    setConfigError(null);
+
     try {
-      // NOTE:
-      // This assumes load_config Netlify function expects a POST with { key }.
-      // Align with existing implementation if different.
-      const res = await fetch("/.netlify/functions/load_config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: CONFIG_KEY }),
-      });
-
+      // Call existing load_config Netlify function with a simple GET.
+      // It returns the current config JSON (optionally wrapped in { data }).
+      const res = await fetch("/.netlify/functions/load_config");
       if (!res.ok) {
         throw new Error(`load_config failed: ${res.status}`);
       }
 
-      const json = await res.json();
-      const data = json?.data || {};
+      const payload = await res.json();
+      const rawConfig = payload?.data ?? payload;
 
-      setConfigData(data);
-      setRooms(Array.isArray(data.rooms) ? data.rooms : []);
-      setAddOns(Array.isArray(data.addOns) ? data.addOns : []);
+      const normalised = normaliseConfig(rawConfig);
+      setConfig(normalised);
     } catch (err) {
       console.error("Error loading config:", err);
-      setError("Failed to load configuration. Please try again.");
+      setConfigError(err.message || "Failed to load configuration.");
     } finally {
-      setLoading(false);
+      setLoadingConfig(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     loadConfig();
-  }, [loadConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleSaveRooms = async (updatedRooms) => {
-    if (!configData) return;
+  const handleSaveRooms = async (nextRooms) => {
+    if (!config) return;
 
     setSaving(true);
-    setError(null);
+    setSaveError(null);
 
     try {
-      const newConfigData = {
-        ...configData,
-        rooms: updatedRooms,
+      const payload = {
+        key: CONFIG_KEY,
+        rooms: nextRooms,
       };
 
       const res = await fetch("/.netlify/functions/save_config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: CONFIG_KEY,
-          data: newConfigData,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         throw new Error(`save_config failed: ${res.status}`);
       }
 
-      const json = await res.json();
-      const savedData = json?.data || newConfigData;
+      const payloadJson = await res.json();
+      if (payloadJson?.error) {
+        throw new Error(payloadJson.error);
+      }
 
-      setConfigData(savedData);
-      setRooms(Array.isArray(savedData.rooms) ? savedData.rooms : []);
-      setAddOns(Array.isArray(savedData.addOns) ? savedData.addOns : addOns);
+      setConfig((prev) => ({
+        ...prev,
+        rooms: nextRooms,
+      }));
 
-      return true;
+      setLastSavedAt(new Date());
     } catch (err) {
       console.error("Error saving rooms:", err);
-      setError("Failed to save rooms. Please try again.");
-      return false;
+      setSaveError(err.message || "Failed to save rooms.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
+  if (loadingConfig) {
+    return <div>Loading configuration…</div>;
+  }
+
+  if (configError) {
     return (
-      <div className="rooms-page">
-        <h2>Room Setup</h2>
-        <p>Loading configuration…</p>
+      <div>
+        <p>Failed to load configuration. Please try again.</p>
+        <pre style={{ color: "red" }}>{configError}</pre>
       </div>
     );
   }
 
   return (
-    <div className="rooms-page">
-      <h2>Room Setup</h2>
+    <div>
+      <h1>Room Setup</h1>
 
-      {error && (
-        <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
-          {error}
+      {saveError && (
+        <div style={{ color: "red", marginBottom: "1rem" }}>
+          Error saving rooms: {saveError}
+        </div>
+      )}
+
+      {lastSavedAt && (
+        <div style={{ color: "green", marginBottom: "1rem" }}>
+          Rooms saved at{" "}
+          {lastSavedAt.toLocaleTimeString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })}
         </div>
       )}
 
