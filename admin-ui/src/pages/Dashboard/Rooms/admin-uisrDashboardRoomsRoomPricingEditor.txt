@@ -1,0 +1,93 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomPricingEditor.jsx
+
+import React from "react";
+
+export default function RoomPricingEditor({
+  perPersonRate,
+  flatRoomRate,
+  priceRule,
+  onChange,
+  errors = {},
+}) {
+  const handleChange = (field, rawValue) => {
+    if (rawValue === "") {
+      onChange({ [field]: null });
+      return;
+    }
+    const num = Number(rawValue);
+    onChange({ [field]: Number.isNaN(num) ? null : num });
+  };
+
+  const handleRuleChange = (value) => {
+    onChange({ priceRule: value || null });
+  };
+
+  return (
+    <fieldset style={{ marginBottom: "1rem" }}>
+      <legend>Base Pricing</legend>
+      <p style={{ fontSize: "0.9rem", color: "#555" }}>
+        These are configuration inputs only. Final booking prices are calculated elsewhere.
+      </p>
+
+      <div style={{ marginBottom: "0.5rem" }}>
+        <label>
+          Per-person base rate
+          <br />
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={perPersonRate === null || perPersonRate === undefined ? "" : perPersonRate}
+            onChange={(e) => handleChange("perPersonRate", e.target.value)}
+            style={{ width: "160px" }}
+          />
+        </label>
+        {errors.perPersonRate && (
+          <div style={{ color: "red" }}>{errors.perPersonRate}</div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: "0.5rem" }}>
+        <label>
+          Flat room base rate
+          <br />
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={flatRoomRate === null || flatRoomRate === undefined ? "" : flatRoomRate}
+            onChange={(e) => handleChange("flatRoomRate", e.target.value)}
+            style={{ width: "160px" }}
+          />
+        </label>
+        {errors.flatRoomRate && (
+          <div style={{ color: "red" }}>{errors.flatRoomRate}</div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: "0.5rem" }}>
+        <label>
+          Price selection rule
+          <br />
+          <select
+            value={priceRule || ""}
+            onChange={(e) => handleRuleChange(e.target.value)}
+            style={{ width: "220px" }}
+          >
+            <option value="">Select when both rates are set</option>
+            <option value="HIGHER">Use the higher of per-person vs flat</option>
+            <option value="LOWER">Use the lower of per-person vs flat</option>
+          </select>
+        </label>
+        {errors.priceRule && <div style={{ color: "red" }}>{errors.priceRule}</div>}
+      </div>
+
+      <p style={{ fontSize: "0.85rem", color: "#555" }}>
+        If both rates are set, at booking time we will calculate:
+        <br />
+        <code>perPersonRate × attendeeCount</code> and <code>flatRoomRate</code>, then use
+        either the higher or lower one based on your choice above, before optional extras.
+      </p>
+    </fieldset>
+  );
+}

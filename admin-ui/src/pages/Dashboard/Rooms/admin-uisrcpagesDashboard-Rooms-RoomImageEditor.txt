@@ -1,0 +1,87 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomImagesEditor.jsx
+
+import React from "react";
+
+export default function RoomImagesEditor({ images, onChange }) {
+  const handleChangeImage = (index, value) => {
+    const next = [...images];
+    next[index] = value;
+    onChange(next);
+  };
+
+  const handleAddImage = () => {
+    if (images.length >= 6) return;
+    onChange([...images, ""]);
+  };
+
+  const handleRemoveImage = (index) => {
+    const next = images.filter((_, i) => i !== index);
+    onChange(next);
+  };
+
+  const moveImage = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= images.length) return;
+    const next = [...images];
+    const [moved] = next.splice(index, 1);
+    next.splice(newIndex, 0, moved);
+    onChange(next);
+  };
+
+  return (
+    <fieldset style={{ marginBottom: "1rem" }}>
+      <legend>Images (up to 6 URLs)</legend>
+      <p style={{ fontSize: "0.9rem", color: "#555" }}>
+        Paste image URLs here. You can reorder or remove them. No uploads are stored directly.
+      </p>
+      {images.map((url, index) => (
+        <div
+          key={index}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "0.5rem",
+            gap: "0.5rem",
+          }}
+        >
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => handleChangeImage(index, e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            onClick={() => moveImage(index, -1)}
+            disabled={index === 0}
+            title="Move up"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            onClick={() => moveImage(index, 1)}
+            disabled={index === images.length - 1}
+            title="Move down"
+          >
+            ↓
+          </button>
+          <button type="button" onClick={() => handleRemoveImage(index)}>
+            Remove
+          </button>
+          {url && (
+            <img
+              src={url}
+              alt={`Room image ${index + 1}`}
+              style={{ width: "40px", height: "40px", objectFit: "cover" }}
+            />
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={handleAddImage} disabled={images.length >= 6}>
+        + Add image URL
+      </button>
+    </fieldset>
+  );
+}

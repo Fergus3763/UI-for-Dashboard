@@ -1,0 +1,236 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomForm.jsx
+
+import React, { useEffect } from "react";
+import RoomImagesEditor from "./RoomImagesEditor";
+import RoomLayoutsEditor from "./RoomLayoutsEditor";
+import RoomPricingEditor from "./RoomPricingEditor";
+import RoomBuffersAndAddOns from "./RoomBuffersAndAddOns";
+
+export default function RoomForm({
+  room,
+  onChange,
+  onSave,
+  addOns,
+  errors = {},
+  saving,
+}) {
+  useEffect(() => {
+    const layouts = Array.isArray(room.layouts) ? room.layouts : [];
+    if (layouts.length > 0) {
+      const mins = layouts
+        .map((l) => Number(l.capacityMin || 0))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+      const maxs = layouts
+        .map((l) => Number(l.capacityMax || 0))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+      const newMin = mins.length > 0 ? Math.min(...mins) : 0;
+      const newMax = maxs.length > 0 ? Math.max(...maxs) : 0;
+      if (newMin !== room.capacityMin || newMax !== room.capacityMax) {
+        onChange({
+          ...room,
+          capacityMin: newMin,
+          capacityMax: newMax,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.layouts]);
+
+  const handleBasicChange = (field, value) => {
+    onChange({
+      ...room,
+      [field]: value,
+    });
+  };
+
+  const handleSaveClick = (e) => {
+    e.preventDefault();
+    onSave();
+  };
+
+  const layouts = Array.isArray(room.layouts) ? room.layouts : [];
+  const hasLayouts = layouts.length > 0;
+
+  return (
+    <form onSubmit={handleSaveClick}>
+      <h2>Room Details</h2>
+
+      <div style={{ marginBottom: "0.75rem" }}>
+        <label>
+          Code (required, unique)
+          <br />
+          <input
+            type="text"
+            value={room.code || ""}
+            onChange={(e) => handleBasicChange("code", e.target.value)}
+            style={{ width: "200px" }}
+          />
+        </label>
+        {errors.code && <div style={{ color: "red" }}>{errors.code}</div>}
+      </div>
+
+      <div style={{ marginBottom: "0.75rem" }}>
+        <label>
+          Name (required)
+          <br />
+          <input
+            type="text"
+            value={room.name || ""}
+            onChange={(e) => handleBasicChange("name", e.target.value)}
+            style={{ width: "100%" }}
+          />
+        </label>
+        {errors.name && <div style={{ color: "red" }}>{errors.name}</div>}
+      </div>
+
+      <div style={{ marginBottom: "0.75rem" }}>
+        <label>
+          Description
+          <br />
+          <textarea
+            value={room.description || ""}
+            onChange={(e) => handleBasicChange("description", e.target.value)}
+            rows={3}
+            style={{ width: "100%" }}
+          />
+        </label>
+      </div>
+
+      <div style={{ marginBottom: "0.75rem" }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={!!room.active}
+            onChange={(e) => handleBasicChange("active", e.target.checked)}
+          />{" "}
+          Active (visible to bookers)
+        </label>
+      </div>
+
+      <fieldset style={{ marginBottom: "1rem" }}>
+        <legend>Capacity</legend>
+        <p style={{ fontSize: "0.9rem", color: "#555" }}>
+          Overall capacity is derived automatically from layouts when layouts are defined.
+          If you do not specify layouts, you can set a simple min/max range here instead.
+        </p>
+
+        {hasLayouts ? (
+          <>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <label>
+                Overall minimum capacity (derived)
+                <br />
+                <input
+                  type="number"
+                  value={room.capacityMin || 0}
+                  readOnly
+                  style={{ width: "120px", backgroundColor: "#f5f5f5" }}
+                />
+              </label>
+              {errors.capacityMin && (
+                <div style={{ color: "red" }}>{errors.capacityMin}</div>
+              )}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <label>
+                Overall maximum capacity (derived)
+                <br />
+                <input
+                  type="number"
+                  value={room.capacityMax || 0}
+                  readOnly
+                  style={{ width: "120px", backgroundColor: "#f5f5f5" }}
+                />
+              </label>
+              {errors.capacityMax && (
+                <div style={{ color: "red" }}>{errors.capacityMax}</div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <label>
+                Overall minimum capacity
+                <br />
+                <input
+                  type="number"
+                  min={0}
+                  value={room.capacityMin || ""}
+                  onChange={(e) =>
+                    handleBasicChange("capacityMin", e.target.value ? Number(e.target.value) : "")
+                  }
+                  style={{ width: "120px" }}
+                />
+              </label>
+              {errors.capacityMin && (
+                <div style={{ color: "red" }}>{errors.capacityMin}</div>
+              )}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <label>
+                Overall maximum capacity
+                <br />
+                <input
+                  type="number"
+                  min={0}
+                  value={room.capacityMax || ""}
+                  onChange={(e) =>
+                    handleBasicChange("capacityMax", e.target.value ? Number(e.target.value) : "")
+                  }
+                  style={{ width: "120px" }}
+                />
+              </label>
+              {errors.capacityMax && (
+                <div style={{ color: "red" }}>{errors.capacityMax}</div>
+              )}
+            </div>
+          </>
+        )}
+      </fieldset>
+
+      <RoomImagesEditor
+        images={room.images || []}
+        onChange={(images) => handleBasicChange("images", images)}
+      />
+
+      <RoomLayoutsEditor
+        layouts={room.layouts || []}
+        onChange={(layouts) => handleBasicChange("layouts", layouts)}
+        errors={errors.layouts || []}
+      />
+
+      <RoomPricingEditor
+        perPersonRate={room.perPersonRate}
+        flatRoomRate={room.flatRoomRate}
+        priceRule={room.priceRule}
+        onChange={(updated) => onChange({ ...room, ...updated })}
+        errors={{
+          perPersonRate: errors.perPersonRate,
+          flatRoomRate: errors.flatRoomRate,
+          priceRule: errors.priceRule,
+        }}
+      />
+
+      <RoomBuffersAndAddOns
+        bufferBeforeMinutes={room.bufferBeforeMinutes}
+        bufferAfterMinutes={room.bufferAfterMinutes}
+        includedAddOnIds={room.includedAddOnIds || []}
+        optionalAddOnIds={room.optionalAddOnIds || []}
+        addOns={addOns}
+        onChange={(updated) => onChange({ ...room, ...updated })}
+        errors={{
+          bufferBeforeMinutes: errors.bufferBeforeMinutes,
+          bufferAfterMinutes: errors.bufferAfterMinutes,
+          addOns: errors.addOns,
+        }}
+      />
+
+      <div style={{ marginTop: "1rem" }}>
+        <button type="submit" disabled={saving}>
+          {saving ? "Saving…" : "Save Room Configuration"}
+        </button>
+      </div>
+    </form>
+  );
+}

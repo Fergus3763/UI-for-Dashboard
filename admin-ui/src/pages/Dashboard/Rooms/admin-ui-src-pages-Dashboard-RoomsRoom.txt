@@ -1,0 +1,298 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx
+
+import React, { useMemo, useState, useEffect } from "react";
+import RoomListPanel from "./RoomListPanel";
+import RoomForm from "./RoomForm";
+
+function generateRoomId() {
+  return `room_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function extractRoomNumericSuffix(code) {
+  if (!code || typeof code !== "string") return null;
+  const match = code.match(/^RM-(\d{1,})$/i);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  return Number.isNaN(num) ? null : num;
+}
+
+function generateNextRoomCode(existingRooms) {
+  const usedNumbers = existingRooms
+    .map((r) => extractRoomNumericSuffix(r.code))
+    .filter((n) => typeof n === "number");
+  const max = usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0;
+  const next = max + 1;
+  const padded = String(next).padStart(3, "0");
+  return `RM-${padded}`;
+}
+
+function validateRoom(room, allRooms) {
+  const errors = {};
+
+  const trimmedCode = (room.code || "").trim();
+  const trimmedName = (room.name || "").trim();
+
+  if (!trimmedCode) {
+    errors.code = "Code is required.";
+  } else {
+    const duplicate = allRooms.find(
+      (r) => r.id !== room.id && (r.code || "").trim().toLowerCase() === trimmedCode.toLowerCase()
+    );
+    if (duplicate) {
+      errors.code = "Code must be unique across rooms.";
+    }
+  }
+
+  if (!trimmedName) {
+    errors.name = "Name is required.";
+  }
+
+  const layouts = Array.isArray(room.layouts) ? room.layouts : [];
+
+  const layoutErrors = [];
+  layouts.forEach((layout, index) => {
+    const le = {};
+    const min = Number(layout.capacityMin);
+    const max = Number(layout.capacityMax);
+
+    if (!layout.layoutType) {
+      le.layoutType = "Layout type is required.";
+    }
+    if (layout.layoutType === "CUSTOM") {
+      if (!layout.customName || !layout.customName.trim()) {
+        le.customName = "Custom layout name is required.";
+      }
+    }
+    if (!Number.isFinite(min) || min < 1) {
+      le.capacityMin = "Minimum capacity must be at least 1.";
+    }
+    if (!Number.isFinite(max) || max < min) {
+      le.capacityMax = "Maximum capacity must be greater than or equal to minimum.";
+    }
+
+    layoutErrors[index] = le;
+  });
+
+  if (layoutErrors.some((le) => Object.keys(le).length > 0)) {
+    errors.layouts = layoutErrors;
+  }
+
+  const hasLayouts = layouts.length > 0;
+  const overallMin = Number(room.capacityMin);
+  const overallMax = Number(room.capacityMax);
+
+  if (!hasLayouts) {
+    if (!Number.isFinite(overallMin) || overallMin < 1) {
+      errors.capacityMin = "Overall minimum capacity must be at least 1 when no layouts exist.";
+    }
+    if (!Number.isFinite(overallMax) || overallMax < overallMin) {
+      errors.capacityMax =
+        "Overall maximum capacity must be greater than or equal to minimum when no layouts exist.";
+    }
+  } else {
+    if (!Number.isFinite(overallMin) || overallMin < 1) {
+      errors.capacityMin =
+        "Overall minimum capacity derived from layouts must be at least 1. Please check layouts.";
+    }
+    if (!Number.isFinite(overallMax) || overallMax < overallMin) {
+      errors.capacityMax =
+        "Overall maximum capacity derived from layouts must be ≥ minimum. Please check layouts.";
+    }
+  }
+
+  const perPerson =
+    room.perPersonRate === null || room.perPersonRate === undefined
+      ? null
+      : Number(room.perPersonRate);
+  const flat =
+    room.flatRoomRate === null || room.flatRoomRate === undefined
+      ? null
+      : Number(room.flatRoomRate);
+
+  if (perPerson !== null) {
+    if (!Number.isFinite(perPerson) || perPerson < 0) {
+      errors.perPersonRate = "Per-person rate must be a positive number or left blank.";
+    }
+  }
+  if (flat !== null) {
+    if (!Number.isFinite(flat) || flat < 0) {
+      errors.flatRoomRate = "Flat room rate must be a positive number or left blank.";
+    }
+  }
+  if (perPerson !== null && flat !== null && !room.priceRule) {
+    errors.priceRule = "Please choose whether to use the higher or lower of the two rates.";
+  }
+
+  const before =
+    room.bufferBeforeMinutes === null || room.bufferBeforeMinutes === undefined
+      ? 0
+      : Number(room.bufferBeforeMinutes);
+  const after =
+    room.bufferAfterMinutes === null || room.bufferAfterMinutes === undefined
+      ? 0
+      : Number(room.bufferAfterMinutes);
+
+  if (!Number.isFinite(before) || before < 0) {
+    errors.bufferBeforeMinutes = "Buffer before must be 0 or a positive number of minutes.";
+  }
+  if (!Number.isFinite(after) || after < 0) {
+    errors.bufferAfterMinutes = "Buffer after must be 0 or a positive number of minutes.";
+  }
+
+  const included = new Set(Array.isArray(room.includedAddOnIds) ? room.includedAddOnIds : []);
+  const optional = new Set(Array.isArray(room.optionalAddOnIds) ? room.optionalAddOnIds : []);
+  const clashes = [];
+  included.forEach((id) => {
+    if (optional.has(id)) {
+      clashes.push(id);
+    }
+  });
+  if (clashes.length > 0) {
+    errors.addOns =
+      "An add-on cannot be both included and optional. Please adjust the add-on selections.";
+  }
+
+  return errors;
+}
+
+export default function RoomSetupTab({
+  rooms,
+  setRooms,
+  addOns,
+  onSaveRooms,
+  saving,
+  saveError,
+  savedAt,
+}) {
+  const [selectedRoomId, setSelectedRoomId] = useState(
+    rooms.length > 0 ? rooms[0].id : null
+  );
+  const [editingRoom, setEditingRoom] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  useEffect(() => {
+    if (!selectedRoomId && rooms.length > 0) {
+      setSelectedRoomId(rooms[0].id);
+    }
+  }, [rooms, selectedRoomId]);
+
+  useEffect(() => {
+    if (!selectedRoomId) {
+      setEditingRoom(null);
+      return;
+    }
+    const room = rooms.find((r) => r.id === selectedRoomId);
+    setEditingRoom(room ? { ...room } : null);
+    setValidationErrors({});
+  }, [selectedRoomId, rooms]);
+
+  const selectedRoom = useMemo(
+    () => rooms.find((r) => r.id === selectedRoomId) || null,
+    [rooms, selectedRoomId]
+  );
+
+  const handleSelectRoom = (roomId) => {
+    setSelectedRoomId(roomId);
+  };
+
+  const handleAddRoom = () => {
+    const newId = generateRoomId();
+    const newCode = generateNextRoomCode(rooms);
+    const newRoom = {
+      id: newId,
+      code: newCode,
+      name: "",
+      description: "",
+      active: true,
+      capacityMin: 0,
+      capacityMax: 0,
+      images: [],
+      layouts: [],
+      perPersonRate: null,
+      flatRoomRate: null,
+      priceRule: null,
+      bufferBeforeMinutes: 0,
+      bufferAfterMinutes: 0,
+      includedAddOnIds: [],
+      optionalAddOnIds: [],
+    };
+    const nextRooms = [...rooms, newRoom];
+    setRooms(nextRooms);
+    setSelectedRoomId(newId);
+  };
+
+  const handleDeleteRoom = () => {
+    if (!selectedRoom) return;
+    const confirmDelete = window.confirm(
+      `Delete room "${selectedRoom.code || selectedRoom.name || "Untitled"}"?`
+    );
+    if (!confirmDelete) return;
+
+    const nextRooms = rooms.filter((r) => r.id !== selectedRoom.id);
+    setRooms(nextRooms);
+    if (nextRooms.length === 0) {
+      setSelectedRoomId(null);
+      setEditingRoom(null);
+    } else {
+      setSelectedRoomId(nextRooms[0].id);
+    }
+  };
+
+  const handleChangeRoom = (updatedRoom) => {
+    setEditingRoom(updatedRoom);
+    setRooms((prev) =>
+      prev.map((r) => (r.id === updatedRoom.id ? { ...r, ...updatedRoom } : r))
+    );
+  };
+
+  const handleSaveCurrentRoom = async () => {
+    if (!editingRoom) return;
+    const errors = validateRoom(editingRoom, rooms);
+    setValidationErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+    await onSaveRooms(rooms);
+  };
+
+  return (
+    <div style={{ display: "flex", gap: "1rem" }}>
+      <div style={{ width: "30%", minWidth: "260px" }}>
+        <RoomListPanel
+          rooms={rooms}
+          selectedRoomId={selectedRoomId}
+          onSelectRoom={handleSelectRoom}
+          onAddRoom={handleAddRoom}
+          onDeleteRoom={handleDeleteRoom}
+          disableActions={saving}
+        />
+      </div>
+      <div style={{ flex: 1 }}>
+        {selectedRoom && editingRoom ? (
+          <>
+            <RoomForm
+              room={editingRoom}
+              onChange={handleChangeRoom}
+              onSave={handleSaveCurrentRoom}
+              addOns={addOns}
+              allRooms={rooms}
+              errors={validationErrors}
+              saving={saving}
+            />
+            <div style={{ marginTop: "0.5rem" }}>
+              {saving && <span>Saving rooms…</span>}
+              {saveError && <div style={{ color: "red" }}>{saveError}</div>}
+              {savedAt && !saving && !saveError && (
+                <div style={{ color: "green" }}>
+                  Rooms saved at {savedAt.toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div>No room selected. Create or select a room from the list.</div>
+        )}
+      </div>
+    </div>
+  );
+}

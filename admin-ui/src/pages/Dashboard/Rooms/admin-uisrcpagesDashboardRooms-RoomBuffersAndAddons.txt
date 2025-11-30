@@ -1,0 +1,256 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomBuffersAndAddOns.jsx
+
+import React from "react";
+
+function getAddOnLabel(addOn) {
+  if (!addOn) return "Unknown add-on";
+  return addOn.name || addOn.label || addOn.code || `Add-on ${addOn.id || ""}`;
+}
+
+export default function RoomBuffersAndAddOns({
+  bufferBeforeMinutes,
+  bufferAfterMinutes,
+  includedAddOnIds,
+  optionalAddOnIds,
+  addOns,
+  onChange,
+  errors = {},
+}) {
+  const before = bufferBeforeMinutes || 0;
+  const after = bufferAfterMinutes || 0;
+
+  const includedSet = new Set(includedAddOnIds || []);
+  const optionalSet = new Set(optionalAddOnIds || []);
+
+  const includedList = addOns.filter((a) => includedSet.has(a.id));
+  const optionalList = addOns.filter((a) => optionalSet.has(a.id));
+  const unusedList = addOns.filter(
+    (a) => !includedSet.has(a.id) && !optionalSet.has(a.id)
+  );
+
+  const updateAddOns = (newIncludedSet, newOptionalSet) => {
+    onChange({
+      includedAddOnIds: Array.from(newIncludedSet),
+      optionalAddOnIds: Array.from(newOptionalSet),
+    });
+  };
+
+  const moveToIncluded = (id) => {
+    const newIncluded = new Set(includedSet);
+    const newOptional = new Set(optionalSet);
+    newIncluded.add(id);
+    newOptional.delete(id);
+    updateAddOns(newIncluded, newOptional);
+  };
+
+  const moveToOptional = (id) => {
+    const newIncluded = new Set(includedSet);
+    const newOptional = new Set(optionalSet);
+    newOptional.add(id);
+    newIncluded.delete(id);
+    updateAddOns(newIncluded, newOptional);
+  };
+
+  const moveToUnused = (id) => {
+    const newIncluded = new Set(includedSet);
+    const newOptional = new Set(optionalSet);
+    newIncluded.delete(id);
+    newOptional.delete(id);
+    updateAddOns(newIncluded, newOptional);
+  };
+
+  const handleBufferChange = (field, rawValue) => {
+    const value = rawValue === "" ? 0 : Number(rawValue);
+    onChange({
+      [field]: Number.isNaN(value) ? 0 : value,
+    });
+  };
+
+  return (
+    <fieldset style={{ marginBottom: "1rem" }}>
+      <legend>Buffers & Add-Ons</legend>
+
+      <div style={{ marginBottom: "0.75rem" }}>
+        <div style={{ marginBottom: "0.5rem" }}>
+          <label>
+            Buffer before bookings (minutes)
+            <br />
+            <input
+              type="number"
+              min={0}
+              value={before}
+              onChange={(e) => handleBufferChange("bufferBeforeMinutes", e.target.value)}
+              style={{ width: "120px" }}
+            />
+          </label>
+          {errors.bufferBeforeMinutes && (
+            <div style={{ color: "red" }}>{errors.bufferBeforeMinutes}</div>
+          )}
+        </div>
+
+        <div>
+          <label>
+            Buffer after bookings (minutes)
+            <br />
+            <input
+              type="number"
+              min={0}
+              value={after}
+              onChange={(e) => handleBufferChange("bufferAfterMinutes", e.target.value)}
+              style={{ width: "120px" }}
+            />
+          </label>
+          {errors.bufferAfterMinutes && (
+            <div style={{ color: "red" }}>{errors.bufferAfterMinutes}</div>
+          )}
+        </div>
+
+        <p style={{ fontSize: "0.85rem", color: "#555" }}>
+          Time blocked before/after each booking in this room. This is configuration only;
+          final scheduling logic is handled elsewhere.
+        </p>
+      </div>
+
+      <div>
+        <h3 style={{ marginBottom: "0.25rem" }}>Room-specific Add-Ons</h3>
+        <p style={{ fontSize: "0.9rem", color: "#555" }}>
+          Configure how global add-ons apply to this room. An add-on can be{" "}
+          <strong>included</strong>, <strong>optional</strong>, or not used for this
+          room, but not both included and optional at the same time.
+        </p>
+        {errors.addOns && <div style={{ color: "red" }}>{errors.addOns}</div>}
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            marginTop: "0.5rem",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <strong>Included</strong>
+            <div
+              style={{
+                border: "1px solid #ccc",
+                minHeight: "80px",
+                padding: "0.25rem",
+              }}
+            >
+              {includedList.length === 0 && (
+                <div style={{ fontSize: "0.85rem", color: "#888" }}>None</div>
+              )}
+              {includedList.map((addOn) => (
+                <div
+                  key={addOn.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: "0.9rem",
+                    padding: "0.15rem 0",
+                  }}
+                >
+                  <span>{getAddOnLabel(addOn)}</span>
+                  <span>
+                    <button
+                      type="button"
+                      onClick={() => moveToOptional(addOn.id)}
+                      style={{ marginRight: "0.25rem" }}
+                    >
+                      Make optional
+                    </button>
+                    <button type="button" onClick={() => moveToUnused(addOn.id)}>
+                      Remove
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <strong>Optional</strong>
+            <div
+              style={{
+                border: "1px solid #ccc",
+                minHeight: "80px",
+                padding: "0.25rem",
+              }}
+            >
+              {optionalList.length === 0 && (
+                <div style={{ fontSize: "0.85rem", color: "#888" }}>None</div>
+              )}
+              {optionalList.map((addOn) => (
+                <div
+                  key={addOn.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: "0.9rem",
+                    padding: "0.15rem 0",
+                  }}
+                >
+                  <span>{getAddOnLabel(addOn)}</span>
+                  <span>
+                    <button
+                      type="button"
+                      onClick={() => moveToIncluded(addOn.id)}
+                      style={{ marginRight: "0.25rem" }}
+                    >
+                      Include
+                    </button>
+                    <button type="button" onClick={() => moveToUnused(addOn.id)}>
+                      Remove
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <strong>Not used</strong>
+            <div
+              style={{
+                border: "1px solid #ccc",
+                minHeight: "80px",
+                padding: "0.25rem",
+              }}
+            >
+              {unusedList.length === 0 && (
+                <div style={{ fontSize: "0.85rem", color: "#888" }}>None</div>
+              )}
+              {unusedList.map((addOn) => (
+                <div
+                  key={addOn.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: "0.9rem",
+                    padding: "0.15rem 0",
+                  }}
+                >
+                  <span>{getAddOnLabel(addOn)}</span>
+                  <span>
+                    <button
+                      type="button"
+                      onClick={() => moveToIncluded(addOn.id)}
+                      style={{ marginRight: "0.25rem" }}
+                    >
+                      Include
+                    </button>
+                    <button type="button" onClick={() => moveToOptional(addOn.id)}>
+                      Make optional
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  );
+}

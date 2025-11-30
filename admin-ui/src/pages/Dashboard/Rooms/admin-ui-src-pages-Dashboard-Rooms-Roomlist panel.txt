@@ -1,0 +1,73 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomListPanel.jsx
+
+import React from "react";
+
+export default function RoomListPanel({
+  rooms,
+  selectedRoomId,
+  onSelectRoom,
+  onAddRoom,
+  onDeleteRoom,
+  disableActions,
+}) {
+  return (
+    <div>
+      <div style={{ marginBottom: "0.5rem", display: "flex", justifyContent: "space-between" }}>
+        <strong>Rooms</strong>
+        <button type="button" onClick={onAddRoom} disabled={disableActions}>
+          + New Room
+        </button>
+      </div>
+      <div
+        style={{
+          border: "1px solid #ccc",
+          maxHeight: "400px",
+          overflowY: "auto",
+        }}
+      >
+        {rooms.length === 0 && (
+          <div style={{ padding: "0.5rem", fontStyle: "italic" }}>No rooms yet.</div>
+        )}
+        {rooms.map((room) => {
+          const isSelected = room.id === selectedRoomId;
+          const label = room.code || room.name || "Untitled room";
+          const capacityText =
+            room.capacityMin && room.capacityMax
+              ? `${room.capacityMin}–${room.capacityMax}`
+              : "—";
+
+          return (
+            <div
+              key={room.id}
+              onClick={() => onSelectRoom(room.id)}
+              style={{
+                padding: "0.5rem",
+                cursor: "pointer",
+                backgroundColor: isSelected ? "#eee" : "white",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <div>
+                <strong>{label}</strong>{" "}
+                {!room.active && <span style={{ color: "#888" }}>(inactive)</span>}
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "#555" }}>
+                Capacity: {capacityText}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: "0.5rem", textAlign: "right" }}>
+        <button
+          type="button"
+          onClick={onDeleteRoom}
+          disabled={disableActions || !selectedRoomId}
+          style={{ color: "red" }}
+        >
+          Delete selected
+        </button>
+      </div>
+    </div>
+  );
+}

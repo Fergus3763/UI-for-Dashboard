@@ -1,0 +1,246 @@
+// admin-ui/src/pages/Dashboard/Rooms/index.jsx
+
+import React, { useEffect, useState, useCallback } from "react";
+import RoomSetupTab from "./RoomSetupTab";
+import AddOnsTab from "../VenueSetup/Tabs/AddOnsTab"; // Assumption: existing Add-Ons tab component
+
+const TABS = {
+  ROOM_SETUP: "ROOM_SETUP",
+  ADD_ONS: "ADD_ONS",
+};
+
+function generateRoomId() {
+  return `room_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normaliseRoom(room) {
+  const layouts = Array.isArray(room.layouts) ? room.layouts : [];
+  const hasLayouts = layouts.length > 0;
+
+  let capacityMin = typeof room.capacityMin === "number" ? room.capacityMin : 0;
+  let capacityMax = typeof room.capacityMax === "number" ? room.capacityMax : 0;
+
+  if (hasLayouts) {
+    const mins = layouts.map((l) => Number(l.capacityMin || 0)).filter((n) => !Number.isNaN(n));
+    const maxs = layouts.map((l) => Number(l.capacityMax || 0)).filter((n) => !Number.isNaN(n));
+    if (mins.length > 0) capacityMin = Math.min(...mins);
+    if (maxs.length > 0) capacityMax = Math.max(...maxs);
+  }
+
+  return {
+    id: room.id || generateRoomId(),
+    code: room.code || "",
+    name: room.name || "",
+    description: room.description || "",
+    active: typeof room.active === "boolean" ? room.active : true,
+    capacityMin,
+    capacityMax,
+    images: Array.isArray(room.images) ? room.images.slice(0, 6) : [],
+    layouts,
+    perPersonRate:
+      room.perPersonRate === null || room.perPersonRate === undefined
+        ? null
+        : Number(room.perPersonRate),
+    flatRoomRate:
+      room.flatRoomRate === null || room.flatRoomRate === undefined
+        ? null
+        : Number(room.flatRoomRate),
+    priceRule: room.priceRule || null,
+    bufferBeforeMinutes:
+      typeof room.bufferBeforeMinutes === "number" && room.bufferBeforeMinutes >= 0
+        ? room.bufferBeforeMinutes
+        : 0,
+    bufferAfterMinutes:
+      typeof room.bufferAfterMinutes === "number" && room.bufferAfterMinutes >= 0
+        ? room.bufferAfterMinutes
+        : 0,
+    includedAddOnIds: Array.isArray(room.includedAddOnIds) ? room.includedAddOnIds : [],
+    optionalAddOnIds: Array.isArray(room.optionalAddOnIds) ? room.optionalAddOnIds : [],
+  };
+}
+
+export default function RoomsPage() {
+  const [activeTab, setActiveTab] = useState(TABS.ROOM_SETUP);
+
+  const [config, setConfig] = useState(null); // full admin_ui_config.data
+  const [rooms, setRooms] = useState([]);
+  const [addOns, setAddOns] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  const [savingRooms, setSavingRooms] = useState(false);
+  const [saveRoomsError, setSaveRoomsError] = useState(null);
+  const [roomsSavedAt, setRoomsSavedAt] = useState(null);
+
+  const [savingConfig, setSavingConfig] = useState(false); // for Add-Ons tab if needed
+  const [saveConfigError, setSaveConfigError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadConfig() {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const res = await fetch("/.netlify/functions/load_config");
+        if (!res.ok) {
+          throw new Error(`Failed to load config (${res.status})`);
+        }
+        const payload = await res.json();
+        // Support both { data: {...} } and direct config
+        const data = payload && payload.data ? payload.data : payload;
+
+        const rawRooms = Array.isArray(data.rooms) ? data.rooms : [];
+        const normalisedRooms = rawRooms.map(normaliseRoom);
+
+        if (!isMounted) return;
+
+        setConfig(data);
+        setRooms(normalisedRooms);
+        setAddOns(Array.isArray(data.addOns) ? data.addOns : []);
+      } catch (err) {
+        if (isMounted) {
+          setLoadError(err.message || "Failed to load configuration");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadConfig();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveRooms = useCallback(
+    async (roomsToSave) => {
+      setSavingRooms(true);
+      setSaveRoomsError(null);
+      try {
+        const res = await fetch("/.netlify/functions/save_config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rooms: roomsToSave }),
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to save rooms (${res.status})`);
+        }
+        // Some implementations might return updated data, but we only need to trust merge behaviour.
+        await res.json().catch(() => null);
+
+        setRooms(roomsToSave);
+        setConfig((prev) =>
+          prev
+            ? {
+                ...prev,
+                rooms: roomsToSave,
+              }
+            : prev
+        );
+        setRoomsSavedAt(new Date());
+      } catch (err) {
+        setSaveRoomsError(err.message || "Failed to save rooms");
+      } finally {
+        setSavingRooms(false);
+      }
+    },
+    []
+  );
+
+  // Generic config save for Add-Ons tab, if it needs to persist changes
+  const handleSaveFullConfig = useCallback(
+    async (updatedConfig) => {
+      setSavingConfig(true);
+      setSaveConfigError(null);
+      try {
+        const res = await fetch("/.netlify/functions/save_config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // Assumption: save_config can accept partial updates; here we pass only addOns
+          body: JSON.stringify({ addOns: updatedConfig.addOns }),
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to save configuration (${res.status})`);
+        }
+        await res.json().catch(() => null);
+        setConfig(updatedConfig);
+        setAddOns(Array.isArray(updatedConfig.addOns) ? updatedConfig.addOns : []);
+      } catch (err) {
+        setSaveConfigError(err.message || "Failed to save configuration");
+      } finally {
+        setSavingConfig(false);
+      }
+    },
+    []
+  );
+
+  if (loading) {
+    return <div>Loading room configuration…</div>;
+  }
+
+  if (loadError) {
+    return <div style={{ color: "red" }}>Error loading configuration: {loadError}</div>;
+  }
+
+  if (!config) {
+    return <div>No configuration found.</div>;
+  }
+
+  return (
+    <div>
+      <h1>Rooms</h1>
+      <div style={{ marginBottom: "1rem" }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab(TABS.ROOM_SETUP)}
+          style={{
+            marginRight: "0.5rem",
+            padding: "0.5rem 1rem",
+            background: activeTab === TABS.ROOM_SETUP ? "#ddd" : "#f5f5f5",
+          }}
+        >
+          Room Setup
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab(TABS.ADD_ONS)}
+          style={{
+            padding: "0.5rem 1rem",
+            background: activeTab === TABS.ADD_ONS ? "#ddd" : "#f5f5f5",
+          }}
+        >
+          Add-Ons
+        </button>
+      </div>
+
+      {activeTab === TABS.ROOM_SETUP && (
+        <RoomSetupTab
+          rooms={rooms}
+          setRooms={setRooms}
+          addOns={addOns}
+          onSaveRooms={handleSaveRooms}
+          saving={savingRooms}
+          saveError={saveRoomsError}
+          savedAt={roomsSavedAt}
+        />
+      )}
+
+      {activeTab === TABS.ADD_ONS && (
+        <div>
+          {/* Assumption: AddOnsTab is the existing, canonical Add-Ons UI.
+              We pass config and a save handler; HUB can adjust props if needed. */}
+          <AddOnsTab
+            config={config}
+            onConfigChange={setConfig}
+            onSaveConfig={handleSaveFullConfig}
+            saving={savingConfig}
+            error={saveConfigError}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

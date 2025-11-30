@@ -1,0 +1,163 @@
+// admin-ui/src/pages/Dashboard/Rooms/RoomLayoutsEditor.jsx
+
+import React from "react";
+
+const LAYOUT_OPTIONS = [
+  { value: "BOARDROOM", label: "Boardroom" },
+  { value: "THEATRE", label: "Theatre" },
+  { value: "CLASSROOM", label: "Classroom" },
+  { value: "U_SHAPE", label: "U-shape" },
+  { value: "CABARET", label: "Cabaret" },
+  { value: "STANDING", label: "Standing" },
+  { value: "BANQUET", label: "Banquet" },
+  { value: "CUSTOM", label: "Custom" },
+];
+
+export default function RoomLayoutsEditor({ layouts, onChange, errors = [] }) {
+  const handleAddLayout = () => {
+    const next = [
+      ...layouts,
+      {
+        id: `layout_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+        layoutType: "",
+        customName: "",
+        capacityMin: "",
+        capacityMax: "",
+      },
+    ];
+    onChange(next);
+  };
+
+  const handleChangeLayout = (index, field, value) => {
+    const next = layouts.map((l, i) => (i === index ? { ...l, [field]: value } : l));
+    onChange(next);
+  };
+
+  const handleRemoveLayout = (index) => {
+    const next = layouts.filter((_, i) => i !== index);
+    onChange(next);
+  };
+
+  return (
+    <fieldset style={{ marginBottom: "1rem" }}>
+      <legend>Layouts / Styles</legend>
+      <p style={{ fontSize: "0.9rem", color: "#555" }}>
+        Add layouts/styles for this room, each with its own capacity range. Overall room
+        capacity is derived from the minimum and maximum across all layouts.
+      </p>
+
+      {layouts.map((layout, index) => {
+        const layoutErrors = errors[index] || {};
+        return (
+          <div
+            key={layout.id || index}
+            style={{
+              border: "1px solid #ddd",
+              padding: "0.5rem",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <div style={{ marginBottom: "0.5rem" }}>
+              <label>
+                Layout type
+                <br />
+                <select
+                  value={layout.layoutType || ""}
+                  onChange={(e) =>
+                    handleChangeLayout(index, "layoutType", e.target.value || "")
+                  }
+                >
+                  <option value="">Select a layout</option>
+                  {LAYOUT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {layoutErrors.layoutType && (
+                <div style={{ color: "red" }}>{layoutErrors.layoutType}</div>
+              )}
+            </div>
+
+            {layout.layoutType === "CUSTOM" && (
+              <div style={{ marginBottom: "0.5rem" }}>
+                <label>
+                  Custom layout name
+                  <br />
+                  <input
+                    type="text"
+                    value={layout.customName || ""}
+                    onChange={(e) =>
+                      handleChangeLayout(index, "customName", e.target.value)
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </label>
+                {layoutErrors.customName && (
+                  <div style={{ color: "red" }}>{layoutErrors.customName}</div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <div>
+                <label>
+                  Min capacity
+                  <br />
+                  <input
+                    type="number"
+                    min={1}
+                    value={layout.capacityMin || ""}
+                    onChange={(e) =>
+                      handleChangeLayout(
+                        index,
+                        "capacityMin",
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
+                    style={{ width: "120px" }}
+                  />
+                </label>
+                {layoutErrors.capacityMin && (
+                  <div style={{ color: "red" }}>{layoutErrors.capacityMin}</div>
+                )}
+              </div>
+              <div>
+                <label>
+                  Max capacity
+                  <br />
+                  <input
+                    type="number"
+                    min={1}
+                    value={layout.capacityMax || ""}
+                    onChange={(e) =>
+                      handleChangeLayout(
+                        index,
+                        "capacityMax",
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
+                    style={{ width: "120px" }}
+                  />
+                </label>
+                {layoutErrors.capacityMax && (
+                  <div style={{ color: "red" }}>{layoutErrors.capacityMax}</div>
+                )}
+              </div>
+              <div style={{ alignSelf: "flex-end" }}>
+                <button type="button" onClick={() => handleRemoveLayout(index)}>
+                  Remove layout
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      <button type="button" onClick={handleAddLayout}>
+        + Add layout
+      </button>
+    </fieldset>
+  );
+}
