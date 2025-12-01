@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import RoomSetupTab from "./RoomSetupTab";
+import AddOnsTab from "../VenueSetup/Tabs/AddOnsTab";
 
 const CONFIG_KEY = "default";
 
@@ -13,7 +14,10 @@ const RoomsPage = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [activeTab, setActiveTab] = useState("ROOMS");
 
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [saveConfigError, setSaveConfigError] = useState(null);
   const rooms = useMemo(() => (config?.rooms ?? []), [config]);
   const addOns = useMemo(() => (config?.addOns ?? []), [config]);
 
@@ -103,6 +107,45 @@ const RoomsPage = () => {
   }, []);
 
   const handleSaveRooms = async (nextRooms) => {
+   const handleSaveFullConfig = async (nextConfig) => {
+  setSavingConfig(true);
+  setSaveConfigError(null);
+
+  try {
+    const payload = {
+      key: CONFIG_KEY,
+      // we only update addOns here, to match how Venue Add-Ons works
+      addOns: nextConfig.addOns ?? [],
+    };
+
+    const res = await fetch("/.netlify/functions/save_config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(`save_config failed: ${res.status}`);
+    }
+
+    const payloadJson = await res.json();
+    if (payloadJson?.error) {
+      throw new Error(payloadJson.error);
+    }
+
+    // keep local config in sync
+    setConfig((prev) => ({
+      ...prev,
+      addOns: nextConfig.addOns ?? [],
+    }));
+  } catch (err) {
+    console.error("Error saving add-ons:", err);
+    setSaveConfigError(err.message || "Failed to save add-ons.");
+  } finally {
+    setSavingConfig(false);
+  }
+};
+ 
     if (!config) return;
 
     setSaving(true);
@@ -158,7 +201,7 @@ const RoomsPage = () => {
 
   return (
     <div>
-      <h1>Room Setup</h1>
+          <h1>Room Setup</h1>
 
       {saveError && (
         <div style={{ color: "red", marginBottom: "1rem" }}>
@@ -177,12 +220,64 @@ const RoomsPage = () => {
         </div>
       )}
 
-      <RoomSetupTab
-        rooms={rooms}
-        addOns={addOns}
-        onSaveRooms={handleSaveRooms}
-        saving={saving}
-      />
+      {/* Tabs header */}
+      <div style={{ marginTop: "1.5rem" }}>
+        <div style={{ borderBottom: "1px solid #ccc", marginBottom: "1rem" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("ROOMS")}
+            style={{
+              padding: "0.5rem 1rem",
+              border: "none",
+              borderBottom:
+                activeTab === "ROOMS" ? "3px solid #000" : "3px solid transparent",
+              background: "transparent",
+              cursor: "pointer",
+              fontWeight: activeTab === "ROOMS" ? "bold" : "normal",
+            }}
+          >
+            Room Setup
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("ADDONS")}
+            style={{
+              padding: "0.5rem 1rem",
+              border: "none",
+              borderBottom:
+                activeTab === "ADDONS" ? "3px solid #000" : "3px solid transparent",
+              background: "transparent",
+              cursor: "pointer",
+              fontWeight: activeTab === "ADDONS" ? "bold" : "normal",
+            }}
+          >
+            Add-Ons
+          </button>
+        </div>
+
+        {/* Room Setup tab content */}
+        {activeTab === "ROOMS" && (
+          <RoomSetupTab
+            rooms={rooms}
+            addOns={addOns}
+            onSaveRooms={handleSaveRooms}
+            saving={saving}
+          />
+        )}
+
+        {/* Add-Ons tab content (old tab reused) */}
+        {activeTab === "ADDONS" && (
+          <AddOnsTab
+            config={config}
+            onConfigChange={setConfig}
+            onSaveConfig={handleSaveFullConfig}
+            saving={savingConfig}
+            error={saveConfigError}
+          />
+        )}
+      </div>
+ 
     </div>
   );
 };
