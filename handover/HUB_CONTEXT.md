@@ -111,3 +111,10 @@ _(Do not delete previous HUB notes; append only.)_
 - Availability Spoke (archived at availability-spoke repo) should NOT be used; a clean rebuild will be done under HUB #7.
 - Admin UI logic for Venue, Booking Policy, Rooms, Add-Ons is stored in `admin_ui_config.data`.
 (Do not delete previous HUB notes; append only.)_
+### HUB #7 → HUB #8
+- Room Setup has been rebuilt from scratch with a stable schema and UI.
+- Booker View (Basic MVP) delivered; relies on Room Setup fields (layouts, images, pricing, buffers, add-ons).
+- Add-Ons tab was restored; next phase is consolidation so global add-ons can be assigned to rooms.
+- Room Overview and Add-On DB must now be built as separate Spokes.
+- Vite/Netlify build now uses `/dist` — all static pages must live in `admin-ui/public` and will be copied automatically.
+
