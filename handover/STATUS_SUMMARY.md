@@ -360,4 +360,33 @@ Never delete older checklists—just add the new one below them._
 - Other Admin tabs or database schema
 
 **Handover: Ready for Hub #7.**
+---
+
+### HUB #7 — Room Setup Rebuild + Add-Ons Restoration (2025-01-XX)
+
+**Status:** In progress (structural rebuild complete; Add-Ons reintegration underway)
+
+**Completed under HUB #7**
+- Room Setup rebuilt with full modern data model:
+  - Images (max 6)
+  - Layouts (predefined + custom)
+  - Base pricing (per-person, flat-room, rule higher/lower)
+  - Buffer times
+  - Included/optional add-ons per room
+  - Auto-generated room code (RM-XXX)
+- Booker View (Basic MVP) delivered by a Spoke and deployed.
+- Netlify/Vite build path corrected (`publish = dist`) so Room Setup + Booker View now deploy reliably.
+
+**Pending / Next Steps**
+- Restore legacy Add-Ons Tab UI and merge with room-specific add-on logic.
+- Begin new “Room Overview Spoke” to render all rooms as visual cards.
+- Begin new “Add-On DB Spoke” allowing creation, editing, deletion and room assignment.
+
+**Notes for next HUB#8**
+- Add-Ons now saved under `config.addOns`.
+- Room Setup now writes add-on IDs under:
+  - `includedAddOnIds[]`
+  - `optionalAddOnIds[]`
+- Booker View relies on layouts, images, pricing, buffers, add-ons — keep these in sync.
+
 
