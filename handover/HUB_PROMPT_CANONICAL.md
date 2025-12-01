@@ -424,6 +424,34 @@ works for:
 - Blackout periods
 
 All persistence must be stable before any further development.
+---
+
+## Room Setup + Add-Ons Reintegration (HUB #7 Addendum)
+
+HUB #7 has rebuilt Room Setup to a complete, stable schema:
+- Images (max 6)
+- Layouts (predefined + custom)
+- Pricing model (per-person, per-room, rule HIGHER/LOWER)
+- Buffer times
+- Included & optional add-ons per room
+- Auto-code generation RM-XXX
+
+Add-Ons Tab has been restored:
+- Loads and saves `config.addOns`
+- Must not overwrite unrelated config keys
+- Must not modify Rooms logic directly
+
+Next HUB must:
+1. Introduce Room Overview Spoke  
+2. Introduce Add-On DB Spoke  
+3. Ensure Add-Ons DB supports:
+   - Create / delete add-ons
+   - Assign add-ons to rooms
+   - Distinguish inclusive vs optional
+4. Ensure all add-on fields remain compatible with Booker View.
+
+All future Spokes must use:
+UI → save_config → Supabase → load_config → UI.
 
 ---
 
