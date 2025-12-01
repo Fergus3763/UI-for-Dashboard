@@ -11,19 +11,23 @@ const RoomsPage = () => {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [configError, setConfigError] = useState(null);
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
+  const [savingRooms, setSavingRooms] = useState(false);
+  const [saveRoomsError, setSaveRoomsError] = useState(null);
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [activeTab, setActiveTab] = useState("ROOMS");
 
   const [savingConfig, setSavingConfig] = useState(false);
   const [saveConfigError, setSaveConfigError] = useState(null);
-  const rooms = useMemo(() => (config?.rooms ?? []), [config]);
-  const addOns = useMemo(() => (config?.addOns ?? []), [config]);
+
+  const [activeTab, setActiveTab] = useState("ROOMS");
+
+  const rooms = useMemo(() => config?.rooms ?? [], [config]);
+  const addOns = useMemo(() => config?.addOns ?? [], [config]);
+
+  // ----- Normalisation helpers ------------------------------------------------
 
   const normaliseRoom = (room) => {
     const withDefaults = {
-      id: room.id ?? crypto.randomUUID(),
+      id: room.id ?? (crypto.randomUUID ? crypto.randomUUID() : `room_${Date.now()}`),
       code: room.code ?? "",
       name: room.name ?? "",
       description: room.description ?? "",
@@ -34,7 +38,8 @@ const RoomsPage = () => {
       layouts: Array.isArray(room.layouts) ? room.layouts : [],
       perPersonRate:
         room.perPersonRate != null ? Number(room.perPersonRate) : null,
-      flatRoomRate: room.flatRoomRate != null ? Number(room.flatRoomRate) : null,
+      flatRoomRate:
+        room.flatRoomRate != null ? Number(room.flatRoomRate) : null,
       priceRule: room.priceRule ?? null,
       bufferBeforeMinutes: room.bufferBeforeMinutes ?? 0,
       bufferAfterMinutes: room.bufferAfterMinutes ?? 0,
@@ -46,7 +51,7 @@ const RoomsPage = () => {
         : [],
     };
 
-    // Derive capacity from layouts if they exist
+    // Derive overall capacity from layouts if they exist
     if (withDefaults.layouts.length > 0) {
       const mins = withDefaults.layouts
         .map((l) => Number(l.capacityMin ?? 0))
@@ -67,6 +72,8 @@ const RoomsPage = () => {
   };
 
   const normaliseConfig = (raw) => {
+    if (!raw || typeof raw !== "object") return { rooms: [], addOns: [] };
+
     return {
       ...raw,
       rooms: Array.isArray(raw.rooms)
@@ -76,13 +83,13 @@ const RoomsPage = () => {
     };
   };
 
+  // ----- Load config ----------------------------------------------------------
+
   const loadConfig = async () => {
     setLoadingConfig(true);
     setConfigError(null);
 
     try {
-      // Call existing load_config Netlify function with a simple GET.
-      // It returns the current config JSON (optionally wrapped in { data }).
       const res = await fetch("/.netlify/functions/load_config");
       if (!res.ok) {
         throw new Error(`load_config failed: ${res.status}`);
@@ -90,8 +97,8 @@ const RoomsPage = () => {
 
       const payload = await res.json();
       const rawConfig = payload?.data ?? payload;
-
       const normalised = normaliseConfig(rawConfig);
+
       setConfig(normalised);
     } catch (err) {
       console.error("Error loading config:", err);
@@ -106,50 +113,14 @@ const RoomsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ----- Save handlers --------------------------------------------------------
+
+  // Save just the rooms array (Room Setup tab)
   const handleSaveRooms = async (nextRooms) => {
-   const handleSaveFullConfig = async (nextConfig) => {
-  setSavingConfig(true);
-  setSaveConfigError(null);
-
-  try {
-    const payload = {
-      key: CONFIG_KEY,
-      // we only update addOns here, to match how Venue Add-Ons works
-      addOns: nextConfig.addOns ?? [],
-    };
-
-    const res = await fetch("/.netlify/functions/save_config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      throw new Error(`save_config failed: ${res.status}`);
-    }
-
-    const payloadJson = await res.json();
-    if (payloadJson?.error) {
-      throw new Error(payloadJson.error);
-    }
-
-    // keep local config in sync
-    setConfig((prev) => ({
-      ...prev,
-      addOns: nextConfig.addOns ?? [],
-    }));
-  } catch (err) {
-    console.error("Error saving add-ons:", err);
-    setSaveConfigError(err.message || "Failed to save add-ons.");
-  } finally {
-    setSavingConfig(false);
-  }
-};
- 
     if (!config) return;
 
-    setSaving(true);
-    setSaveError(null);
+    setSavingRooms(true);
+    setSaveRoomsError(null);
 
     try {
       const payload = {
@@ -173,18 +144,68 @@ const RoomsPage = () => {
       }
 
       setConfig((prev) => ({
-        ...prev,
+        ...(prev || {}),
         rooms: nextRooms,
       }));
 
       setLastSavedAt(new Date());
     } catch (err) {
       console.error("Error saving rooms:", err);
-      setSaveError(err.message || "Failed to save rooms.");
+      setSaveRoomsError(err.message || "Failed to save rooms.");
     } finally {
-      setSaving(false);
+      setSavingRooms(false);
     }
   };
+
+  // Save full config from Add-Ons tab (at minimum addOns; may also touch rooms)
+  const handleSaveFullConfig = async (nextConfig) => {
+    const safeConfig = nextConfig || config;
+    if (!safeConfig) return;
+
+    setSavingConfig(true);
+    setSaveConfigError(null);
+
+    try {
+      const payload = {
+        key: CONFIG_KEY,
+        // allow the Add-Ons tab to update both addOns and rooms if needed
+        addOns: Array.isArray(safeConfig.addOns) ? safeConfig.addOns : [],
+        rooms: Array.isArray(safeConfig.rooms) ? safeConfig.rooms : rooms,
+      };
+
+      const res = await fetch("/.netlify/functions/save_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`save_config failed: ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (json?.error) {
+        throw new Error(json.error);
+      }
+
+      // Keep local state in sync
+      setConfig((prev) =>
+        normaliseConfig({
+          ...(prev || {}),
+          ...safeConfig,
+          addOns: payload.addOns,
+          rooms: payload.rooms,
+        })
+      );
+    } catch (err) {
+      console.error("Error saving full config (add-ons):", err);
+      setSaveConfigError(err.message || "Failed to save add-ons.");
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  // ----- Render ---------------------------------------------------------------
 
   if (loadingConfig) {
     return <div>Loading configuration…</div>;
@@ -201,11 +222,11 @@ const RoomsPage = () => {
 
   return (
     <div>
-          <h1>Room Setup</h1>
+      <h1>Room Setup</h1>
 
-      {saveError && (
+      {saveRoomsError && (
         <div style={{ color: "red", marginBottom: "1rem" }}>
-          Error saving rooms: {saveError}
+          Error saving rooms: {saveRoomsError}
         </div>
       )}
 
@@ -222,7 +243,14 @@ const RoomsPage = () => {
 
       {/* Tabs header */}
       <div style={{ marginTop: "1.5rem" }}>
-        <div style={{ borderBottom: "1px solid #ccc", marginBottom: "1rem" }}>
+        <div
+          style={{
+            borderBottom: "1px solid #ccc",
+            marginBottom: "1rem",
+            display: "flex",
+            gap: "0.5rem",
+          }}
+        >
           <button
             type="button"
             onClick={() => setActiveTab("ROOMS")}
@@ -230,7 +258,9 @@ const RoomsPage = () => {
               padding: "0.5rem 1rem",
               border: "none",
               borderBottom:
-                activeTab === "ROOMS" ? "3px solid #000" : "3px solid transparent",
+                activeTab === "ROOMS"
+                  ? "3px solid #000"
+                  : "3px solid transparent",
               background: "transparent",
               cursor: "pointer",
               fontWeight: activeTab === "ROOMS" ? "bold" : "normal",
@@ -246,7 +276,9 @@ const RoomsPage = () => {
               padding: "0.5rem 1rem",
               border: "none",
               borderBottom:
-                activeTab === "ADDONS" ? "3px solid #000" : "3px solid transparent",
+                activeTab === "ADDONS"
+                  ? "3px solid #000"
+                  : "3px solid transparent",
               background: "transparent",
               cursor: "pointer",
               fontWeight: activeTab === "ADDONS" ? "bold" : "normal",
@@ -262,11 +294,11 @@ const RoomsPage = () => {
             rooms={rooms}
             addOns={addOns}
             onSaveRooms={handleSaveRooms}
-            saving={saving}
+            saving={savingRooms}
           />
         )}
 
-        {/* Add-Ons tab content (old tab reused) */}
+        {/* Add-Ons tab content (reused existing AddOnsTab) */}
         {activeTab === "ADDONS" && (
           <AddOnsTab
             config={config}
@@ -277,7 +309,6 @@ const RoomsPage = () => {
           />
         )}
       </div>
- 
     </div>
   );
 };
