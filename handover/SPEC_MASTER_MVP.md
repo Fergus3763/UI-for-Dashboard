@@ -230,6 +230,38 @@ All remaining tabs follow identical UX: **repeatable items** with clear **pricin
 
 ---
 
+## Room Setup / Add-Ons Integration (Added by HUB #7)
+
+**Room Setup Requirements**
+- Images (max 6)
+- Layouts (7 predefined + unlimited custom)
+- Per-person & per-room base pricing with rule HIGHER/LOWER
+- Buffer times
+- Inclusive add-ons (includedAddOnIds[])
+- Optional add-ons (optionalAddOnIds[])
+- Auto-generated code RM-XXX
+
+**Add-Ons Requirements**
+- Global Add-Ons list stored in `config.addOns`
+- Each add-on has:
+  - id, name, category
+  - optional flags (e.g. taxable, visible)
+- Add-Ons Tab allows:
+  - Create / delete add-ons
+  - Edit names, categories
+  - (Future) Assign to rooms
+
+**Add-Ons & Rooms Interaction (MVP)**
+- Rooms may reference add-ons by ID
+- Inclusive add-ons must always appear in Booker View
+- Optional add-ons form the basis of Booker-side upsells
+
+**Dependencies**
+- Booker View reads fields from Room Setup
+- Room Overview (future) must display all fields from Room Setup + Add-Ons
+
+---
+
 ## 5) VAT Tab (G)
 
 * **Tax Classes** — repeatable rows:
