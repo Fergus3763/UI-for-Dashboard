@@ -67,31 +67,50 @@ const RoomOverviewPage = () => {
     return `${text.slice(0, maxLength - 3)}…`;
   };
 
-  const formatLayoutName = (layout) => {
+   const formatLayoutName = (layout) => {
     if (!layout) return "";
-    if (layout.type === "CUSTOM" && layout.customName) {
-      return layout.customName;
+
+    // For custom layouts, prefer a human name
+    const customName = layout.customName || layout.name;
+    if (layout.type === "CUSTOM" && customName) {
+      return customName;
     }
+
     if (layout.type) {
+      // Turn "BOARDROOM" into "Boardroom"
       const lower = String(layout.type).toLowerCase();
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     }
-    return "";
+
+    return customName || "";
   };
 
   const formatCapacity = (layout) => {
     if (!layout) return "";
-    const { capacityMin, capacityMax } = layout;
-    if (capacityMin != null && capacityMax != null) {
-      return `${capacityMin}–${capacityMax}`;
+
+    // Support both { capacityMin/capacityMax } and older { min/max }
+    const min =
+      layout.capacityMin != null ? layout.capacityMin :
+      layout.min != null ? layout.min :
+      null;
+
+    const max =
+      layout.capacityMax != null ? layout.capacityMax :
+      layout.max != null ? layout.max :
+      null;
+
+    if (min != null && max != null) {
+      return `${min}–${max}`;
     }
-    if (capacityMax != null) {
-      return `Up to ${capacityMax}`;
+    if (max != null) {
+      return `Up to ${max}`;
     }
-    if (capacityMin != null) {
-      return `${capacityMin}+`;
+    if (min != null) {
+      return `${min}+`;
     }
     return "";
+  };
+
   };
 
   const formatPriceRule = (priceRule) => {
@@ -185,12 +204,30 @@ const RoomOverviewPage = () => {
     );
   };
 
-  const renderPricing = (room) => {
+   const renderPricing = (room) => {
+    // Support both top-level fields and nested pricing object
+    const pricing = room.pricing || {};
+
     const perPerson =
-      room.perPersonRate != null ? Number(room.perPersonRate) : null;
-    const flat =
-      room.flatRoomRate != null ? Number(room.flatRoomRate) : null;
-    const priceRule = room.priceRule || null;
+      room.perPersonRate != null
+        ? room.perPersonRate
+        : pricing.perPerson != null
+        ? pricing.perPerson
+        : null;
+
+    const flatRoom =
+      room.flatRoomRate != null
+        ? room.flatRoomRate
+        : pricing.perRoom != null
+        ? pricing.perRoom
+        : null;
+
+    const rule =
+      room.priceRule != null
+        ? room.priceRule
+        : pricing.rule != null
+        ? pricing.rule
+        : null;
 
     return (
       <div className="room-section">
@@ -201,15 +238,16 @@ const RoomOverviewPage = () => {
         </div>
         <div className="pricing-row">
           <span className="pricing-label">Flat room rate:</span>{" "}
-          {flat != null ? flat : "—"}
+          {flatRoom != null ? flatRoom : "—"}
         </div>
         <div className="pricing-row">
           <span className="pricing-label">Price rule:</span>{" "}
-          {priceRule ? formatPriceRule(priceRule) : "—"}
+          {rule ? formatPriceRule(rule) : "—"}
         </div>
       </div>
     );
   };
+
 
   const renderAddOns = (room) => {
     // Support both new and any older field names
