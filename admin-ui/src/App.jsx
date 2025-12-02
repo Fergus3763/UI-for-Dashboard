@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 import VenueSetup from "./pages/Dashboard/VenueSetup";
 import Rooms from "./pages/Dashboard/Rooms";
-import RoomOverview from "./pages/RoomOverview";
 import AddonDB from "./pages/AddonDB";
+import RoomOverviewPage from "./pages/Dashboard/RoomOverview";
 
 function App() {
   return (
@@ -30,18 +30,19 @@ function App() {
 
         {/* Main content area */}
         <main style={{ padding: "1.5rem" }}>
-          <Routes>
-            {/* Existing routes (unchanged paths and elements) */}
-            <Route path="/admin/venue" element={<VenueSetup />} />
-            <Route path="/admin/rooms" element={<Rooms />} />
+         <Routes>
+         {/* Existing routes (unchanged paths and elements) */}
+         <Route path="/admin/venue" element={<VenueSetup />} />
+         <Route path="/admin/rooms" element={<Rooms />} />
 
-            {/* New routes for Room Overview and Addon DB */}
-            <Route path="/admin/room-overview" element={<RoomOverview />} />
-            <Route path="/admin/addon-db" element={<AddonDB />} />
+        {/* New routes for Room Overview and Addon DB */}
+         <Route path="/admin/room-overview" element={<RoomOverviewPage />} />
+         <Route path="/admin/addon-db" element={<AddonDB />} />
 
-            {/* Optional default route – can stay or be adjusted as needed */}
-            <Route path="*" element={<VenueSetup />} />
-          </Routes>
+  {/* Optional default route – can stay as is */}
+  <Route path="*" element={<VenueSetup />} />
+</Routes>
+ 
         </main>
       </div>
     </Router>
