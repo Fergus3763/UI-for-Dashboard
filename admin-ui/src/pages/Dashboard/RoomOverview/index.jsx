@@ -20,25 +20,24 @@ const RoomOverviewPage = () => {
         }
 
         const json = await res.json();
-        // Actual shape from load_config:
-        // { ok: true, id: "default", data: { rooms: [...], addOns: [...] } }
+        // Real shape: { ok, id, data: { rooms, addOns, ... } }
         const data = json?.data || {};
 
         const roomsData = Array.isArray(data.rooms) ? data.rooms : [];
-        const addOns = Array.isArray(data.addOns || data.addons)
-          ? data.addOns || data.addons
-          : [];
+        const addOns = Array.isArray(data.addOns) ? data.addOns : [];
 
-        const addOnMap = {};
+        const map = {};
         addOns.forEach((addOn) => {
-          if (addOn && addOn.id) {
-            addOnMap[addOn.id] = addOn;
-          }
+          if (!addOn) return;
+          const id =
+            addOn.id || addOn.code || addOn.slug || addOn.name || null;
+          if (!id) return;
+          map[id] = addOn;
         });
 
         if (isMounted) {
           setRooms(roomsData);
-          setAddOnsById(addOnMap);
+          setAddOnsById(map);
           setError(null);
         }
       } catch (err) {
@@ -65,7 +64,7 @@ const RoomOverviewPage = () => {
   const truncateText = (text, maxLength = 220) => {
     if (!text) return "";
     if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength - 3)}...`;
+    return `${text.slice(0, maxLength - 3)}…`;
   };
 
   const formatLayoutName = (layout) => {
@@ -80,25 +79,17 @@ const RoomOverviewPage = () => {
     return "";
   };
 
-  const formatLayoutCapacity = (layout) => {
-    // RoomSetup currently stores min/max on each layout (not capacityMin/capacityMax)
-    const min =
-      layout?.capacityMin ??
-      layout?.min ??
-      null;
-    const max =
-      layout?.capacityMax ??
-      layout?.max ??
-      null;
-
-    if (min != null && max != null) {
-      return `${min}–${max}`;
+  const formatCapacity = (layout) => {
+    if (!layout) return "";
+    const { capacityMin, capacityMax } = layout;
+    if (capacityMin != null && capacityMax != null) {
+      return `${capacityMin}–${capacityMax}`;
     }
-    if (max != null) {
-      return `Up to ${max}`;
+    if (capacityMax != null) {
+      return `Up to ${capacityMax}`;
     }
-    if (min != null) {
-      return `${min}+`;
+    if (capacityMin != null) {
+      return `${capacityMin}+`;
     }
     return "";
   };
@@ -114,7 +105,7 @@ const RoomOverviewPage = () => {
   const getAddOnName = (id) => {
     const addOn = addOnsById[id];
     if (!addOn) return id;
-    return addOn.name || addOn.label || id;
+    return addOn.name || addOn.label || addOn.title || id;
   };
 
   const renderImageGrid = (room) => {
@@ -157,7 +148,10 @@ const RoomOverviewPage = () => {
         <div className="section-title">Features</div>
         <div>
           {features.map((feature, index) => (
-            <span key={`${feature}-${index}`} className="badge feature-badge">
+            <span
+              key={`${feature}-${index}`}
+              className="badge feature-badge"
+            >
               {feature}
             </span>
           ))}
@@ -180,9 +174,9 @@ const RoomOverviewPage = () => {
             <div className="layout-name">
               {formatLayoutName(layout) || "Unnamed layout"}
             </div>
-            {formatLayoutCapacity(layout) && (
+            {formatCapacity(layout) && (
               <div className="layout-capacity">
-                Capacity: {formatLayoutCapacity(layout)}
+                Capacity: {formatCapacity(layout)}
               </div>
             )}
           </div>
@@ -192,19 +186,11 @@ const RoomOverviewPage = () => {
   };
 
   const renderPricing = (room) => {
-    // RoomSetup currently stores pricing in room.pricing { perPerson, perRoom, rule }
     const perPerson =
-      room.perPersonRate ??
-      room.pricing?.perPerson ??
-      null;
-    const flatRoom =
-      room.flatRoomRate ??
-      room.pricing?.perRoom ??
-      null;
-    const priceRule =
-      room.priceRule ??
-      room.pricing?.rule ??
-      null;
+      room.perPersonRate != null ? Number(room.perPersonRate) : null;
+    const flat =
+      room.flatRoomRate != null ? Number(room.flatRoomRate) : null;
+    const priceRule = room.priceRule || null;
 
     return (
       <div className="room-section">
@@ -215,7 +201,7 @@ const RoomOverviewPage = () => {
         </div>
         <div className="pricing-row">
           <span className="pricing-label">Flat room rate:</span>{" "}
-          {flatRoom != null ? flatRoom : "—"}
+          {flat != null ? flat : "—"}
         </div>
         <div className="pricing-row">
           <span className="pricing-label">Price rule:</span>{" "}
@@ -225,86 +211,84 @@ const RoomOverviewPage = () => {
     );
   };
 
-const renderAddOns = (room) => {
-  // Support both legacy and new field names
-  const includedRaw =
-    room.includedAddOnIds != null ? room.includedAddOnIds : room.includedAddOns;
-  const optionalRaw =
-    room.optionalAddOnIds != null ? room.optionalAddOnIds : room.optionalAddOns;
+  const renderAddOns = (room) => {
+    // Support both new and any older field names
+    const includedIds = Array.isArray(room.includedAddOnIds)
+      ? room.includedAddOnIds
+      : Array.isArray(room.includedAddOns)
+      ? room.includedAddOns
+      : [];
+    const optionalIds = Array.isArray(room.optionalAddOnIds)
+      ? room.optionalAddOnIds
+      : Array.isArray(room.optionalAddOns)
+      ? room.optionalAddOns
+      : [];
 
-  const includedIds = Array.isArray(includedRaw) ? includedRaw : [];
-  const optionalIds = Array.isArray(optionalRaw) ? optionalRaw : [];
+    const hasAny = includedIds.length > 0 || optionalIds.length > 0;
+    if (!hasAny) return null;
 
-  const hasAny = includedIds.length > 0 || optionalIds.length > 0;
-  if (!hasAny) {
-    return null;
-  }
-
-  // …rest of renderAddOns stays exactly as it is now…
-
-  }
-
-  return (
-    <div className="room-section">
-      <div className="section-title">Add-ons</div>
-
-      {includedIds.length > 0 && (
-        <div className="add-on-group">
-          <div className="add-on-label">Included</div>
-          <div>
-            {includedIds.map((id) => (
-              <span
-                key={id}
-                className="badge add-on-badge add-on-badge-included"
-              >
-                {getAddOnName(id)}
-              </span>
-            ))}
+    return (
+      <div className="room-section">
+        <div className="section-title">Add-ons</div>
+        {includedIds.length > 0 && (
+          <div className="add-on-group">
+            <div className="add-on-label">Included</div>
+            <div>
+              {includedIds.map((id) => (
+                <span
+                  key={id}
+                  className="badge add-on-badge add-on-badge-included"
+                >
+                  {getAddOnName(id)}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      {optionalIds.length > 0 && (
-        <div className="add-on-group">
-          <div className="add-on-label">Optional</div>
-          <div>
-            {optionalIds.map((id) => (
-              <span
-                key={id}
-                className="badge add-on-badge add-on-badge-optional"
-              >
-                {getAddOnName(id)}
-              </span>
-            ))}
+        )}
+        {optionalIds.length > 0 && (
+          <div className="add-on-group">
+            <div className="add-on-label">Optional</div>
+            <div>
+              {optionalIds.map((id) => (
+                <span
+                  key={id}
+                  className="badge add-on-badge add-on-badge-optional"
+                >
+                  {getAddOnName(id)}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const renderBuffers = (room) => {
-  const before =
-    room.bufferBeforeMinutes ?? room.bufferBefore ?? 0;
-  const after =
-    room.bufferAfterMinutes ?? room.bufferAfter ?? 0;
-
-  return (
-    <div className="room-section">
-      <div className="section-title">Buffers</div>
-      <div className="buffer-row">
-        <span>
-          <span className="pricing-label">Buffer before:</span> {before} min
-        </span>
-        <span>
-          <span className="pricing-label">Buffer after:</span> {after} min
-        </span>
+        )}
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-  
+  const renderBuffers = (room) => {
+    // Support both new and any older field names
+    const before =
+      room.bufferBeforeMinutes ??
+      room.bufferBefore ??
+      0;
+    const after =
+      room.bufferAfterMinutes ??
+      room.bufferAfter ??
+      0;
+
+    return (
+      <div className="room-section">
+        <div className="section-title">Buffers</div>
+        <div className="buffer-row">
+          <span>
+            <span className="pricing-label">Buffer before:</span> {before} min
+          </span>
+          <span>
+            <span className="pricing-label">Buffer after:</span> {after} min
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="room-overview-page">
@@ -577,7 +561,7 @@ const renderBuffers = (room) => {
       {!loading && !error && rooms.length > 0 && (
         <div className="room-overview-grid">
           {rooms.map((room) => {
-            const key = room.id || room.code;
+            const key = room.id || room.code || String(Math.random());
 
             return (
               <div className="room-card" key={key}>
