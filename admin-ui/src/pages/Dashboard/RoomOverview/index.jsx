@@ -8,6 +8,7 @@ const RoomOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // ---- Load config once on mount ----
   useEffect(() => {
     let isMounted = true;
 
@@ -20,19 +21,18 @@ const RoomOverviewPage = () => {
         }
 
         const json = await res.json();
-        // Real shape: { ok, id, data: { rooms, addOns, ... } }
-        const data = json?.data || {};
+
+        // Our Netlify function returns: { ok, id, data: { rooms, addOns, ... } }
+        const data = json && json.data ? json.data : {};
 
         const roomsData = Array.isArray(data.rooms) ? data.rooms : [];
         const addOns = Array.isArray(data.addOns) ? data.addOns : [];
 
         const map = {};
-        addOns.forEach((addOn) => {
-          if (!addOn) return;
-          const id =
-            addOn.id || addOn.code || addOn.slug || addOn.name || null;
-          if (!id) return;
-          map[id] = addOn;
+        addOns.forEach((a) => {
+          if (a && a.id) {
+            map[a.id] = a;
+          }
         });
 
         if (isMounted) {
@@ -61,71 +61,56 @@ const RoomOverviewPage = () => {
     };
   }, []);
 
+  // ---- Helpers ----
+
   const truncateText = (text, maxLength = 220) => {
     if (!text) return "";
     if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength - 3)}…`;
+    return `${text.slice(0, maxLength - 3)}...`;
   };
 
-   const formatLayoutName = (layout) => {
+  const formatLayoutName = (layout) => {
     if (!layout) return "";
-
-    // For custom layouts, prefer a human name
-    const customName = layout.customName || layout.name;
-    if (layout.type === "CUSTOM" && customName) {
-      return customName;
+    // RoomSetup stores layouts as { type, name?, min, max }
+    if (
+      layout.type &&
+      String(layout.type).toUpperCase() === "CUSTOM" &&
+      layout.name
+    ) {
+      return layout.name;
     }
-
     if (layout.type) {
-      // Turn "BOARDROOM" into "Boardroom"
       const lower = String(layout.type).toLowerCase();
       return lower.charAt(0).toUpperCase() + lower.slice(1);
-    }
-
-    return customName || "";
-  };
-
-  const formatCapacity = (layout) => {
-    if (!layout) return "";
-
-    // Support both { capacityMin/capacityMax } and older { min/max }
-    const min =
-      layout.capacityMin != null ? layout.capacityMin :
-      layout.min != null ? layout.min :
-      null;
-
-    const max =
-      layout.capacityMax != null ? layout.capacityMax :
-      layout.max != null ? layout.max :
-      null;
-
-    if (min != null && max != null) {
-      return `${min}–${max}`;
-    }
-    if (max != null) {
-      return `Up to ${max}`;
-    }
-    if (min != null) {
-      return `${min}+`;
     }
     return "";
   };
 
+  const formatCapacityRange = (layout) => {
+    if (!layout) return "";
+    const min = layout.min ?? layout.capacityMin;
+    const max = layout.max ?? layout.capacityMax;
+    if (min != null && max != null) return `${min}–${max}`;
+    if (max != null) return `Up to ${max}`;
+    if (min != null) return `${min}+`;
+    return "";
   };
 
-  const formatPriceRule = (priceRule) => {
-    if (!priceRule) return "";
-    const upper = String(priceRule).toUpperCase();
-    if (upper === "HIGHER") return "Higher (per-person vs per-room)";
-    if (upper === "LOWER") return "Lower (per-person vs per-room)";
-    return priceRule;
+  const formatPriceRule = (rule) => {
+    if (!rule) return "";
+    const upper = String(rule).toUpperCase();
+    if (upper === "HIGHER") return "Higher of per-person / per-room";
+    if (upper === "LOWER") return "Lower of per-person / per-room";
+    return rule;
   };
 
   const getAddOnName = (id) => {
-    const addOn = addOnsById[id];
-    if (!addOn) return id;
-    return addOn.name || addOn.label || addOn.title || id;
+    const a = addOnsById[id];
+    if (!a) return id;
+    return a.name || a.label || id;
   };
+
+  // ---- Render pieces ----
 
   const renderImageGrid = (room) => {
     const images = Array.isArray(room.images) ? room.images : [];
@@ -147,7 +132,6 @@ const RoomOverviewPage = () => {
               </div>
             );
           }
-
           return (
             <div className="room-image-placeholder" key={index}>
               <span>Placeholder</span>
@@ -166,12 +150,9 @@ const RoomOverviewPage = () => {
       <div className="room-section">
         <div className="section-title">Features</div>
         <div>
-          {features.map((feature, index) => (
-            <span
-              key={`${feature}-${index}`}
-              className="badge feature-badge"
-            >
-              {feature}
+          {features.map((f, i) => (
+            <span key={`${f}-${i}`} className="badge feature-badge">
+              {f}
             </span>
           ))}
         </div>
@@ -181,7 +162,6 @@ const RoomOverviewPage = () => {
 
   const renderLayouts = (room) => {
     const layouts = Array.isArray(room.layouts) ? room.layouts : [];
-
     return (
       <div className="room-section">
         <div className="section-title">Layouts</div>
@@ -193,9 +173,9 @@ const RoomOverviewPage = () => {
             <div className="layout-name">
               {formatLayoutName(layout) || "Unnamed layout"}
             </div>
-            {formatCapacity(layout) && (
+            {formatCapacityRange(layout) && (
               <div className="layout-capacity">
-                Capacity: {formatCapacity(layout)}
+                Capacity: {formatCapacityRange(layout)}
               </div>
             )}
           </div>
@@ -204,75 +184,51 @@ const RoomOverviewPage = () => {
     );
   };
 
-   const renderPricing = (room) => {
-    // Support both top-level fields and nested pricing object
-    const pricing = room.pricing || {};
-
+  const renderPricing = (room) => {
     const perPerson =
-      room.perPersonRate != null
-        ? room.perPersonRate
-        : pricing.perPerson != null
-        ? pricing.perPerson
-        : null;
-
+      room.perPersonRate != null ? Number(room.perPersonRate) : null;
     const flatRoom =
-      room.flatRoomRate != null
-        ? room.flatRoomRate
-        : pricing.perRoom != null
-        ? pricing.perRoom
-        : null;
-
-    const rule =
-      room.priceRule != null
-        ? room.priceRule
-        : pricing.rule != null
-        ? pricing.rule
-        : null;
+      room.flatRoomRate != null ? Number(room.flatRoomRate) : null;
+    const rule = room.priceRule || null;
 
     return (
       <div className="room-section">
         <div className="section-title">Pricing Preview</div>
         <div className="pricing-row">
           <span className="pricing-label">Per-person rate:</span>{" "}
-          {perPerson != null ? perPerson : "—"}
+          {perPerson != null ? perPerson.toFixed(2) : "—"}
         </div>
         <div className="pricing-row">
-          <span className="pricing-label">Flat room rate:</span>{" "}
-          {flatRoom != null ? flatRoom : "—"}
+          <span className="pricing-label">Per-room / event rate:</span>{" "}
+          {flatRoom != null ? flatRoom.toFixed(2) : "—"}
         </div>
         <div className="pricing-row">
-          <span className="pricing-label">Price rule:</span>{" "}
+          <span className="pricing-label">Pricing rule:</span>{" "}
           {rule ? formatPriceRule(rule) : "—"}
         </div>
       </div>
     );
   };
 
-
   const renderAddOns = (room) => {
-    // Support both new and any older field names
-    const includedIds = Array.isArray(room.includedAddOnIds)
+    const included = Array.isArray(room.includedAddOnIds)
       ? room.includedAddOnIds
-      : Array.isArray(room.includedAddOns)
-      ? room.includedAddOns
       : [];
-    const optionalIds = Array.isArray(room.optionalAddOnIds)
+    const optional = Array.isArray(room.optionalAddOnIds)
       ? room.optionalAddOnIds
-      : Array.isArray(room.optionalAddOns)
-      ? room.optionalAddOns
       : [];
 
-    const hasAny = includedIds.length > 0 || optionalIds.length > 0;
-    if (!hasAny) return null;
+    if (!included.length && !optional.length) return null;
 
     return (
       <div className="room-section">
         <div className="section-title">Add-ons</div>
-        {includedIds.length > 0 && (
+
+        {included.length > 0 && (
           <div className="add-on-group">
             <div className="add-on-label">Included</div>
             <div>
-              {includedIds.map((id) => (
+              {included.map((id) => (
                 <span
                   key={id}
                   className="badge add-on-badge add-on-badge-included"
@@ -283,11 +239,12 @@ const RoomOverviewPage = () => {
             </div>
           </div>
         )}
-        {optionalIds.length > 0 && (
+
+        {optional.length > 0 && (
           <div className="add-on-group">
             <div className="add-on-label">Optional</div>
             <div>
-              {optionalIds.map((id) => (
+              {optional.map((id) => (
                 <span
                   key={id}
                   className="badge add-on-badge add-on-badge-optional"
@@ -303,15 +260,10 @@ const RoomOverviewPage = () => {
   };
 
   const renderBuffers = (room) => {
-    // Support both new and any older field names
     const before =
-      room.bufferBeforeMinutes ??
-      room.bufferBefore ??
-      0;
+      room.bufferBeforeMinutes != null ? room.bufferBeforeMinutes : 0;
     const after =
-      room.bufferAfterMinutes ??
-      room.bufferAfter ??
-      0;
+      room.bufferAfterMinutes != null ? room.bufferAfterMinutes : 0;
 
     return (
       <div className="room-section">
@@ -328,59 +280,52 @@ const RoomOverviewPage = () => {
     );
   };
 
+  // ---- Main render ----
+
   return (
     <div className="room-overview-page">
-      {/* Local styles – no external CSS frameworks */}
+      {/* Local styles only */}
       <style>{`
         .room-overview-page {
           padding: 24px;
         }
-
         .room-overview-header {
           margin-bottom: 16px;
         }
-
         .room-overview-title {
           font-size: 1.5rem;
           font-weight: 600;
           margin: 0 0 4px 0;
         }
-
         .helper-text {
           font-size: 0.9rem;
           color: #64748b;
           max-width: 720px;
         }
-
         .feedback {
           font-size: 0.9rem;
           color: #64748b;
           margin-top: 8px;
         }
-
         .feedback-error {
           color: #b91c1c;
         }
-
         .room-overview-grid {
           display: grid;
           grid-template-columns: repeat(1, minmax(0, 1fr));
           gap: 24px;
           margin-top: 16px;
         }
-
         @media (min-width: 768px) {
           .room-overview-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
-
         @media (min-width: 1024px) {
           .room-overview-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
-
         .room-card {
           background-color: #ffffff;
           border-radius: 16px;
@@ -390,31 +335,26 @@ const RoomOverviewPage = () => {
           flex-direction: column;
           gap: 12px;
         }
-
         .room-card-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           gap: 8px;
         }
-
         .room-card-title {
           display: flex;
           flex-direction: column;
           gap: 2px;
         }
-
         .room-name {
           font-size: 1.05rem;
           font-weight: 600;
           margin: 0;
         }
-
         .room-code {
           font-size: 0.8rem;
           color: #64748b;
         }
-
         .status-badge {
           padding: 3px 10px;
           border-radius: 999px;
@@ -422,23 +362,19 @@ const RoomOverviewPage = () => {
           font-weight: 500;
           white-space: nowrap;
         }
-
         .status-active {
           background-color: #dcfce7;
           color: #166534;
         }
-
         .status-inactive {
           background-color: #fee2e2;
           color: #991b1b;
         }
-
         .room-description {
           font-size: 0.9rem;
           color: #475569;
           margin-top: 4px;
         }
-
         .section-title {
           font-size: 0.8rem;
           font-weight: 600;
@@ -447,17 +383,14 @@ const RoomOverviewPage = () => {
           color: #94a3b8;
           margin-bottom: 4px;
         }
-
         .room-section {
           margin-top: 8px;
         }
-
         .room-images-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 6px;
         }
-
         .room-image-wrapper,
         .room-image-placeholder {
           position: relative;
@@ -465,11 +398,9 @@ const RoomOverviewPage = () => {
           border-radius: 8px;
           overflow: hidden;
         }
-
         .room-image-wrapper {
           background-color: #0f172a;
         }
-
         .room-image-wrapper img {
           position: absolute;
           inset: 0;
@@ -477,7 +408,6 @@ const RoomOverviewPage = () => {
           height: 100%;
           object-fit: cover;
         }
-
         .room-image-placeholder {
           background-color: #e2e8f0;
           display: flex;
@@ -487,7 +417,6 @@ const RoomOverviewPage = () => {
           color: #64748b;
           border: 1px dashed #cbd5f5;
         }
-
         .badge {
           display: inline-flex;
           align-items: center;
@@ -498,37 +427,30 @@ const RoomOverviewPage = () => {
           background-color: #e2e8f0;
           color: #334155;
         }
-
         .feature-badge {
           background-color: #eff6ff;
           color: #1d4ed8;
         }
-
         .layout-item {
           font-size: 0.85rem;
           color: #475569;
           margin-top: 2px;
         }
-
         .layout-name {
           font-weight: 500;
         }
-
         .layout-capacity {
           font-size: 0.8rem;
           color: #64748b;
         }
-
         .pricing-row {
           font-size: 0.85rem;
           color: #475569;
           margin-top: 2px;
         }
-
         .pricing-label {
           font-weight: 500;
         }
-
         .buffer-row {
           display: flex;
           flex-wrap: wrap;
@@ -537,37 +459,27 @@ const RoomOverviewPage = () => {
           font-size: 0.85rem;
           color: #475569;
         }
-
         .add-on-group {
           margin-bottom: 4px;
         }
-
         .add-on-label {
           font-size: 0.8rem;
           font-weight: 500;
           color: #64748b;
           margin-bottom: 2px;
         }
-
-        .add-on-badge {
-          font-size: 0.75rem;
-        }
-
         .add-on-badge-included {
           background-color: #dcfce7;
           color: #166534;
         }
-
         .add-on-badge-optional {
           background-color: #dbeafe;
           color: #1e3a8a;
         }
-
         .muted-text {
           font-size: 0.8rem;
           color: #94a3b8;
         }
-
         .empty-state {
           font-size: 0.9rem;
           color: #64748b;
@@ -641,7 +553,7 @@ const RoomOverviewPage = () => {
                 {/* LAYOUTS */}
                 {renderLayouts(room)}
 
-                {/* PRICING PREVIEW */}
+                {/* PRICING */}
                 {renderPricing(room)}
 
                 {/* ADD-ONS */}
