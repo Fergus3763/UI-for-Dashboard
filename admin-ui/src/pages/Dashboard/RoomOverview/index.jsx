@@ -1,6 +1,6 @@
 // admin-ui/src/pages/Dashboard/RoomOverview/index.jsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 const RoomOverviewPage = () => {
   const [rooms, setRooms] = useState([]);
@@ -14,16 +14,15 @@ const RoomOverviewPage = () => {
     const loadConfig = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/.netlify/functions/load_config');
+        const res = await fetch("/.netlify/functions/load_config");
         if (!res.ok) {
           throw new Error(`Failed to load configuration: ${res.status}`);
         }
 
         const json = await res.json();
-
-        // The brief states rooms live at payload.data.rooms[]
-        const payload = json?.payload || json;
-        const data = payload?.data || {};
+        // Actual shape from load_config:
+        // { ok: true, id: "default", data: { rooms: [...], addOns: [...] } }
+        const data = json?.data || {};
 
         const roomsData = Array.isArray(data.rooms) ? data.rooms : [];
         const addOns = Array.isArray(data.addOns || data.addons)
@@ -43,9 +42,11 @@ const RoomOverviewPage = () => {
           setError(null);
         }
       } catch (err) {
-        console.error('Error loading config for Room Overview:', err);
+        console.error("Error loading config for Room Overview:", err);
         if (isMounted) {
-          setError('Unable to load room configuration. Please try again later.');
+          setError(
+            "Unable to load room configuration. Please try again later."
+          );
         }
       } finally {
         if (isMounted) {
@@ -62,44 +63,51 @@ const RoomOverviewPage = () => {
   }, []);
 
   const truncateText = (text, maxLength = 220) => {
-    if (!text) return '';
+    if (!text) return "";
     if (text.length <= maxLength) return text;
     return `${text.slice(0, maxLength - 3)}...`;
   };
 
   const formatLayoutName = (layout) => {
-    if (!layout) return '';
-    if (layout.type === 'CUSTOM' && layout.customName) {
+    if (!layout) return "";
+    if (layout.type === "CUSTOM" && layout.customName) {
       return layout.customName;
     }
     if (layout.type) {
-      // Turn "BOARDROOM" into "Boardroom"
       const lower = String(layout.type).toLowerCase();
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     }
-    return '';
+    return "";
   };
 
-  const formatCapacity = (layout) => {
-    if (!layout) return '';
-    const { capacityMin, capacityMax } = layout;
-    if (capacityMin != null && capacityMax != null) {
-      return `${capacityMin}–${capacityMax}`;
+  const formatLayoutCapacity = (layout) => {
+    // RoomSetup currently stores min/max on each layout (not capacityMin/capacityMax)
+    const min =
+      layout?.capacityMin ??
+      layout?.min ??
+      null;
+    const max =
+      layout?.capacityMax ??
+      layout?.max ??
+      null;
+
+    if (min != null && max != null) {
+      return `${min}–${max}`;
     }
-    if (capacityMax != null) {
-      return `Up to ${capacityMax}`;
+    if (max != null) {
+      return `Up to ${max}`;
     }
-    if (capacityMin != null) {
-      return `${capacityMin}+`;
+    if (min != null) {
+      return `${min}+`;
     }
-    return '';
+    return "";
   };
 
   const formatPriceRule = (priceRule) => {
-    if (!priceRule) return '';
+    if (!priceRule) return "";
     const upper = String(priceRule).toUpperCase();
-    if (upper === 'HIGHER') return 'Higher (per-person vs per-room)';
-    if (upper === 'LOWER') return 'Lower (per-person vs per-room)';
+    if (upper === "HIGHER") return "Higher (per-person vs per-room)";
+    if (upper === "LOWER") return "Lower (per-person vs per-room)";
     return priceRule;
   };
 
@@ -122,7 +130,9 @@ const RoomOverviewPage = () => {
               <div className="room-image-wrapper" key={index}>
                 <img
                   src={url}
-                  alt={`${room.name || room.code || 'Room'} image ${index + 1}`}
+                  alt={`${room.name || room.code || "Room"} image ${
+                    index + 1
+                  }`}
                 />
               </div>
             );
@@ -167,10 +177,12 @@ const RoomOverviewPage = () => {
         )}
         {layouts.map((layout, index) => (
           <div key={index} className="layout-item">
-            <div className="layout-name">{formatLayoutName(layout) || 'Unnamed layout'}</div>
-            {formatCapacity(layout) && (
+            <div className="layout-name">
+              {formatLayoutName(layout) || "Unnamed layout"}
+            </div>
+            {formatLayoutCapacity(layout) && (
               <div className="layout-capacity">
-                Capacity: {formatCapacity(layout)}
+                Capacity: {formatLayoutCapacity(layout)}
               </div>
             )}
           </div>
@@ -180,33 +192,51 @@ const RoomOverviewPage = () => {
   };
 
   const renderPricing = (room) => {
-    const { perPersonRate, flatRoomRate, priceRule } = room;
+    // RoomSetup currently stores pricing in room.pricing { perPerson, perRoom, rule }
+    const perPerson =
+      room.perPersonRate ??
+      room.pricing?.perPerson ??
+      null;
+    const flatRoom =
+      room.flatRoomRate ??
+      room.pricing?.perRoom ??
+      null;
+    const priceRule =
+      room.priceRule ??
+      room.pricing?.rule ??
+      null;
 
     return (
       <div className="room-section">
         <div className="section-title">Pricing Preview</div>
         <div className="pricing-row">
-          <span className="pricing-label">Per-person rate:</span>{' '}
-          {perPersonRate != null ? perPersonRate : '—'}
+          <span className="pricing-label">Per-person rate:</span>{" "}
+          {perPerson != null ? perPerson : "—"}
         </div>
         <div className="pricing-row">
-          <span className="pricing-label">Flat room rate:</span>{' '}
-          {flatRoomRate != null ? flatRoomRate : '—'}
+          <span className="pricing-label">Flat room rate:</span>{" "}
+          {flatRoom != null ? flatRoom : "—"}
         </div>
         <div className="pricing-row">
-          <span className="pricing-label">Price rule:</span>{' '}
-          {priceRule ? formatPriceRule(priceRule) : '—'}
+          <span className="pricing-label">Price rule:</span>{" "}
+          {priceRule ? formatPriceRule(priceRule) : "—"}
         </div>
       </div>
     );
   };
 
   const renderAddOns = (room) => {
-    const includedIds = Array.isArray(room.includedAddOnIds)
-      ? room.includedAddOnIds
+    // RoomSetup currently stores includedAddOns; optional not wired yet.
+    const includedIds = Array.isArray(
+      room.includedAddOnIds ?? room.includedAddOns
+    )
+      ? room.includedAddOnIds ?? room.includedAddOns
       : [];
-    const optionalIds = Array.isArray(room.optionalAddOnIds)
-      ? room.optionalAddOnIds
+
+    const optionalIds = Array.isArray(
+      room.optionalAddOnIds ?? room.optionalAddOns
+    )
+      ? room.optionalAddOnIds ?? room.optionalAddOns
       : [];
 
     const hasAny = includedIds.length > 0 || optionalIds.length > 0;
@@ -222,7 +252,10 @@ const RoomOverviewPage = () => {
             <div className="add-on-label">Included</div>
             <div>
               {includedIds.map((id) => (
-                <span key={id} className="badge add-on-badge add-on-badge-included">
+                <span
+                  key={id}
+                  className="badge add-on-badge add-on-badge-included"
+                >
                   {getAddOnName(id)}
                 </span>
               ))}
@@ -234,7 +267,10 @@ const RoomOverviewPage = () => {
             <div className="add-on-label">Optional</div>
             <div>
               {optionalIds.map((id) => (
-                <span key={id} className="badge add-on-badge add-on-badge-optional">
+                <span
+                  key={id}
+                  className="badge add-on-badge add-on-badge-optional"
+                >
                   {getAddOnName(id)}
                 </span>
               ))}
@@ -246,8 +282,15 @@ const RoomOverviewPage = () => {
   };
 
   const renderBuffers = (room) => {
-    const before = room.bufferBeforeMinutes ?? 0;
-    const after = room.bufferAfterMinutes ?? 0;
+    // RoomSetup currently uses bufferBefore / bufferAfter
+    const before =
+      room.bufferBeforeMinutes ??
+      room.bufferBefore ??
+      0;
+    const after =
+      room.bufferAfterMinutes ??
+      room.bufferAfter ??
+      0;
 
     return (
       <div className="room-section">
@@ -514,8 +557,9 @@ const RoomOverviewPage = () => {
       <div className="room-overview-header">
         <h1 className="room-overview-title">Room Overview</h1>
         <p className="helper-text">
-          Read-only visual summary of all rooms. Use this view to compare rooms at a glance
-          and preview what bookers will eventually see. No changes can be made from this page.
+          Read-only visual summary of all rooms. Use this view to compare rooms
+          at a glance and preview what bookers will eventually see. No changes
+          can be made from this page.
         </p>
       </div>
 
@@ -541,18 +585,20 @@ const RoomOverviewPage = () => {
                 {/* BASIC INFO */}
                 <div className="room-card-header">
                   <div className="room-card-title">
-                    <div className="room-name">{room.name || 'Untitled room'}</div>
+                    <div className="room-name">
+                      {room.name || "Untitled room"}
+                    </div>
                     {room.code && (
                       <div className="room-code">Code: {room.code}</div>
                     )}
                   </div>
                   <span
                     className={
-                      'status-badge ' +
-                      (room.active ? 'status-active' : 'status-inactive')
+                      "status-badge " +
+                      (room.active ? "status-active" : "status-inactive")
                     }
                   >
-                    {room.active ? 'Active' : 'Inactive'}
+                    {room.active ? "Active" : "Inactive"}
                   </span>
                 </div>
 
