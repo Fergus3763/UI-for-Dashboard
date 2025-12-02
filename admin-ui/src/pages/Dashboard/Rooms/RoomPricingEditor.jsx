@@ -28,7 +28,7 @@ const RoomPricingEditor = ({ pricing, onChange }) => {
           <input
             type="number"
             min={0}
-            step="0.01"
+            step="1"
             value={pricing.perPerson ?? 0}
             onChange={(e) => handleNumberChange("perPerson", e.target.value)}
             placeholder="e.g. 20"
@@ -43,7 +43,7 @@ const RoomPricingEditor = ({ pricing, onChange }) => {
           <input
             type="number"
             min={0}
-            step="0.01"
+            step="1"
             value={pricing.perRoom ?? 0}
             onChange={(e) => handleNumberChange("perRoom", e.target.value)}
             placeholder="e.g. 100"
