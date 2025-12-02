@@ -226,28 +226,22 @@ const RoomOverviewPage = () => {
   };
 
 const renderAddOns = (room) => {
-  // Support both the new ID arrays and any older object-based shapes
-  let includedIds = [];
-  if (Array.isArray(room.includedAddOnIds)) {
-    includedIds = room.includedAddOnIds;
-  } else if (Array.isArray(room.includedAddOns)) {
-    includedIds = room.includedAddOns
-      .map((a) => (a && (a.id || a.code || a.slug || a.name)) || null)
-      .filter(Boolean);
-  }
+  // Support both legacy and new field names
+  const includedRaw =
+    room.includedAddOnIds != null ? room.includedAddOnIds : room.includedAddOns;
+  const optionalRaw =
+    room.optionalAddOnIds != null ? room.optionalAddOnIds : room.optionalAddOns;
 
-  let optionalIds = [];
-  if (Array.isArray(room.optionalAddOnIds)) {
-    optionalIds = room.optionalAddOnIds;
-  } else if (Array.isArray(room.optionalAddOns)) {
-    optionalIds = room.optionalAddOns
-      .map((a) => (a && (a.id || a.code || a.slug || a.name)) || null)
-      .filter(Boolean);
-  }
+  const includedIds = Array.isArray(includedRaw) ? includedRaw : [];
+  const optionalIds = Array.isArray(optionalRaw) ? optionalRaw : [];
 
   const hasAny = includedIds.length > 0 || optionalIds.length > 0;
   if (!hasAny) {
     return null;
+  }
+
+  // …rest of renderAddOns stays exactly as it is now…
+
   }
 
   return (
