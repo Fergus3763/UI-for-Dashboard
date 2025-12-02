@@ -225,87 +225,92 @@ const RoomOverviewPage = () => {
     );
   };
 
-  const renderAddOns = (room) => {
-    // RoomSetup currently stores includedAddOns; optional not wired yet.
-    const includedIds = Array.isArray(
-      room.includedAddOnIds ?? room.includedAddOns
-    )
-      ? room.includedAddOnIds ?? room.includedAddOns
-      : [];
+const renderAddOns = (room) => {
+  // Support both the new ID arrays and any older object-based shapes
+  let includedIds = [];
+  if (Array.isArray(room.includedAddOnIds)) {
+    includedIds = room.includedAddOnIds;
+  } else if (Array.isArray(room.includedAddOns)) {
+    includedIds = room.includedAddOns
+      .map((a) => (a && (a.id || a.code || a.slug || a.name)) || null)
+      .filter(Boolean);
+  }
 
-    const optionalIds = Array.isArray(
-      room.optionalAddOnIds ?? room.optionalAddOns
-    )
-      ? room.optionalAddOnIds ?? room.optionalAddOns
-      : [];
+  let optionalIds = [];
+  if (Array.isArray(room.optionalAddOnIds)) {
+    optionalIds = room.optionalAddOnIds;
+  } else if (Array.isArray(room.optionalAddOns)) {
+    optionalIds = room.optionalAddOns
+      .map((a) => (a && (a.id || a.code || a.slug || a.name)) || null)
+      .filter(Boolean);
+  }
 
-    const hasAny = includedIds.length > 0 || optionalIds.length > 0;
-    if (!hasAny) {
-      return null;
-    }
+  const hasAny = includedIds.length > 0 || optionalIds.length > 0;
+  if (!hasAny) {
+    return null;
+  }
 
-    return (
-      <div className="room-section">
-        <div className="section-title">Add-ons</div>
-        {includedIds.length > 0 && (
-          <div className="add-on-group">
-            <div className="add-on-label">Included</div>
-            <div>
-              {includedIds.map((id) => (
-                <span
-                  key={id}
-                  className="badge add-on-badge add-on-badge-included"
-                >
-                  {getAddOnName(id)}
-                </span>
-              ))}
-            </div>
+  return (
+    <div className="room-section">
+      <div className="section-title">Add-ons</div>
+
+      {includedIds.length > 0 && (
+        <div className="add-on-group">
+          <div className="add-on-label">Included</div>
+          <div>
+            {includedIds.map((id) => (
+              <span
+                key={id}
+                className="badge add-on-badge add-on-badge-included"
+              >
+                {getAddOnName(id)}
+              </span>
+            ))}
           </div>
-        )}
-        {optionalIds.length > 0 && (
-          <div className="add-on-group">
-            <div className="add-on-label">Optional</div>
-            <div>
-              {optionalIds.map((id) => (
-                <span
-                  key={id}
-                  className="badge add-on-badge add-on-badge-optional"
-                >
-                  {getAddOnName(id)}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderBuffers = (room) => {
-    // RoomSetup currently uses bufferBefore / bufferAfter
-    const before =
-      room.bufferBeforeMinutes ??
-      room.bufferBefore ??
-      0;
-    const after =
-      room.bufferAfterMinutes ??
-      room.bufferAfter ??
-      0;
-
-    return (
-      <div className="room-section">
-        <div className="section-title">Buffers</div>
-        <div className="buffer-row">
-          <span>
-            <span className="pricing-label">Buffer before:</span> {before} min
-          </span>
-          <span>
-            <span className="pricing-label">Buffer after:</span> {after} min
-          </span>
         </div>
+      )}
+
+      {optionalIds.length > 0 && (
+        <div className="add-on-group">
+          <div className="add-on-label">Optional</div>
+          <div>
+            {optionalIds.map((id) => (
+              <span
+                key={id}
+                className="badge add-on-badge add-on-badge-optional"
+              >
+                {getAddOnName(id)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const renderBuffers = (room) => {
+  const before =
+    room.bufferBeforeMinutes ?? room.bufferBefore ?? 0;
+  const after =
+    room.bufferAfterMinutes ?? room.bufferAfter ?? 0;
+
+  return (
+    <div className="room-section">
+      <div className="section-title">Buffers</div>
+      <div className="buffer-row">
+        <span>
+          <span className="pricing-label">Buffer before:</span> {before} min
+        </span>
+        <span>
+          <span className="pricing-label">Buffer after:</span> {after} min
+        </span>
       </div>
-    );
-  };
+    </div>
+  );
+};
+
+  
 
   return (
     <div className="room-overview-page">
