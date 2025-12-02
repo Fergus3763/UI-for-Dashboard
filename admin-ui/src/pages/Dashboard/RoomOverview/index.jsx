@@ -8,37 +8,38 @@ const RoomOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ---- Load config once on mount ----
+  // ─────────────────────────────────────
+  // Load config via load_config function
+  // ─────────────────────────────────────
   useEffect(() => {
     let isMounted = true;
 
     const loadConfig = async () => {
       setLoading(true);
+      setError(null);
+
       try {
         const res = await fetch("/.netlify/functions/load_config");
         if (!res.ok) {
-          throw new Error(`Failed to load configuration: ${res.status}`);
+          throw new Error(`load_config failed: ${res.status}`);
         }
 
-        const json = await res.json();
-
-        // Our Netlify function returns: { ok, id, data: { rooms, addOns, ... } }
-        const data = json && json.data ? json.data : {};
+        const payload = await res.json();
+        const data = payload?.data ?? payload ?? {};
 
         const roomsData = Array.isArray(data.rooms) ? data.rooms : [];
         const addOns = Array.isArray(data.addOns) ? data.addOns : [];
 
-        const map = {};
-        addOns.forEach((a) => {
-          if (a && a.id) {
-            map[a.id] = a;
+        const addOnMap = {};
+        addOns.forEach((addOn) => {
+          if (addOn && addOn.id) {
+            addOnMap[addOn.id] = addOn;
           }
         });
 
         if (isMounted) {
           setRooms(roomsData);
-          setAddOnsById(map);
-          setError(null);
+          setAddOnsById(addOnMap);
         }
       } catch (err) {
         console.error("Error loading config for Room Overview:", err);
@@ -61,23 +62,20 @@ const RoomOverviewPage = () => {
     };
   }, []);
 
-  // ---- Helpers ----
+  // ─────────────────────────────────────
+  // Small helpers
+  // ─────────────────────────────────────
 
   const truncateText = (text, maxLength = 220) => {
     if (!text) return "";
     if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength - 3)}...`;
+    return `${text.slice(0, maxLength - 3)}…`;
   };
 
   const formatLayoutName = (layout) => {
     if (!layout) return "";
-    // RoomSetup stores layouts as { type, name?, min, max }
-    if (
-      layout.type &&
-      String(layout.type).toUpperCase() === "CUSTOM" &&
-      layout.name
-    ) {
-      return layout.name;
+    if (layout.type === "CUSTOM" && layout.customName) {
+      return layout.customName;
     }
     if (layout.type) {
       const lower = String(layout.type).toLowerCase();
@@ -86,31 +84,34 @@ const RoomOverviewPage = () => {
     return "";
   };
 
-  const formatCapacityRange = (layout) => {
+  const formatCapacity = (layout) => {
     if (!layout) return "";
-    const min = layout.min ?? layout.capacityMin;
-    const max = layout.max ?? layout.capacityMax;
+    const min = layout.capacityMin;
+    const max = layout.capacityMax;
+
     if (min != null && max != null) return `${min}–${max}`;
     if (max != null) return `Up to ${max}`;
     if (min != null) return `${min}+`;
     return "";
   };
 
-  const formatPriceRule = (rule) => {
-    if (!rule) return "";
-    const upper = String(rule).toUpperCase();
+  const formatPriceRule = (priceRule) => {
+    if (!priceRule) return "—";
+    const upper = String(priceRule).toUpperCase();
     if (upper === "HIGHER") return "Higher of per-person / per-room";
     if (upper === "LOWER") return "Lower of per-person / per-room";
-    return rule;
+    return priceRule;
   };
 
   const getAddOnName = (id) => {
-    const a = addOnsById[id];
-    if (!a) return id;
-    return a.name || a.label || id;
+    const addOn = addOnsById[id];
+    if (!addOn) return id;
+    return addOn.name || addOn.label || id;
   };
 
-  // ---- Render pieces ----
+  // ─────────────────────────────────────
+  // Render helpers
+  // ─────────────────────────────────────
 
   const renderImageGrid = (room) => {
     const images = Array.isArray(room.images) ? room.images : [];
@@ -150,9 +151,9 @@ const RoomOverviewPage = () => {
       <div className="room-section">
         <div className="section-title">Features</div>
         <div>
-          {features.map((f, i) => (
-            <span key={`${f}-${i}`} className="badge feature-badge">
-              {f}
+          {features.map((feature, index) => (
+            <span key={`${feature}-${index}`} className="badge feature-badge">
+              {feature}
             </span>
           ))}
         </div>
@@ -162,20 +163,26 @@ const RoomOverviewPage = () => {
 
   const renderLayouts = (room) => {
     const layouts = Array.isArray(room.layouts) ? room.layouts : [];
+    if (!layouts.length) {
+      return (
+        <div className="room-section">
+          <div className="section-title">Layouts</div>
+          <div className="muted-text">No layouts configured.</div>
+        </div>
+      );
+    }
+
     return (
       <div className="room-section">
         <div className="section-title">Layouts</div>
-        {layouts.length === 0 && (
-          <div className="muted-text">No layouts configured.</div>
-        )}
         {layouts.map((layout, index) => (
           <div key={index} className="layout-item">
             <div className="layout-name">
               {formatLayoutName(layout) || "Unnamed layout"}
             </div>
-            {formatCapacityRange(layout) && (
+            {formatCapacity(layout) && (
               <div className="layout-capacity">
-                Capacity: {formatCapacityRange(layout)}
+                Capacity: {formatCapacity(layout)}
               </div>
             )}
           </div>
@@ -187,48 +194,48 @@ const RoomOverviewPage = () => {
   const renderPricing = (room) => {
     const perPerson =
       room.perPersonRate != null ? Number(room.perPersonRate) : null;
-    const flatRoom =
+    const flat =
       room.flatRoomRate != null ? Number(room.flatRoomRate) : null;
     const rule = room.priceRule || null;
 
     return (
       <div className="room-section">
-        <div className="section-title">Pricing Preview</div>
+        <div className="section-title">Pricing preview</div>
         <div className="pricing-row">
           <span className="pricing-label">Per-person rate:</span>{" "}
-          {perPerson != null ? perPerson.toFixed(2) : "—"}
+          {perPerson != null ? perPerson : "—"}
         </div>
         <div className="pricing-row">
           <span className="pricing-label">Per-room / event rate:</span>{" "}
-          {flatRoom != null ? flatRoom.toFixed(2) : "—"}
+          {flat != null ? flat : "—"}
         </div>
         <div className="pricing-row">
           <span className="pricing-label">Pricing rule:</span>{" "}
-          {rule ? formatPriceRule(rule) : "—"}
+          {formatPriceRule(rule)}
         </div>
       </div>
     );
   };
 
   const renderAddOns = (room) => {
-    const included = Array.isArray(room.includedAddOnIds)
+    const includedIds = Array.isArray(room.includedAddOnIds)
       ? room.includedAddOnIds
       : [];
-    const optional = Array.isArray(room.optionalAddOnIds)
+    const optionalIds = Array.isArray(room.optionalAddOnIds)
       ? room.optionalAddOnIds
       : [];
 
-    if (!included.length && !optional.length) return null;
+    if (!includedIds.length && !optionalIds.length) return null;
 
     return (
       <div className="room-section">
         <div className="section-title">Add-ons</div>
 
-        {included.length > 0 && (
+        {includedIds.length > 0 && (
           <div className="add-on-group">
             <div className="add-on-label">Included</div>
             <div>
-              {included.map((id) => (
+              {includedIds.map((id) => (
                 <span
                   key={id}
                   className="badge add-on-badge add-on-badge-included"
@@ -240,11 +247,11 @@ const RoomOverviewPage = () => {
           </div>
         )}
 
-        {optional.length > 0 && (
+        {optionalIds.length > 0 && (
           <div className="add-on-group">
             <div className="add-on-label">Optional</div>
             <div>
-              {optional.map((id) => (
+              {optionalIds.map((id) => (
                 <span
                   key={id}
                   className="badge add-on-badge add-on-badge-optional"
@@ -260,10 +267,15 @@ const RoomOverviewPage = () => {
   };
 
   const renderBuffers = (room) => {
+    // Support both new and any legacy field names, just in case.
     const before =
-      room.bufferBeforeMinutes != null ? room.bufferBeforeMinutes : 0;
+      room.bufferBeforeMinutes ??
+      room.bufferBefore ??
+      0;
     const after =
-      room.bufferAfterMinutes != null ? room.bufferAfterMinutes : 0;
+      room.bufferAfterMinutes ??
+      room.bufferAfter ??
+      0;
 
     return (
       <div className="room-section">
@@ -280,11 +292,13 @@ const RoomOverviewPage = () => {
     );
   };
 
-  // ---- Main render ----
+  // ─────────────────────────────────────
+  // Render main page
+  // ─────────────────────────────────────
 
   return (
     <div className="room-overview-page">
-      {/* Local styles only */}
+      {/* Local styles – keep everything self-contained */}
       <style>{`
         .room-overview-page {
           padding: 24px;
@@ -496,9 +510,7 @@ const RoomOverviewPage = () => {
         </p>
       </div>
 
-      {loading && (
-        <div className="feedback">Loading room configuration…</div>
-      )}
+      {loading && <div className="feedback">Loading room configuration…</div>}
 
       {!loading && error && (
         <div className="feedback feedback-error">{error}</div>
@@ -511,7 +523,7 @@ const RoomOverviewPage = () => {
       {!loading && !error && rooms.length > 0 && (
         <div className="room-overview-grid">
           {rooms.map((room) => {
-            const key = room.id || room.code || String(Math.random());
+            const key = room.id || room.code || room.name || Math.random();
 
             return (
               <div className="room-card" key={key}>
