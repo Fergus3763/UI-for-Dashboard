@@ -45,14 +45,22 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
   const [validationError, setValidationError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    setDraftRooms(rooms || []);
-    if (!rooms || !rooms.length) {
-      setSelectedRoomId(null);
-    } else if (!rooms.find((r) => r.id === selectedRoomId)) {
-      setSelectedRoomId(rooms[0].id);
-    }
-  }, [rooms, selectedRoomId]);
+ useEffect(() => {
+  // When the rooms prop changes (e.g. after a successful save or page load),
+  // sync the local draft state once.
+  setDraftRooms(rooms || []);
+
+  // If the currently selected room no longer exists, fall back to the first room.
+  if (!rooms || !rooms.length) {
+    setSelectedRoomId(null);
+  } else if (!rooms.find((r) => r.id === selectedRoomId)) {
+    setSelectedRoomId(rooms[0].id);
+  }
+  // IMPORTANT: do NOT depend on selectedRoomId here, or we will keep
+  // resetting local edits whenever selection changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [rooms]);
+
 
   const selectedRoom = useMemo(
     () => draftRooms.find((r) => r.id === selectedRoomId) || null,
