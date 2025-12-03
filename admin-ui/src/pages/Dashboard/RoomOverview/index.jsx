@@ -85,15 +85,25 @@ const RoomOverviewPage = () => {
   };
 
   const formatCapacity = (layout) => {
-    if (!layout) return "";
-    const min = layout.capacityMin;
-    const max = layout.capacityMax;
+  if (!layout) return '';
 
-    if (min != null && max != null) return `${min}–${max}`;
-    if (max != null) return `Up to ${max}`;
-    if (min != null) return `${min}+`;
-    return "";
-  };
+  const capacityMin =
+    layout.capacityMin != null ? layout.capacityMin : layout.min;
+  const capacityMax =
+    layout.capacityMax != null ? layout.capacityMax : layout.max;
+
+  if (capacityMin != null && capacityMax != null) {
+    return `${capacityMin}–${capacityMax}`;
+  }
+  if (capacityMax != null) {
+    return `Up to ${capacityMax}`;
+  }
+  if (capacityMin != null) {
+    return `${capacityMin}+`;
+  }
+  return '';
+};
+
 
   const formatPriceRule = (priceRule) => {
     if (!priceRule) return "—";
@@ -191,80 +201,81 @@ const RoomOverviewPage = () => {
     );
   };
 
-  const renderPricing = (room) => {
-    const perPerson =
-      room.perPersonRate != null ? Number(room.perPersonRate) : null;
-    const flat =
-      room.flatRoomRate != null ? Number(room.flatRoomRate) : null;
-    const rule = room.priceRule || null;
+ const renderPricing = (room) => {
+  // Room Setup stores pricing as room.pricing { perPerson, perRoom, rule }
+  const pricing = room.pricing || {};
+  const perPerson = pricing.perPerson ?? null;
+  const perRoom = pricing.perRoom ?? null;
+  const rule = pricing.rule || null;
 
-    return (
-      <div className="room-section">
-        <div className="section-title">Pricing preview</div>
-        <div className="pricing-row">
-          <span className="pricing-label">Per-person rate:</span>{" "}
-          {perPerson != null ? perPerson : "—"}
-        </div>
-        <div className="pricing-row">
-          <span className="pricing-label">Per-room / event rate:</span>{" "}
-          {flat != null ? flat : "—"}
-        </div>
-        <div className="pricing-row">
-          <span className="pricing-label">Pricing rule:</span>{" "}
-          {formatPriceRule(rule)}
-        </div>
+  return (
+    <div className="room-section">
+      <div className="section-title">Pricing Preview</div>
+      <div className="pricing-row">
+        <span className="pricing-label">Per-person rate:</span>{' '}
+        {perPerson != null && perPerson !== '' ? perPerson : '—'}
       </div>
-    );
-  };
-
-  const renderAddOns = (room) => {
-    const includedIds = Array.isArray(room.includedAddOnIds)
-      ? room.includedAddOnIds
-      : [];
-    const optionalIds = Array.isArray(room.optionalAddOnIds)
-      ? room.optionalAddOnIds
-      : [];
-
-    if (!includedIds.length && !optionalIds.length) return null;
-
-    return (
-      <div className="room-section">
-        <div className="section-title">Add-ons</div>
-
-        {includedIds.length > 0 && (
-          <div className="add-on-group">
-            <div className="add-on-label">Included</div>
-            <div>
-              {includedIds.map((id) => (
-                <span
-                  key={id}
-                  className="badge add-on-badge add-on-badge-included"
-                >
-                  {getAddOnName(id)}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {optionalIds.length > 0 && (
-          <div className="add-on-group">
-            <div className="add-on-label">Optional</div>
-            <div>
-              {optionalIds.map((id) => (
-                <span
-                  key={id}
-                  className="badge add-on-badge add-on-badge-optional"
-                >
-                  {getAddOnName(id)}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="pricing-row">
+        <span className="pricing-label">Per-room / event rate:</span>{' '}
+        {perRoom != null && perRoom !== '' ? perRoom : '—'}
       </div>
-    );
-  };
+      <div className="pricing-row">
+        <span className="pricing-label">Pricing rule:</span>{' '}
+        {rule ? formatPriceRule(rule) : '—'}
+      </div>
+    </div>
+  );
+};
+
+const renderAddOns = (room) => {
+  const includedIds = Array.isArray(room.includedAddOns)
+    ? room.includedAddOns
+    : Array.isArray(room.includedAddOnIds)
+    ? room.includedAddOnIds
+    : [];
+
+  const optionalIds = Array.isArray(room.optionalAddOns)
+    ? room.optionalAddOns
+    : Array.isArray(room.optionalAddOnIds)
+    ? room.optionalAddOnIds
+    : [];
+
+  const hasAny = includedIds.length > 0 || optionalIds.length > 0;
+  if (!hasAny) {
+    return null;
+  }
+
+  return (
+    <div className="room-section">
+      <div className="section-title">Add-ons</div>
+      {includedIds.length > 0 && (
+        <div className="add-on-group">
+          <div className="add-on-label">Included</div>
+          <div>
+            {includedIds.map((id) => (
+              <span key={id} className="badge add-on-badge add-on-badge-included">
+                {getAddOnName(id)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {optionalIds.length > 0 && (
+        <div className="add-on-group">
+          <div className="add-on-label">Optional</div>
+          <div>
+            {optionalIds.map((id) => (
+              <span key={id} className="badge add-on-badge add-on-badge-optional">
+                {getAddOnName(id)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
   const renderBuffers = (room) => {
     // Support both new and any legacy field names, just in case.
