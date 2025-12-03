@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import RoomSetupTab from "./RoomSetupTab";
 import AddOnsTab from "../VenueSetup/Tabs/AddOnsTab";
 
+const CONFIG_KEY = "default";
+
 const RoomsPage = () => {
   const [config, setConfig] = useState(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -18,34 +20,106 @@ const RoomsPage = () => {
 
   const [activeTab, setActiveTab] = useState("ROOMS");
 
-  // Convenience selectors
-  const rooms = useMemo(
-    () => (Array.isArray(config?.rooms) ? config.rooms : []),
-    [config]
-  );
-  const addOns = useMemo(
-    () => (Array.isArray(config?.addOns) ? config.addOns : []),
-    [config]
-  );
+  const rooms = useMemo(() => (config?.rooms ?? []), [config]);
+  const addOns = useMemo(() => (config?.addOns ?? []), [config]);
 
-  // Load config once on mount
+  // ---------- Normalisation helpers ----------
+
+  const normaliseRoom = (room) => {
+    if (!room) return null;
+
+    const pricing = room.pricing || {};
+    const perPersonRate =
+      room.perPersonRate != null
+        ? Number(room.perPersonRate)
+        : pricing.perPerson != null
+        ? Number(pricing.perPerson)
+        : null;
+
+    const flatRoomRate =
+      room.flatRoomRate != null
+        ? Number(room.flatRoomRate)
+        : pricing.perRoom != null
+        ? Number(pricing.perRoom)
+        : null;
+
+    const priceRule = room.priceRule || pricing.rule || null;
+
+    const layouts = Array.isArray(room.layouts) ? room.layouts : [];
+
+    let capacityMin = room.capacityMin ?? 0;
+    let capacityMax = room.capacityMax ?? 0;
+
+    if (layouts.length) {
+      const mins = layouts
+        .map((l) => Number(l.capacityMin ?? l.min ?? 0))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+      const maxs = layouts
+        .map((l) => Number(l.capacityMax ?? l.max ?? 0))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+
+      if (mins.length) capacityMin = Math.min(...mins);
+      if (maxs.length) capacityMax = Math.max(...maxs);
+    }
+
+    return {
+      id: room.id ?? crypto.randomUUID(),
+      code: room.code ?? "",
+      name: room.name ?? "",
+      description: room.description ?? "",
+      active: room.active ?? true,
+
+      images: Array.isArray(room.images) ? room.images : [],
+      features: Array.isArray(room.features) ? room.features : [],
+      layouts,
+      capacityMin,
+      capacityMax,
+
+      perPersonRate,
+      flatRoomRate,
+      priceRule,
+
+      bufferBeforeMinutes: room.bufferBeforeMinutes ?? room.bufferBefore ?? 0,
+      bufferAfterMinutes: room.bufferAfterMinutes ?? room.bufferAfter ?? 0,
+
+      includedAddOnIds: Array.isArray(room.includedAddOnIds)
+        ? room.includedAddOnIds
+        : Array.isArray(room.includedAddOns)
+        ? room.includedAddOns
+        : [],
+      optionalAddOnIds: Array.isArray(room.optionalAddOnIds)
+        ? room.optionalAddOnIds
+        : [],
+    };
+  };
+
+  const normaliseConfig = (raw) => {
+    const data = raw || {};
+    return {
+      ...data,
+      rooms: Array.isArray(data.rooms)
+        ? data.rooms.map((r) => normaliseRoom(r)).filter(Boolean)
+        : [],
+      addOns: Array.isArray(data.addOns) ? data.addOns : [],
+    };
+  };
+
+  // ---------- Load config ----------
+
   const loadConfig = async () => {
     setLoadingConfig(true);
     setConfigError(null);
 
     try {
       const res = await fetch("/.netlify/functions/load_config");
-      if (!res.ok) {
-        throw new Error(`load_config failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`load_config failed: ${res.status}`);
 
-      const json = await res.json();
-      // Real shape is: { ok, id, data }
-      const data = json?.data || {};
+      const payload = await res.json();
+      const raw = payload?.data ?? payload;
 
-      setConfig(data);
+      setConfig(normaliseConfig(raw));
     } catch (err) {
-      console.error("Error loading config:", err);
+      console.error("Error loading room config:", err);
       setConfigError(err.message || "Failed to load configuration.");
     } finally {
       setLoadingConfig(false);
@@ -56,9 +130,10 @@ const RoomsPage = () => {
     loadConfig();
   }, []);
 
-  // Save only rooms[]
+  // ---------- Save rooms ----------
+
   const handleSaveRooms = async (nextRooms) => {
-    if (!config) return false;
+    if (!config) return;
 
     setSavingRooms(true);
     setSaveRoomsError(null);
@@ -67,63 +142,55 @@ const RoomsPage = () => {
       const res = await fetch("/.netlify/functions/save_config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rooms: nextRooms }),
+        body: JSON.stringify({
+          key: CONFIG_KEY,
+          rooms: nextRooms,
+        }),
       });
 
-      if (!res.ok) {
-        throw new Error(`save_config failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`save_config failed: ${res.status}`);
 
-      const json = await res.json();
-      if (json?.error) {
-        throw new Error(json.error);
-      }
+      const payload = await res.json();
+      if (payload?.error) throw new Error(payload.error);
 
-      // keep local config in sync
       setConfig((prev) => ({
         ...(prev || {}),
         rooms: nextRooms,
       }));
 
       setLastSavedAt(new Date());
-      return true;
     } catch (err) {
       console.error("Error saving rooms:", err);
       setSaveRoomsError(err.message || "Failed to save rooms.");
-      return false;
     } finally {
       setSavingRooms(false);
     }
   };
 
-  // Save only addOns[] (for the Add-Ons tab)
+  // ---------- Save add-ons (AddOnsTab) ----------
+
   const handleSaveFullConfig = async (nextConfig) => {
     setSavingConfig(true);
     setSaveConfigError(null);
 
     try {
-      const nextAddOns = Array.isArray(nextConfig.addOns)
-        ? nextConfig.addOns
-        : [];
-
       const res = await fetch("/.netlify/functions/save_config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addOns: nextAddOns }),
+        body: JSON.stringify({
+          key: CONFIG_KEY,
+          addOns: nextConfig.addOns ?? [],
+        }),
       });
 
-      if (!res.ok) {
-        throw new Error(`save_config failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`save_config failed: ${res.status}`);
 
-      const json = await res.json();
-      if (json?.error) {
-        throw new Error(json.error);
-      }
+      const payload = await res.json();
+      if (payload?.error) throw new Error(payload.error);
 
       setConfig((prev) => ({
         ...(prev || {}),
-        addOns: nextAddOns,
+        addOns: nextConfig.addOns ?? [],
       }));
     } catch (err) {
       console.error("Error saving add-ons:", err);
@@ -133,10 +200,9 @@ const RoomsPage = () => {
     }
   };
 
-  // Loading / error guard rails
-  if (loadingConfig) {
-    return <div>Loading configuration…</div>;
-  }
+  // ---------- Render ----------
+
+  if (loadingConfig) return <div>Loading configuration…</div>;
 
   if (configError) {
     return (
@@ -168,7 +234,6 @@ const RoomsPage = () => {
         </div>
       )}
 
-      {/* Tabs header */}
       <div style={{ marginTop: "1.5rem" }}>
         <div style={{ borderBottom: "1px solid #ccc", marginBottom: "1rem" }}>
           <button
@@ -208,7 +273,6 @@ const RoomsPage = () => {
           </button>
         </div>
 
-        {/* Room Setup tab */}
         {activeTab === "ROOMS" && (
           <RoomSetupTab
             rooms={rooms}
@@ -218,7 +282,6 @@ const RoomsPage = () => {
           />
         )}
 
-        {/* Add-Ons tab (reused from Venue) */}
         {activeTab === "ADDONS" && (
           <AddOnsTab
             config={config}
