@@ -1,21 +1,13 @@
-import React from "react";
+// admin-ui/src/pages/RoomOverview/index.jsx
 
+import React from "react";
+import RoomOverviewPage from "../Dashboard/RoomOverview";
+
+/**
+ * This component is the existing route target for /admin/room-overview.
+ * We keep the route and simply delegate to the new Dashboard Room Overview
+ * implementation, so we don't disturb any existing routing or navigation.
+ */
 export default function RoomOverview() {
-  return (
-    <div>
-      <h1>Room Overview</h1>
-      <p>
-        This page will become a side-by-side comparison view for all rooms and meeting
-        spaces.
-      </p>
-      <p>
-        It will show which inclusions and add-ons apply to each room, along with key
-        details like capacity and any special rules.
-      </p>
-      <p>
-        For now this is only a placeholder so hotel admins know that a consolidated
-        overview is planned for a future version.
-      </p>
-    </div>
-  );
+  return <RoomOverviewPage />;
 }
