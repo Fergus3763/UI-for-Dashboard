@@ -11,3 +11,4 @@ import RoomOverviewPage from "../Dashboard/RoomOverview";
 export default function RoomOverview() {
   return <RoomOverviewPage />;
 }
+
