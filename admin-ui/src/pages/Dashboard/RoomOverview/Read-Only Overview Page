@@ -1,0 +1,174 @@
+Location:
+
+admin-ui/src/pages/Dashboard/RoomOverview/
+
+Purpose
+
+This module implements the read-only Room Overview experience for hotel administrators.
+It provides a visual comparison of all rooms configured in the system, helping admins quickly verify:
+
+Room details (name, code, description)
+
+Images (up to 6)
+
+Features
+
+Layouts & capacities
+
+Base pricing configuration
+
+Included & optional add-ons
+
+Buffers before/after meetings
+
+This view mirrors what a Booker will eventually see, but with an internal, admin-friendly layout.
+
+Key Characteristics
+✅ Read-only by design
+
+The page displays data only.
+It does not edit, mutate, or save configuration.
+
+✅ Uses existing backend flow
+
+Room data is loaded via the existing Netlify function:
+
+/.netlify/functions/load_config
+
+
+No new functions, endpoints, schemas, or backend logic were introduced.
+
+✅ Non-invasive integration
+
+This module does not modify:
+
+Routing structure
+
+Supabase schema
+
+Netlify functions
+
+Existing Dashboard pages
+
+Room Setup logic
+
+The route /admin/room-overview already existed in the project.
+A lightweight wrapper under /pages/RoomOverview simply delegates to this module.
+
+Architecture
+Main Component:
+
+index.jsx
+
+Responsibilities:
+
+Fetch configuration from load_config
+
+Extract:
+
+payload.data.rooms[]
+
+payload.data.addOns[]
+
+Render a responsive grid of cards
+
+Display all room metadata in a structured, visual layout:
+
+Images grid (3×2, with placeholders)
+
+Status badge (Active/Inactive)
+
+Features as badges
+
+Layouts with min/max capacity
+
+Pricing preview
+
+Included & optional add-ons
+
+Buffers before & after
+
+Constraints (Inherited From HUB #7 Brief)
+
+This module must not:
+
+Save or update config
+
+Trigger any persistence actions
+
+Create new folders
+
+Add or modify existing routes
+
+Add new backend functions or schema fields
+
+Change Room Setup, Add-Ons, or Venue pages
+
+The implementation adheres strictly to these rules.
+
+Extending the Page in the Future (Optional Notes)
+
+While currently read-only, the structure supports future enhancement.
+To make Room Overview editable, future developers would:
+
+Introduce local form state for editable fields
+
+Integrate with the existing saveConfig Netlify function
+
+Add mutation handlers to update individual rooms
+
+Rebuild room objects respecting the canonical schema
+
+Include validation and a “Save Changes” action button
+
+Use the same card layout but toggle between:
+
+Display mode → current behaviour
+
+Edit mode → future enhancement
+
+None of this is implemented today, as the brief explicitly required a read-only page.
+
+Known Related Issue (Not Caused by RoomOverview)
+
+There is a pre-existing problem in Room Setup → Save All Rooms:
+
+Editing and saving one room may overwrite:
+
+perPersonRate
+
+flatRoomRate
+
+priceRule
+
+bufferBeforeMinutes
+
+bufferAfterMinutes
+
+includedAddOnIds
+
+This occurs because the “Save All Rooms” pipeline appears to reconstruct rooms[] without copying these fields for rooms not currently edited.
+
+RoomOverview correctly displays whatever load_config returns and does not contribute to this bug.
+
+Developers should inspect:
+
+admin-ui/src/pages/Dashboard/Rooms/
+
+
+Especially any helper such as
+normaliseRoom() or the serializer inside Save All.
+
+Summary
+
+The Room Overview module:
+
+Delivers a clean, modern, read-only admin view
+
+Integrates safely with the existing system
+
+Adds no backend or structural changes
+
+Provides a future-proof foundation for potential edit functionality
+
+It is stable, compliant with HUB #7 constraints, and ready for production use.
