@@ -127,8 +127,13 @@ When any enhancement becomes “ready for implementation,” HUB will copy it he
 - Behaviour specification  
 - Acceptance tests  
 
-Once in this section, a SPOKE can be assigned.
+CRITICAL: To ensure no loss of memory
+*Hub MUST Save all Prompts used to activate Spoke as .MD files
+*In addaition Hub MUST save messages to and from Spoke via the owner by appending to Prompts
+*HUB MUST name the new Spoke
 
+Once in this section, a SPOKE can be assigned.
+ 
 ---
 
 # 7. Governance Notes (HUB-Level)
