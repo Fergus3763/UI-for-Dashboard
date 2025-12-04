@@ -1,4 +1,4 @@
-// admin-ui/src/pages/Dashboard/Rooms/index.jsx
+F/ admin-ui/src/pages/Dashboard/Rooms/index.jsx
 
 import React, { useEffect, useMemo, useState } from "react";
 import RoomSetupTab from "./RoomSetupTab";
@@ -49,60 +49,56 @@ const RoomsPage = () => {
       if (maxs.length) capacityMax = Math.max(...maxs);
     }
 
-    // ---- Pricing ----
-    const existingPricing = original.pricing || {};
-    const perPerson =
-      original.perPersonRate != null
-        ? Number(original.perPersonRate)
-        : existingPricing.perPerson != null
-        ? Number(existingPricing.perPerson)
-        : null;
+    // ---- Pricing (trust Room Setup's nested pricing as canonical) ----
+    const pricingSource = original.pricing || {};
 
-    const perRoom =
-      original.flatRoomRate != null
-        ? Number(original.flatRoomRate)
-        : existingPricing.perRoom != null
-        ? Number(existingPricing.perRoom)
-        : null;
+    const perPersonRaw =
+      pricingSource.perPerson ??
+      original.perPersonRate ??
+      null;
 
-    const rule =
-      original.priceRule ||
-      existingPricing.rule ||
+    const perRoomRaw =
+      pricingSource.perRoom ??
+      original.flatRoomRate ??
+      null;
+
+    const ruleRaw =
+      pricingSource.rule ??
+      original.priceRule ??
       "higher";
 
     const pricing = {
-      ...existingPricing,
-      perPerson: perPerson ?? 0,
-      perRoom: perRoom ?? 0,
-      rule,
+      ...pricingSource,
+      perPerson: perPersonRaw != null ? Number(perPersonRaw) || 0 : 0,
+      perRoom: perRoomRaw != null ? Number(perRoomRaw) || 0 : 0,
+      rule: ruleRaw,
     };
 
-    // ---- Buffers ----
-    const bufferBefore =
-      original.bufferBefore != null
-        ? Number(original.bufferBefore)
-        : original.bufferBeforeMinutes != null
-        ? Number(original.bufferBeforeMinutes)
-        : 0;
+    // ---- Buffers (minutes) ----
+    const bufferBeforeRaw =
+      original.bufferBefore ??
+      original.bufferBeforeMinutes ??
+      0;
 
-    const bufferAfter =
-      original.bufferAfter != null
-        ? Number(original.bufferAfter)
-        : original.bufferAfterMinutes != null
-        ? Number(original.bufferAfterMinutes)
-        : 0;
+    const bufferAfterRaw =
+      original.bufferAfter ??
+      original.bufferAfterMinutes ??
+      0;
+
+    const bufferBefore = Number(bufferBeforeRaw) || 0;
+    const bufferAfter = Number(bufferAfterRaw) || 0;
 
     // ---- Add-ons ----
-    const includedAddOnIds = Array.isArray(original.includedAddOnIds)
-      ? original.includedAddOnIds
-      : Array.isArray(original.includedAddOns)
+    const includedAddOnIds = Array.isArray(original.includedAddOns)
       ? original.includedAddOns
+      : Array.isArray(original.includedAddOnIds)
+      ? original.includedAddOnIds
       : [];
 
-    const optionalAddOnIds = Array.isArray(original.optionalAddOnIds)
-      ? original.optionalAddOnIds
-      : Array.isArray(original.optionalAddOns)
+    const optionalAddOnIds = Array.isArray(original.optionalAddOns)
       ? original.optionalAddOns
+      : Array.isArray(original.optionalAddOnIds)
+      ? original.optionalAddOnIds
       : [];
 
     return {
@@ -110,9 +106,11 @@ const RoomsPage = () => {
       ...original,
 
       // core identifiers
-      id: original.id ?? (typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `room_${Math.random().toString(36).slice(2)}_${Date.now()}`),
+      id:
+        original.id ??
+        (typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `room_${Math.random().toString(36).slice(2)}_${Date.now()}`),
       code: original.code ?? "",
       name: original.name ?? "",
       description: original.description ?? "",
@@ -127,25 +125,17 @@ const RoomsPage = () => {
       capacityMin,
       capacityMax,
 
-      // pricing (canonical nested object)
+      // canonical shapes
       pricing,
-      // keep legacy flat fields in sync for any older code
-      perPersonRate: pricing.perPerson,
-      flatRoomRate: pricing.perRoom,
-      priceRule: pricing.rule,
-
-      // buffers (canonical minutes, with legacy names kept in sync)
       bufferBefore,
       bufferAfter,
-      bufferBeforeMinutes: bufferBefore,
-      bufferAfterMinutes: bufferAfter,
-
-      // add-ons (support both old and new names)
       includedAddOns: includedAddOnIds,
       includedAddOnIds,
       optionalAddOns: optionalAddOnIds,
       optionalAddOnIds,
     };
+  };
+
   };
 
   const normaliseConfig = (raw) => {
