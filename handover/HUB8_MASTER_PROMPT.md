@@ -134,6 +134,33 @@ Every feature in the Admin UI must follow the canonical persistence chain:
 
 No HUB or Spoke may bypass this.
 
+### Priority Work for Hub #8
+
+1. **Room Setup persistence stabilisation**
+   - Fix the remaining “Save All Rooms” issues so that:
+     - Layout capacities
+     - Base pricing (per-person / per-room / rule)
+     - Buffers
+     - Included / optional add-ons
+   - all save reliably and re-load correctly, and appear in Room Overview.
+
+2. **Room Overview alignment**
+   - Ensure Room Overview reads the same room shape that Room Setup writes.
+   - Verify new rooms and edits appear correctly (layouts, pricing, buffers, add-ons).
+
+3. **Per-room availability calendar (Availability Spoke v2)**
+   - Reintroduce a **visual availability view** per room (calendar or structured list) driven by:
+     - `blackout_periods` (admin blackouts)
+     - bookings (mock or minimal real data)
+   - Keep it read-only at first; editing blackouts can remain in Room Setup.
+
+4. **Booker Preview integration**
+   - Add the new **Booker Preview** tab in the Admin nav pointing to the existing `booker-view.html`.
+
+5. **Documentation and Quick-Start updates**
+   - Update `HUB8_QUICK_START.md`, `STATUS_SUMMARY.md`, and `HUB_CONTEXT.md` to reflect:
+     - Final room schema
+     - How Room Setup, Room Overview, Booker View, and availability endpoints connect.
 ---
 
 # 8. FINAL INSTRUCTION FOR HUB #8
