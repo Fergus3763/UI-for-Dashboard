@@ -28,27 +28,14 @@ const RoomsPage = () => {
   const normaliseRoom = (room) => {
     if (!room) return null;
 
-    const pricing = room.pricing || {};
-    const perPersonRate =
-      room.perPersonRate != null
-        ? Number(room.perPersonRate)
-        : pricing.perPerson != null
-        ? Number(pricing.perPerson)
-        : null;
+    // Start from the original object so we do not throw anything away.
+    const original = { ...room };
 
-    const flatRoomRate =
-      room.flatRoomRate != null
-        ? Number(room.flatRoomRate)
-        : pricing.perRoom != null
-        ? Number(pricing.perRoom)
-        : null;
+    // ---- Layouts and capacities ----
+    const layouts = Array.isArray(original.layouts) ? original.layouts : [];
 
-    const priceRule = room.priceRule || pricing.rule || null;
-
-    const layouts = Array.isArray(room.layouts) ? room.layouts : [];
-
-    let capacityMin = room.capacityMin ?? 0;
-    let capacityMax = room.capacityMax ?? 0;
+    let capacityMin = original.capacityMin ?? 0;
+    let capacityMax = original.capacityMax ?? 0;
 
     if (layouts.length) {
       const mins = layouts
@@ -62,34 +49,102 @@ const RoomsPage = () => {
       if (maxs.length) capacityMax = Math.max(...maxs);
     }
 
-    return {
-      id: room.id ?? crypto.randomUUID(),
-      code: room.code ?? "",
-      name: room.name ?? "",
-      description: room.description ?? "",
-      active: room.active ?? true,
+    // ---- Pricing ----
+    const existingPricing = original.pricing || {};
+    const perPerson =
+      original.perPersonRate != null
+        ? Number(original.perPersonRate)
+        : existingPricing.perPerson != null
+        ? Number(existingPricing.perPerson)
+        : null;
 
-      images: Array.isArray(room.images) ? room.images : [],
-      features: Array.isArray(room.features) ? room.features : [],
+    const perRoom =
+      original.flatRoomRate != null
+        ? Number(original.flatRoomRate)
+        : existingPricing.perRoom != null
+        ? Number(existingPricing.perRoom)
+        : null;
+
+    const rule =
+      original.priceRule ||
+      existingPricing.rule ||
+      "higher";
+
+    const pricing = {
+      ...existingPricing,
+      perPerson: perPerson ?? 0,
+      perRoom: perRoom ?? 0,
+      rule,
+    };
+
+    // ---- Buffers ----
+    const bufferBefore =
+      original.bufferBefore != null
+        ? Number(original.bufferBefore)
+        : original.bufferBeforeMinutes != null
+        ? Number(original.bufferBeforeMinutes)
+        : 0;
+
+    const bufferAfter =
+      original.bufferAfter != null
+        ? Number(original.bufferAfter)
+        : original.bufferAfterMinutes != null
+        ? Number(original.bufferAfterMinutes)
+        : 0;
+
+    // ---- Add-ons ----
+    const includedAddOnIds = Array.isArray(original.includedAddOnIds)
+      ? original.includedAddOnIds
+      : Array.isArray(original.includedAddOns)
+      ? original.includedAddOns
+      : [];
+
+    const optionalAddOnIds = Array.isArray(original.optionalAddOnIds)
+      ? original.optionalAddOnIds
+      : Array.isArray(original.optionalAddOns)
+      ? original.optionalAddOns
+      : [];
+
+    return {
+      // keep anything else that may exist on the room
+      ...original,
+
+      // core identifiers
+      id: original.id ?? (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `room_${Math.random().toString(36).slice(2)}_${Date.now()}`),
+      code: original.code ?? "",
+      name: original.name ?? "",
+      description: original.description ?? "",
+      active: original.active ?? true,
+
+      // arrays
+      images: Array.isArray(original.images) ? original.images : [],
+      features: Array.isArray(original.features) ? original.features : [],
       layouts,
+
+      // derived capacities
       capacityMin,
       capacityMax,
 
-      perPersonRate,
-      flatRoomRate,
-      priceRule,
+      // pricing (canonical nested object)
+      pricing,
+      // keep legacy flat fields in sync for any older code
+      perPersonRate: pricing.perPerson,
+      flatRoomRate: pricing.perRoom,
+      priceRule: pricing.rule,
 
-      bufferBeforeMinutes: room.bufferBeforeMinutes ?? room.bufferBefore ?? 0,
-      bufferAfterMinutes: room.bufferAfterMinutes ?? room.bufferAfter ?? 0,
+      // buffers (canonical minutes, with legacy names kept in sync)
+      bufferBefore,
+      bufferAfter,
+      bufferBeforeMinutes: bufferBefore,
+      bufferAfterMinutes: bufferAfter,
 
-      includedAddOnIds: Array.isArray(room.includedAddOnIds)
-        ? room.includedAddOnIds
-        : Array.isArray(room.includedAddOns)
-        ? room.includedAddOns
-        : [],
-      optionalAddOnIds: Array.isArray(room.optionalAddOnIds)
-        ? room.optionalAddOnIds
-        : [],
+      // add-ons (support both old and new names)
+      includedAddOns: includedAddOnIds,
+      includedAddOnIds,
+      optionalAddOns: optionalAddOnIds,
+      optionalAddOnIds,
     };
   };
 
@@ -159,9 +214,12 @@ const RoomsPage = () => {
       }));
 
       setLastSavedAt(new Date());
+      // allow callers to treat "undefined" as success
+      return true;
     } catch (err) {
       console.error("Error saving rooms:", err);
       setSaveRoomsError(err.message || "Failed to save rooms.");
+      return false;
     } finally {
       setSavingRooms(false);
     }
