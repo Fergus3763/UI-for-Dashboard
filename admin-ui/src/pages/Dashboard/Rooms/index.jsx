@@ -1,4 +1,4 @@
-F/ admin-ui/src/pages/Dashboard/Rooms/index.jsx
+// admin-ui/src/pages/Dashboard/Rooms/index.jsx
 
 import React, { useEffect, useMemo, useState } from "react";
 import RoomSetupTab from "./RoomSetupTab";
@@ -53,19 +53,13 @@ const RoomsPage = () => {
     const pricingSource = original.pricing || {};
 
     const perPersonRaw =
-      pricingSource.perPerson ??
-      original.perPersonRate ??
-      null;
+      pricingSource.perPerson ?? original.perPersonRate ?? null;
 
     const perRoomRaw =
-      pricingSource.perRoom ??
-      original.flatRoomRate ??
-      null;
+      pricingSource.perRoom ?? original.flatRoomRate ?? null;
 
     const ruleRaw =
-      pricingSource.rule ??
-      original.priceRule ??
-      "higher";
+      pricingSource.rule ?? original.priceRule ?? "higher";
 
     const pricing = {
       ...pricingSource,
@@ -76,14 +70,10 @@ const RoomsPage = () => {
 
     // ---- Buffers (minutes) ----
     const bufferBeforeRaw =
-      original.bufferBefore ??
-      original.bufferBeforeMinutes ??
-      0;
+      original.bufferBefore ?? original.bufferBeforeMinutes ?? 0;
 
     const bufferAfterRaw =
-      original.bufferAfter ??
-      original.bufferAfterMinutes ??
-      0;
+      original.bufferAfter ?? original.bufferAfterMinutes ?? 0;
 
     const bufferBefore = Number(bufferBeforeRaw) || 0;
     const bufferAfter = Number(bufferAfterRaw) || 0;
@@ -134,8 +124,6 @@ const RoomsPage = () => {
       optionalAddOns: optionalAddOnIds,
       optionalAddOnIds,
     };
-  };
-
   };
 
   const normaliseConfig = (raw) => {
@@ -204,7 +192,6 @@ const RoomsPage = () => {
       }));
 
       setLastSavedAt(new Date());
-      // allow callers to treat "undefined" as success
       return true;
     } catch (err) {
       console.error("Error saving rooms:", err);
