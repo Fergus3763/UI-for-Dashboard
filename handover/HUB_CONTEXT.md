@@ -2,7 +2,7 @@
 
 #> NOTE: This file contains historical and architectural context only.
 > It is *not* the operational prompt.  
-> Hub #7 must always follow the canonical prompt at `/handover/HUB_PROMPT_CANONICAL.md`.
+> Hub #8 must always follow the canonical prompt at `/handover/HUB_PROMPT_CANONICAL.md`.
 ### Availability Spoke (Archived)
 The old “availability-spoke” GitHub repository was an early prototype.  
 It failed to stabilise, lacked DB persistence, and was superseded during HUB#6’s rebuild.  
