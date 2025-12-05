@@ -16,12 +16,16 @@ const RoomBuffersAndAddOns = ({
   };
 
   const toggleAddOn = (id) => {
-    const set = new Set(includedAddOns || []);
-    if (set.has(id)) {
-      set.delete(id);
+    const idString = String(id);
+    const currentIds = (includedAddOns || []).map((x) => String(x));
+    const set = new Set(currentIds);
+
+    if (set.has(idString)) {
+      set.delete(idString);
     } else {
-      set.add(id);
+      set.add(idString);
     }
+
     onChange({ includedAddOns: Array.from(set) });
   };
 
@@ -81,7 +85,9 @@ const RoomBuffersAndAddOns = ({
               addOn.code ||
               String(id);
 
-            const checked = (includedAddOns || []).includes(id);
+            const checked = (includedAddOns || [])
+              .map((x) => String(x))
+              .includes(String(id));
 
             return (
               <label
