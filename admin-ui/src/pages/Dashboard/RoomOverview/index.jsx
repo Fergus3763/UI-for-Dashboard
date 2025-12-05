@@ -2,6 +2,118 @@
 
 import React, { useEffect, useState } from "react";
 
+// Room normaliser for overview
+// Canonical room schema uses: pricing{perPerson,perRoom,rule}, bufferBefore/After (minutes), includedAddOns, optionalAddOns.
+// This converts any legacy pricing/buffer/add-on fields into the canonical schema for display.
+// Canonical fields always win over legacy if both are present.
+// All unknown fields are preserved so the card layout can keep using them.
+const normaliseRoom = (room) => {
+  if (!room || typeof room !== "object") return null;
+  const original = { ...room };
+
+  // Pricing
+  const pricingSource = original.pricing || {};
+
+  const perPersonRaw =
+    pricingSource.perPerson ??
+    original.perPersonRate ??
+    original.perPerson ??
+    null;
+
+  const perRoomRaw =
+    pricingSource.perRoom ??
+    original.perRoomRate ??
+    original.flatRoomRate ??
+    original.perRoom ??
+    null;
+
+  const ruleRaw =
+    pricingSource.rule ??
+    original.priceRule ??
+    original.pricingRule ??
+    "higher";
+
+  const toNumberOrNull = (value) => {
+    if (value === "" || value === null || value === undefined) return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const pricing = {
+    ...pricingSource,
+    perPerson: toNumberOrNull(perPersonRaw),
+    perRoom: toNumberOrNull(perRoomRaw),
+    rule: ruleRaw === "lower" ? "lower" : "higher",
+  };
+
+  // Buffers
+  const bufferBeforeRaw =
+    original.bufferBefore ??
+    original.buffer_before ??
+    original.buffer_before_mins ??
+    original.bufferBeforeMinutes ??
+    null;
+
+  const bufferAfterRaw =
+    original.bufferAfter ??
+    original.buffer_after ??
+    original.buffer_after_mins ??
+    original.bufferAfterMinutes ??
+    null;
+
+  const toNonNegativeInt = (value) => {
+    if (value === "" || value === null || value === undefined) return 0;
+    const n = parseInt(value, 10);
+    return Number.isNaN(n) || n < 0 ? 0 : n;
+  };
+
+  const bufferBefore = toNonNegativeInt(bufferBeforeRaw);
+  const bufferAfter = toNonNegativeInt(bufferAfterRaw);
+
+  // Add-ons
+  const toIdArray = (value) => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (typeof item === "number") return String(item);
+        if (item && typeof item === "object") {
+          const id =
+            item.id ??
+            item.code ??
+            item.slug ??
+            item.value ??
+            item.name ??
+            null;
+          return id ? String(id) : null;
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
+  const includedFromCanonical = toIdArray(original.includedAddOns);
+  const includedFromLegacy = toIdArray(original.includedAddOnIds);
+  const includedIds = includedFromCanonical.length
+    ? includedFromCanonical
+    : includedFromLegacy;
+
+  const optionalFromCanonical = toIdArray(original.optionalAddOns);
+  const optionalFromLegacy = toIdArray(original.optionalAddOnIds);
+  const optionalIds = optionalFromCanonical.length
+    ? optionalFromCanonical
+    : optionalFromLegacy;
+
+  return {
+    ...original,
+    pricing,
+    bufferBefore,
+    bufferAfter,
+    includedAddOns: includedIds,
+    optionalAddOns: optionalIds,
+  };
+};
+
 const RoomOverviewPage = () => {
   const [rooms, setRooms] = useState([]);
   const [addOnsById, setAddOnsById] = useState({});
@@ -30,6 +142,10 @@ const RoomOverviewPage = () => {
         const roomsData = Array.isArray(data.rooms) ? data.rooms : [];
         const addOns = Array.isArray(data.addOns) ? data.addOns : [];
 
+        const normalisedRooms = roomsData
+          .map((room) => normaliseRoom(room))
+          .filter(Boolean);
+
         const addOnMap = {};
         addOns.forEach((addOn) => {
           if (addOn && addOn.id) {
@@ -38,7 +154,7 @@ const RoomOverviewPage = () => {
         });
 
         if (isMounted) {
-          setRooms(roomsData);
+          setRooms(normalisedRooms);
           setAddOnsById(addOnMap);
         }
       } catch (err) {
@@ -85,25 +201,24 @@ const RoomOverviewPage = () => {
   };
 
   const formatCapacity = (layout) => {
-  if (!layout) return '';
+    if (!layout) return "";
 
-  const capacityMin =
-    layout.capacityMin != null ? layout.capacityMin : layout.min;
-  const capacityMax =
-    layout.capacityMax != null ? layout.capacityMax : layout.max;
+    const capacityMin =
+      layout.capacityMin != null ? layout.capacityMin : layout.min;
+    const capacityMax =
+      layout.capacityMax != null ? layout.capacityMax : layout.max;
 
-  if (capacityMin != null && capacityMax != null) {
-    return `${capacityMin}–${capacityMax}`;
-  }
-  if (capacityMax != null) {
-    return `Up to ${capacityMax}`;
-  }
-  if (capacityMin != null) {
-    return `${capacityMin}+`;
-  }
-  return '';
-};
-
+    if (capacityMin != null && capacityMax != null) {
+      return `${capacityMin}–${capacityMax}`;
+    }
+    if (capacityMax != null) {
+      return `Up to ${capacityMax}`;
+    }
+    if (capacityMin != null) {
+      return `${capacityMin}+`;
+    }
+    return "";
+  };
 
   const formatPriceRule = (priceRule) => {
     if (!priceRule) return "—";
@@ -201,91 +316,100 @@ const RoomOverviewPage = () => {
     );
   };
 
- const renderPricing = (room) => {
-  // Room Setup stores pricing as room.pricing { perPerson, perRoom, rule }
-  const pricing = room.pricing || {};
-  const perPerson = pricing.perPerson ?? null;
-  const perRoom = pricing.perRoom ?? null;
-  const rule = pricing.rule || null;
+  const renderPricing = (room) => {
+    // Room Setup stores pricing as room.pricing { perPerson, perRoom, rule }
+    const pricing = room.pricing || {};
+    const perPerson = pricing.perPerson ?? null;
+    const perRoom = pricing.perRoom ?? null;
+    const rule = pricing.rule || null;
 
-  return (
-    <div className="room-section">
-      <div className="section-title">Pricing Preview</div>
-      <div className="pricing-row">
-        <span className="pricing-label">Per-person rate:</span>{' '}
-        {perPerson != null && perPerson !== '' ? perPerson : '—'}
-      </div>
-      <div className="pricing-row">
-        <span className="pricing-label">Per-room / event rate:</span>{' '}
-        {perRoom != null && perRoom !== '' ? perRoom : '—'}
-      </div>
-      <div className="pricing-row">
-        <span className="pricing-label">Pricing rule:</span>{' '}
-        {rule ? formatPriceRule(rule) : '—'}
-      </div>
-    </div>
-  );
-};
-
-const renderAddOns = (room) => {
-  const includedIds = Array.isArray(room.includedAddOns)
-    ? room.includedAddOns
-    : Array.isArray(room.includedAddOnIds)
-    ? room.includedAddOnIds
-    : [];
-
-  const optionalIds = Array.isArray(room.optionalAddOns)
-    ? room.optionalAddOns
-    : Array.isArray(room.optionalAddOnIds)
-    ? room.optionalAddOnIds
-    : [];
-
-  const hasAny = includedIds.length > 0 || optionalIds.length > 0;
-  if (!hasAny) {
-    return null;
-  }
-
-  return (
-    <div className="room-section">
-      <div className="section-title">Add-ons</div>
-      {includedIds.length > 0 && (
-        <div className="add-on-group">
-          <div className="add-on-label">Included</div>
-          <div>
-            {includedIds.map((id) => (
-              <span key={id} className="badge add-on-badge add-on-badge-included">
-                {getAddOnName(id)}
-              </span>
-            ))}
-          </div>
+    return (
+      <div className="room-section">
+        <div className="section-title">Pricing Preview</div>
+        <div className="pricing-row">
+          <span className="pricing-label">Per-person rate:</span>{" "}
+          {perPerson != null && perPerson !== "" ? perPerson : "—"}
         </div>
-      )}
-      {optionalIds.length > 0 && (
-        <div className="add-on-group">
-          <div className="add-on-label">Optional</div>
-          <div>
-            {optionalIds.map((id) => (
-              <span key={id} className="badge add-on-badge add-on-badge-optional">
-                {getAddOnName(id)}
-              </span>
-            ))}
-          </div>
+        <div className="pricing-row">
+          <span className="pricing-label">Per-room / event rate:</span>{" "}
+          {perRoom != null && perRoom !== "" ? perRoom : "—"}
         </div>
-      )}
-    </div>
-  );
-};
+        <div className="pricing-row">
+          <span className="pricing-label">Pricing rule:</span>{" "}
+          {rule ? formatPriceRule(rule) : "—"}
+        </div>
+      </div>
+    );
+  };
 
+  const renderAddOns = (room) => {
+    const includedIds = Array.isArray(room.includedAddOns)
+      ? room.includedAddOns
+      : Array.isArray(room.includedAddOnIds)
+      ? room.includedAddOnIds
+      : [];
+
+    const optionalIds = Array.isArray(room.optionalAddOns)
+      ? room.optionalAddOns
+      : Array.isArray(room.optionalAddOnIds)
+      ? room.optionalAddOnIds
+      : [];
+
+    const hasAny = includedIds.length > 0 || optionalIds.length > 0;
+    if (!hasAny) {
+      return null;
+    }
+
+    return (
+      <div className="room-section">
+        <div className="section-title">Add-ons</div>
+        {includedIds.length > 0 && (
+          <div className="add-on-group">
+            <div className="add-on-label">Included</div>
+            <div>
+              {includedIds.map((id) => (
+                <span
+                  key={id}
+                  className="badge add-on-badge add-on-badge-included"
+                >
+                  {getAddOnName(id)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {optionalIds.length > 0 && (
+          <div className="add-on-group">
+            <div className="add-on-label">Optional</div>
+            <div>
+              {optionalIds.map((id) => (
+                <span
+                  key={id}
+                  className="badge add-on-badge add-on-badge-optional"
+                >
+                  {getAddOnName(id)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderBuffers = (room) => {
-    // Support both new and any legacy field names, just in case.
+    // Canonical names win; legacy names are fallback only.
     const before =
-      room.bufferBeforeMinutes ??
       room.bufferBefore ??
+      room.bufferBeforeMinutes ??
+      room.buffer_before ??
+      room.buffer_before_mins ??
       0;
     const after =
-      room.bufferAfterMinutes ??
       room.bufferAfter ??
+      room.bufferAfterMinutes ??
+      room.buffer_after ??
+      room.buffer_after_mins ??
       0;
 
     return (
