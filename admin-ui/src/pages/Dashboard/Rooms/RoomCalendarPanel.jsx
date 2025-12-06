@@ -11,8 +11,18 @@ const getDateOnlyString = (date) => {
 };
 
 /**
- * Attempt to normalise blackout periods from the API into a Set of YYYY-MM-DD strings.
- * This is defensive, since the exact schema is owned by HUB #8 / backend.
+ * Normalise blackout periods from the blackout_periods API into
+ * a Set of YYYY-MM-DD strings.
+ *
+ * Canonical blackout shape, based on RoomBlackoutsPanel:
+ *   {
+ *     id: string,
+ *     roomId: string,
+ *     title: string,
+ *     startsAt: string (ISO),
+ *     endsAt: string (ISO),
+ *     ...
+ *   }
  */
 const buildBlackoutDateSet = (periods) => {
   const dates = new Set();
@@ -21,43 +31,13 @@ const buildBlackoutDateSet = (periods) => {
     return dates;
   }
 
-  const addDateString = (value) => {
-    if (!value || typeof value !== "string") return;
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return;
-    dates.add(getDateOnlyString(parsed));
-  };
-
   periods.forEach((p) => {
-    // If the item is already a date string, treat as a single-day blackout
-    if (typeof p === "string") {
-      addDateString(p);
-      return;
-    }
-
     if (!p || typeof p !== "object") return;
 
-    // Try a few common field names for start / end
-    const startRaw =
-      p.startDate ||
-      p.start ||
-      p.start_date ||
-      p.fromDate ||
-      p.from ||
-      p.date; // fallback if single-day fields are used
+    const startRaw = p.startsAt;
+    const endRaw = p.endsAt || p.startsAt;
 
-    const endRaw =
-      p.endDate ||
-      p.end ||
-      p.end_date ||
-      p.toDate ||
-      p.to ||
-      p.date ||
-      startRaw;
-
-    if (!startRaw) {
-      return;
-    }
+    if (!startRaw) return;
 
     const start = new Date(startRaw);
     const end = new Date(endRaw);
@@ -67,14 +47,16 @@ const buildBlackoutDateSet = (periods) => {
     }
     if (Number.isNaN(end.getTime())) {
       // If end is invalid, treat it as a single-day blackout
-      addDateString(startRaw);
+      const isoSingle = getDateOnlyString(start);
+      if (isoSingle) dates.add(isoSingle);
       return;
     }
 
     // Expand the period, inclusive of start and end
     const current = new Date(start.getTime());
     while (current <= end) {
-      dates.add(getDateOnlyString(current));
+      const iso = getDateOnlyString(current);
+      if (iso) dates.add(iso);
       current.setDate(current.getDate() + 1);
     }
   });
@@ -83,6 +65,8 @@ const buildBlackoutDateSet = (periods) => {
 };
 
 const RoomCalendarPanel = ({ room }) => {
+  const roomKey = room?.code || room?.id || null;
+
   const [blackoutRaw, setBlackoutRaw] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -99,15 +83,7 @@ const RoomCalendarPanel = ({ room }) => {
   );
 
   useEffect(() => {
-    if (!room) {
-      setBlackoutRaw([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    const roomIdParam = room.id || room.code;
-    if (!roomIdParam) {
+    if (!roomKey) {
       setBlackoutRaw([]);
       setError(null);
       setLoading(false);
@@ -115,21 +91,29 @@ const RoomCalendarPanel = ({ room }) => {
     }
 
     let isCancelled = false;
-    const fetchBlackouts = async () => {
+
+    async function fetchBlackouts() {
       setLoading(true);
       setError(null);
+
       try {
         const response = await fetch(
           `/.netlify/functions/blackout_periods?roomId=${encodeURIComponent(
-            roomIdParam
+            roomKey
           )}`
         );
+
         if (!response.ok) {
-          throw new Error(`Failed to load blackout periods (${response.status})`);
+          throw new Error(
+            `Failed to load blackout periods (${response.status})`
+          );
         }
-        const data = await response.json();
+
+        const json = await response.json();
+        const items = Array.isArray(json.data) ? json.data : [];
+
         if (!isCancelled) {
-          setBlackoutRaw(Array.isArray(data) ? data : []);
+          setBlackoutRaw(items);
         }
       } catch (err) {
         if (!isCancelled) {
@@ -142,14 +126,14 @@ const RoomCalendarPanel = ({ room }) => {
           setLoading(false);
         }
       }
-    };
+    }
 
     fetchBlackouts();
 
     return () => {
       isCancelled = true;
     };
-  }, [room]);
+  }, [roomKey]);
 
   const handlePrevMonth = () => {
     setCurrentMonth((prev) => {
@@ -187,7 +171,7 @@ const RoomCalendarPanel = ({ room }) => {
       }
 
       // future: booking states (reserved / confirmed) can be layered here
-      // without breaking layout. A "booked" Set could be checked before blackouts.
+      // e.g. by checking a bookedDates Set before blackouts.
 
       const isToday = iso === todayIso;
 
