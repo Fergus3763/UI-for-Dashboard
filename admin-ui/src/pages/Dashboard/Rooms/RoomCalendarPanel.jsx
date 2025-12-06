@@ -30,68 +30,76 @@ const formatTimeRange = (start, end) => {
 };
 
 /**
- * Generate client-side demo events when no real blackouts exist.
- * These are purely visual and never sent to the backend.
+ * Fixed demo events for December 2025 (visual only, never sent to backend).
+ *
+ * Demo Admin Blackouts:
+ *  2025-12-09 (all day) — Maintenance
+ *  2025-12-15 (all day) — Staff Training
+ *  2025-12-19 (all day) — Private Event
+ *
+ * Demo Booked Events:
+ *  2025-12-10 — 09:00–12:00 — Board Meeting
+ *  2025-12-11 — 13:00–17:00 — Client Workshop
+ *  2025-12-16 — 10:00–15:00 — Strategy Session
  */
 const generateDemoEvents = () => {
-  const now = new Date();
-  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const addDays = (date, days) => {
-    const d = new Date(date.getTime());
-    d.setDate(d.getDate() + days);
-    return d;
-  };
-
-  const toIso = (date, hours = 0, minutes = 0) => {
-    const d = new Date(date.getTime());
-    d.setHours(hours, minutes, 0, 0);
-    return d.toISOString();
-  };
-
-  // Demo admin blackout: full-day maintenance in a few days
-  const adminDay = addDays(base, 3);
-  const adminStarts = toIso(adminDay, 0, 0);
-  const adminEnds = toIso(adminDay, 23, 59);
-
-  // Demo booked event: client meeting next week
-  const bookedDay1 = addDays(base, 7);
-  const booked1Starts = toIso(bookedDay1, 9, 0);
-  const booked1Ends = toIso(bookedDay1, 12, 0);
-
-  // Demo booked event: workshop early next month
-  const nextMonthStart = new Date(base.getFullYear(), base.getMonth() + 1, 5);
-  const bookedDay2 = nextMonthStart;
-  const booked2Starts = toIso(bookedDay2, 14, 0);
-  const booked2Ends = toIso(bookedDay2, 17, 0);
-
   return [
+    // Admin blackouts (all day)
     {
       type: "admin",
       source: "demo",
-      startsAt: adminStarts,
-      endsAt: adminEnds,
-      title: "Admin Blackout – Maintenance",
+      startsAt: "2025-12-09T00:00:00.000Z",
+      endsAt: "2025-12-09T23:59:59.000Z",
+      title: "Maintenance",
       label: "Blocked (Admin Blackout)",
-      detail: "Admin Blackout – Maintenance (all day)",
+      detail: "Admin Blackout – Maintenance (all day, demo)",
+    },
+    {
+      type: "admin",
+      source: "demo",
+      startsAt: "2025-12-15T00:00:00.000Z",
+      endsAt: "2025-12-15T23:59:59.000Z",
+      title: "Staff Training",
+      label: "Blocked (Admin Blackout)",
+      detail: "Admin Blackout – Staff Training (all day, demo)",
+    },
+    {
+      type: "admin",
+      source: "demo",
+      startsAt: "2025-12-19T00:00:00.000Z",
+      endsAt: "2025-12-19T23:59:59.000Z",
+      title: "Private Event",
+      label: "Blocked (Admin Blackout)",
+      detail: "Admin Blackout – Private Event (all day, demo)",
+    },
+
+    // Booked events (timed)
+    {
+      type: "booked",
+      source: "demo",
+      startsAt: "2025-12-10T09:00:00.000Z",
+      endsAt: "2025-12-10T12:00:00.000Z",
+      title: "Board Meeting",
+      label: "Blocked (Booked)",
+      detail: "Booked – Board Meeting 09:00–12:00, 10 attendees (demo)",
     },
     {
       type: "booked",
       source: "demo",
-      startsAt: booked1Starts,
-      endsAt: booked1Ends,
-      title: "Client Meeting",
+      startsAt: "2025-12-11T13:00:00.000Z",
+      endsAt: "2025-12-11T17:00:00.000Z",
+      title: "Client Workshop",
       label: "Blocked (Booked)",
-      detail: "Booked – Client Meeting 09:00–12:00, 10 attendees",
+      detail: "Booked – Client Workshop 13:00–17:00, 16 attendees (demo)",
     },
     {
       type: "booked",
       source: "demo",
-      startsAt: booked2Starts,
-      endsAt: booked2Ends,
-      title: "Workshop",
+      startsAt: "2025-12-16T10:00:00.000Z",
+      endsAt: "2025-12-16T15:00:00.000Z",
+      title: "Strategy Session",
       label: "Blocked (Booked)",
-      detail: "Booked – Workshop 14:00–17:00, 18 attendees",
+      detail: "Booked – Strategy Session 10:00–15:00, 8 attendees (demo)",
     },
   ];
 };
@@ -100,7 +108,7 @@ const generateDemoEvents = () => {
  * Build per-day event index from real blackouts or demo events.
  * Real blackout data always wins; demo is only used when there is no data.
  *
- * canonical real blackout shape (from blackout_periods):
+ * Canonical real blackout shape (from blackout_periods):
  *   {
  *     id: string,
  *     roomId: string,
@@ -226,7 +234,7 @@ const RoomCalendarPanel = ({ room }) => {
 
         if (!isCancelled) {
           setBlackoutRaw(items);
-          // If there are no real blackouts, populate demo events (visual only)
+          // If there are no real blackouts, populate fixed demo events (visual only)
           if (!items.length) {
             setDemoEvents(generateDemoEvents());
           } else {
@@ -297,6 +305,7 @@ const RoomCalendarPanel = ({ room }) => {
 
       const isToday = iso === todayIso;
       const eventsForDay = dateEvents[iso] || [];
+
       const firstDetail =
         eventsForDay.length > 0 ? eventsForDay[0].detail || eventsForDay[0].title : "";
 
@@ -456,7 +465,7 @@ const RoomCalendarPanel = ({ room }) => {
         </div>
       )}
 
-      {/* Day list */}
+      {/* Day list with hourly / slot view (Option A: collapsible per day) */}
       <div
         className="room-calendar-list"
         style={{
@@ -491,9 +500,6 @@ const RoomCalendarPanel = ({ room }) => {
                   }
                 }}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
                   padding: "0.4rem 0",
                   borderBottom: "1px solid #f2f2f2",
                   fontSize: "0.9rem",
@@ -501,89 +507,112 @@ const RoomCalendarPanel = ({ room }) => {
                   backgroundColor: isSelected ? "#fffde7" : "transparent",
                 }}
               >
-                <div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                  }}
+                >
                   <div>
-                    {dateObj.toLocaleDateString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      opacity: 0.7,
-                    }}
-                  >
-                    {iso}
-                    {isToday && (
-                      <span style={{ marginLeft: "0.5rem", fontWeight: "bold" }}>
-                        (Today)
-                      </span>
-                    )}
-                  </div>
-                  {hasEvents && firstDetail && (
+                    <div>
+                      {dateObj.toLocaleDateString(undefined, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </div>
                     <div
                       style={{
                         fontSize: "0.75rem",
-                        opacity: 0.8,
-                        marginTop: "0.15rem",
+                        opacity: 0.7,
                       }}
                     >
-                      {firstDetail}
+                      {iso}
+                      {isToday && (
+                        <span
+                          style={{ marginLeft: "0.5rem", fontWeight: "bold" }}
+                        >
+                          (Today)
+                        </span>
+                      )}
                     </div>
-                  )}
+                    {hasEvents && firstDetail && (
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          opacity: 0.8,
+                          marginTop: "0.15rem",
+                        }}
+                      >
+                        {firstDetail}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      ...pillStyle,
+                      padding: "0.2rem 0.5rem",
+                      borderRadius: "999px",
+                      fontSize: "0.8rem",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label}
+                  </span>
                 </div>
-                <span
-                  style={{
-                    ...pillStyle,
-                    padding: "0.2rem 0.5rem",
-                    borderRadius: "999px",
-                    fontSize: "0.8rem",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {label}
-                </span>
+
+                {/* Collapsible hourly slots for this day (Option A) */}
+                {isSelected && hasEvents && (
+                  <div
+                    style={{
+                      marginTop: "0.3rem",
+                      paddingLeft: "0.5rem",
+                      borderLeft: "2px solid #eee",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    <ul
+                      style={{
+                        margin: 0,
+                        paddingLeft: "0.9rem",
+                        listStyle: "disc",
+                      }}
+                    >
+                      {eventsForDay.map((evt, idx) => {
+                        const rangeText = formatTimeRange(
+                          evt.startsAt,
+                          evt.endsAt
+                        );
+                        const typeLabel =
+                          evt.type === "booked"
+                            ? "Booked"
+                            : "Admin Blackout";
+                        const demoTag =
+                          evt.source === "demo" ? " (demo)" : "";
+
+                        return (
+                          <li key={`${iso}-${idx}`}>
+                            <strong>
+                              {rangeText || "All day"}{" "}
+                              {typeLabel}
+                              {demoTag}
+                            </strong>
+                            {": "}
+                            {evt.detail ||
+                              `${evt.title || ""}`.trim()}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </li>
             );
           })}
         </ul>
       </div>
-
-      {/* Hover / Click details (click-based panel) */}
-      {selectedEvents.length > 0 && (
-        <div
-          style={{
-            marginTop: "0.75rem",
-            padding: "0.5rem 0.75rem",
-            border: "1px solid #ddd",
-            borderRadius: "4px",
-            fontSize: "0.85rem",
-            backgroundColor: "#fafafa",
-          }}
-        >
-          <strong>Day details – {selectedDateIso}</strong>
-          <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.1rem" }}>
-            {selectedEvents.map((evt, idx) => {
-              const rangeText = formatTimeRange(evt.startsAt, evt.endsAt);
-              const prefix =
-                evt.type === "booked"
-                  ? "Booked –"
-                  : "Admin Blackout –";
-
-              return (
-                <li key={`${selectedDateIso}-${idx}`}>
-                  {evt.detail ||
-                    `${prefix} ${evt.title || ""} ${
-                      rangeText ? `(${rangeText})` : ""
-                    }`.trim()}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
 
       {/* Vision / preview notice */}
       <div
