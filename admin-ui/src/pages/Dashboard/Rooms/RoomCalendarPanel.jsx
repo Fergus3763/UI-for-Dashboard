@@ -10,11 +10,97 @@ const getDateOnlyString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatTimeRange = (start, end) => {
+  if (!start) return "";
+  const s = new Date(start);
+  const e = end ? new Date(end) : null;
+  if (Number.isNaN(s.getTime())) return "";
+  const startStr = s.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (!e || Number.isNaN(e.getTime())) {
+    return startStr;
+  }
+  const endStr = e.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${startStr}–${endStr}`;
+};
+
 /**
- * Normalise blackout periods from the blackout_periods API into
- * a Set of YYYY-MM-DD strings.
+ * Generate client-side demo events when no real blackouts exist.
+ * These are purely visual and never sent to the backend.
+ */
+const generateDemoEvents = () => {
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const addDays = (date, days) => {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+  };
+
+  const toIso = (date, hours = 0, minutes = 0) => {
+    const d = new Date(date.getTime());
+    d.setHours(hours, minutes, 0, 0);
+    return d.toISOString();
+  };
+
+  // Demo admin blackout: full-day maintenance in a few days
+  const adminDay = addDays(base, 3);
+  const adminStarts = toIso(adminDay, 0, 0);
+  const adminEnds = toIso(adminDay, 23, 59);
+
+  // Demo booked event: client meeting next week
+  const bookedDay1 = addDays(base, 7);
+  const booked1Starts = toIso(bookedDay1, 9, 0);
+  const booked1Ends = toIso(bookedDay1, 12, 0);
+
+  // Demo booked event: workshop early next month
+  const nextMonthStart = new Date(base.getFullYear(), base.getMonth() + 1, 5);
+  const bookedDay2 = nextMonthStart;
+  const booked2Starts = toIso(bookedDay2, 14, 0);
+  const booked2Ends = toIso(bookedDay2, 17, 0);
+
+  return [
+    {
+      type: "admin",
+      source: "demo",
+      startsAt: adminStarts,
+      endsAt: adminEnds,
+      title: "Admin Blackout – Maintenance",
+      label: "Blocked (Admin Blackout)",
+      detail: "Admin Blackout – Maintenance (all day)",
+    },
+    {
+      type: "booked",
+      source: "demo",
+      startsAt: booked1Starts,
+      endsAt: booked1Ends,
+      title: "Client Meeting",
+      label: "Blocked (Booked)",
+      detail: "Booked – Client Meeting 09:00–12:00, 10 attendees",
+    },
+    {
+      type: "booked",
+      source: "demo",
+      startsAt: booked2Starts,
+      endsAt: booked2Ends,
+      title: "Workshop",
+      label: "Blocked (Booked)",
+      detail: "Booked – Workshop 14:00–17:00, 18 attendees",
+    },
+  ];
+};
+
+/**
+ * Build per-day event index from real blackouts or demo events.
+ * Real blackout data always wins; demo is only used when there is no data.
  *
- * Canonical blackout shape, based on RoomBlackoutsPanel:
+ * canonical real blackout shape (from blackout_periods):
  *   {
  *     id: string,
  *     roomId: string,
@@ -24,52 +110,75 @@ const getDateOnlyString = (date) => {
  *     ...
  *   }
  */
-const buildBlackoutDateSet = (periods) => {
-  const dates = new Set();
+const buildEventIndex = (realBlackouts, demoEvents) => {
+  let events = [];
 
-  if (!Array.isArray(periods)) {
-    return dates;
+  if (Array.isArray(realBlackouts) && realBlackouts.length > 0) {
+    events = realBlackouts.map((b) => ({
+      type: "admin",
+      source: "real",
+      startsAt: b.startsAt,
+      endsAt: b.endsAt || b.startsAt,
+      title: b.title || "Admin blackout",
+      label: "Blocked (Admin Blackout)",
+      detail: `Admin Blackout – ${b.title || "Blackout"} ${
+        formatTimeRange(b.startsAt, b.endsAt) || ""
+      }`.trim(),
+    }));
+  } else if (Array.isArray(demoEvents) && demoEvents.length > 0) {
+    events = demoEvents;
   }
 
-  periods.forEach((p) => {
-    if (!p || typeof p !== "object") return;
+  const blackoutDates = new Set(); // admin
+  const bookedDates = new Set(); // booked
+  const dateEvents = {}; // isoDate -> [event, ...]
 
-    const startRaw = p.startsAt;
-    const endRaw = p.endsAt || p.startsAt;
+  events.forEach((event) => {
+    if (!event || !event.startsAt) return;
 
-    if (!startRaw) return;
+    const start = new Date(event.startsAt);
+    const end = new Date(event.endsAt || event.startsAt);
 
-    const start = new Date(startRaw);
-    const end = new Date(endRaw);
+    if (Number.isNaN(start.getTime())) return;
 
-    if (Number.isNaN(start.getTime())) {
-      return;
-    }
     if (Number.isNaN(end.getTime())) {
-      // If end is invalid, treat it as a single-day blackout
       const isoSingle = getDateOnlyString(start);
-      if (isoSingle) dates.add(isoSingle);
+      if (!isoSingle) return;
+      if (!dateEvents[isoSingle]) dateEvents[isoSingle] = [];
+      dateEvents[isoSingle].push(event);
+
+      if (event.type === "admin") blackoutDates.add(isoSingle);
+      if (event.type === "booked") bookedDates.add(isoSingle);
       return;
     }
 
-    // Expand the period, inclusive of start and end
     const current = new Date(start.getTime());
     while (current <= end) {
       const iso = getDateOnlyString(current);
-      if (iso) dates.add(iso);
+      if (iso) {
+        if (!dateEvents[iso]) dateEvents[iso] = [];
+        dateEvents[iso].push(event);
+
+        if (event.type === "admin") blackoutDates.add(iso);
+        if (event.type === "booked") bookedDates.add(iso);
+      }
       current.setDate(current.getDate() + 1);
     }
   });
 
-  return dates;
+  return { blackoutDates, bookedDates, dateEvents };
 };
 
 const RoomCalendarPanel = ({ room }) => {
   const roomKey = room?.code || room?.id || null;
 
   const [blackoutRaw, setBlackoutRaw] = useState([]);
+  const [demoEvents, setDemoEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // For click-based day details
+  const [selectedDateIso, setSelectedDateIso] = useState(null);
 
   // Month-based list view (one month at a time)
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -77,16 +186,18 @@ const RoomCalendarPanel = ({ room }) => {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const blackoutDates = useMemo(
-    () => buildBlackoutDateSet(blackoutRaw),
-    [blackoutRaw]
+  const { blackoutDates, bookedDates, dateEvents } = useMemo(
+    () => buildEventIndex(blackoutRaw, demoEvents),
+    [blackoutRaw, demoEvents]
   );
 
   useEffect(() => {
     if (!roomKey) {
       setBlackoutRaw([]);
+      setDemoEvents([]);
       setError(null);
       setLoading(false);
+      setSelectedDateIso(null);
       return;
     }
 
@@ -95,6 +206,7 @@ const RoomCalendarPanel = ({ room }) => {
     async function fetchBlackouts() {
       setLoading(true);
       setError(null);
+      setSelectedDateIso(null);
 
       try {
         const response = await fetch(
@@ -114,12 +226,20 @@ const RoomCalendarPanel = ({ room }) => {
 
         if (!isCancelled) {
           setBlackoutRaw(items);
+          // If there are no real blackouts, populate demo events (visual only)
+          if (!items.length) {
+            setDemoEvents(generateDemoEvents());
+          } else {
+            setDemoEvents([]);
+          }
         }
       } catch (err) {
         if (!isCancelled) {
           console.error("Error fetching blackout periods:", err);
           setError("Unable to load blackout periods for this room.");
           setBlackoutRaw([]);
+          // In error case, we still show demo so panel isn't empty
+          setDemoEvents(generateDemoEvents());
         }
       } finally {
         if (!isCancelled) {
@@ -141,6 +261,7 @@ const RoomCalendarPanel = ({ room }) => {
       const month = prev.getMonth();
       return new Date(year, month - 1, 1);
     });
+    setSelectedDateIso(null);
   };
 
   const handleNextMonth = () => {
@@ -149,6 +270,7 @@ const RoomCalendarPanel = ({ room }) => {
       const month = prev.getMonth();
       return new Date(year, month + 1, 1);
     });
+    setSelectedDateIso(null);
   };
 
   const todayIso = getDateOnlyString(new Date());
@@ -168,12 +290,15 @@ const RoomCalendarPanel = ({ room }) => {
       if (blackoutDates.has(iso)) {
         status = "blocked-admin";
         label = "Blocked (Admin Blackout)";
+      } else if (bookedDates.has(iso)) {
+        status = "blocked-booked";
+        label = "Blocked (Booked)";
       }
 
-      // future: booking states (reserved / confirmed) can be layered here
-      // e.g. by checking a bookedDates Set before blackouts.
-
       const isToday = iso === todayIso;
+      const eventsForDay = dateEvents[iso] || [];
+      const firstDetail =
+        eventsForDay.length > 0 ? eventsForDay[0].detail || eventsForDay[0].title : "";
 
       list.push({
         dateObj,
@@ -181,10 +306,12 @@ const RoomCalendarPanel = ({ room }) => {
         status,
         label,
         isToday,
+        eventsForDay,
+        firstDetail,
       });
     }
     return list;
-  }, [blackoutDates, daysInMonth, month, todayIso, year]);
+  }, [blackoutDates, bookedDates, dateEvents, daysInMonth, month, todayIso, year]);
 
   const statusStyleMap = {
     free: {
@@ -223,6 +350,11 @@ const RoomCalendarPanel = ({ room }) => {
     year: "numeric",
   });
 
+  const selectedEvents =
+    selectedDateIso && dateEvents[selectedDateIso]
+      ? dateEvents[selectedDateIso]
+      : [];
+
   return (
     <div
       className="room-calendar-panel"
@@ -234,7 +366,7 @@ const RoomCalendarPanel = ({ room }) => {
       <p style={{ marginTop: 0, marginBottom: "0.75rem", fontSize: "0.9rem" }}>
         Month list view for room{" "}
         <strong>{room.code || room.name || room.id}</strong>. Days are marked as
-        Free or Blocked (Admin Blackout).
+        Free, Blocked (Admin Blackout), or Blocked (Booked).
       </p>
 
       {/* Legend */}
@@ -280,9 +412,6 @@ const RoomCalendarPanel = ({ room }) => {
             }}
           />
           <span>Blocked (Booked)</span>
-          <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-            (no bookings dataset wired yet)
-          </span>
         </div>
       </div>
 
@@ -327,6 +456,7 @@ const RoomCalendarPanel = ({ room }) => {
         </div>
       )}
 
+      {/* Day list */}
       <div
         className="room-calendar-list"
         style={{
@@ -338,12 +468,28 @@ const RoomCalendarPanel = ({ room }) => {
       >
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {days.map((day) => {
-            const { dateObj, iso, status, label, isToday } = day;
+            const {
+              dateObj,
+              iso,
+              status,
+              label,
+              isToday,
+              eventsForDay,
+              firstDetail,
+            } = day;
             const pillStyle = statusStyleMap[status] || statusStyleMap.free;
+            const isSelected = selectedDateIso === iso;
+            const hasEvents = eventsForDay.length > 0;
 
             return (
               <li
                 key={iso}
+                title={hasEvents ? firstDetail : ""}
+                onClick={() => {
+                  if (hasEvents) {
+                    setSelectedDateIso((prev) => (prev === iso ? null : iso));
+                  }
+                }}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -351,6 +497,8 @@ const RoomCalendarPanel = ({ room }) => {
                   padding: "0.4rem 0",
                   borderBottom: "1px solid #f2f2f2",
                   fontSize: "0.9rem",
+                  cursor: hasEvents ? "pointer" : "default",
+                  backgroundColor: isSelected ? "#fffde7" : "transparent",
                 }}
               >
                 <div>
@@ -374,6 +522,17 @@ const RoomCalendarPanel = ({ room }) => {
                       </span>
                     )}
                   </div>
+                  {hasEvents && firstDetail && (
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        opacity: 0.8,
+                        marginTop: "0.15rem",
+                      }}
+                    >
+                      {firstDetail}
+                    </div>
+                  )}
                 </div>
                 <span
                   style={{
@@ -390,6 +549,68 @@ const RoomCalendarPanel = ({ room }) => {
             );
           })}
         </ul>
+      </div>
+
+      {/* Hover / Click details (click-based panel) */}
+      {selectedEvents.length > 0 && (
+        <div
+          style={{
+            marginTop: "0.75rem",
+            padding: "0.5rem 0.75rem",
+            border: "1px solid #ddd",
+            borderRadius: "4px",
+            fontSize: "0.85rem",
+            backgroundColor: "#fafafa",
+          }}
+        >
+          <strong>Day details – {selectedDateIso}</strong>
+          <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.1rem" }}>
+            {selectedEvents.map((evt, idx) => {
+              const rangeText = formatTimeRange(evt.startsAt, evt.endsAt);
+              const prefix =
+                evt.type === "booked"
+                  ? "Booked –"
+                  : "Admin Blackout –";
+
+              return (
+                <li key={`${selectedDateIso}-${idx}`}>
+                  {evt.detail ||
+                    `${prefix} ${evt.title || ""} ${
+                      rangeText ? `(${rangeText})` : ""
+                    }`.trim()}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Vision / preview notice */}
+      <div
+        style={{
+          marginTop: "0.9rem",
+          paddingTop: "0.75rem",
+          borderTop: "1px dashed #ccc",
+          fontSize: "0.8rem",
+          lineHeight: 1.4,
+        }}
+      >
+        <strong>Availability Engine – Preview</strong>
+        <p style={{ margin: "0.4rem 0" }}>
+          This calendar is a visual preview of the full Availability Engine.
+          When fully wired, it will show:
+        </p>
+        <ul style={{ margin: "0.2rem 0 0.4rem 1.1rem", paddingLeft: 0 }}>
+          <li>Auto-blocked bookings</li>
+          <li>Variable buffer periods around each booking</li>
+          <li>Reserve windows and expiry rules</li>
+          <li>Counter-offers for alternative rooms and dates</li>
+          <li>Policy enforcement for deposits and no-shows.</li>
+        </ul>
+        <p style={{ margin: 0 }}>
+          Dates and hours shown here are real, but all blocked / booked periods
+          are demo-only in this version.
+        </p>
       </div>
 
       {/* future: booking states (reserved / confirmed / tentative) can be added
