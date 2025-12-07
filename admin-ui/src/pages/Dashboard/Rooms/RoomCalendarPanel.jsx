@@ -35,6 +35,7 @@ const formatTimeRange = (start, end) => {
   return `${startStr}–${endStr}`;
 };
 
+
 /**
  * Build a Date from local date (YYYY-MM-DD) and time (HH:MM) strings.
  * Returns null if the date is invalid.
