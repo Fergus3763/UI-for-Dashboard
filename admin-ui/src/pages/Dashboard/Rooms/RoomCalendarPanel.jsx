@@ -14,20 +14,27 @@ const formatTimeRange = (start, end) => {
   if (!start) return "";
   const s = new Date(start);
   const e = end ? new Date(end) : null;
-  if (Number.isNaNaN?.(s.getTime()) || Number.isNaN(s.getTime())) return "";
+
+  // If the start time is invalid, bail out
+  if (Number.isNaN(s.getTime())) return "";
+
   const startStr = s.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   });
+
   if (!e || Number.isNaN(e.getTime())) {
     return startStr;
   }
+
   const endStr = e.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   });
+
   return `${startStr}–${endStr}`;
 };
+
 
 /**
  * Fixed demo events for December 2025 (visual only, never sent to backend).
@@ -130,7 +137,7 @@ const buildEventIndex = (realBlackouts, demoEvents) => {
       title: b.title || "Admin blackout",
       label: "Blocked (Admin Blackout)",
       detail: `Admin Blackout – ${b.title || "Blackout"} ${
-        formatTimeRange(b.startsAt, b.endsAt) || ""
+        (b.startsAt, b.endsAt) || ""
       }`.trim(),
     }));
   } else if (Array.isArray(demoEvents) && demoEvents.length > 0) {
