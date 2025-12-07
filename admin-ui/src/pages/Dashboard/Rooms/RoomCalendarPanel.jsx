@@ -35,6 +35,32 @@ const formatTimeRange = (start, end) => {
   return `${startStr}–${endStr}`;
 };
 
+/**
+ * Build a Date from local date (YYYY-MM-DD) and time (HH:MM) strings.
+ * Returns null if the date is invalid.
+ */
+const buildDateTimeFromLocalParts = (dateStr, timeStr) => {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const [yearStr, monthStr, dayStr] = dateStr.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!year || !month || !day) return null;
+
+  let hours = 0;
+  let minutes = 0;
+  if (timeStr && typeof timeStr === "string") {
+    const [hStr, mStr] = timeStr.split(":");
+    const h = Number(hStr);
+    const m = Number(mStr);
+    if (!Number.isNaN(h) && h >= 0 && h < 24) hours = h;
+    if (!Number.isNaN(m) && m >= 0 && m < 60) minutes = m;
+  }
+
+  const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+};
 
 /**
  * Fixed demo events for December 2025 (visual only, never sent to backend).
@@ -130,6 +156,7 @@ const buildEventIndex = (realBlackouts, demoEvents) => {
 
   if (Array.isArray(realBlackouts) && realBlackouts.length > 0) {
     events = realBlackouts.map((b) => ({
+      id: b.id,
       type: "admin",
       source: "real",
       startsAt: b.startsAt,
@@ -194,6 +221,17 @@ const RoomCalendarPanel = ({ room }) => {
 
   // For click-based day details
   const [selectedDateIso, setSelectedDateIso] = useState(null);
+
+  // Blackout editor state
+  const [blackoutForm, setBlackoutForm] = useState({
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
+    title: "",
+  });
+  const [blackoutSaving, setBlackoutSaving] = useState(false);
+  const [blackoutSaveError, setBlackoutSaveError] = useState(null);
 
   // Month-based list view (one month at a time)
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -269,6 +307,36 @@ const RoomCalendarPanel = ({ room }) => {
       isCancelled = true;
     };
   }, [roomKey]);
+
+  const reloadBlackoutsForCurrentRoom = async () => {
+    if (!roomKey) return;
+    try {
+      const response = await fetch(
+        `/.netlify/functions/blackout_periods?roomId=${encodeURIComponent(
+          roomKey
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to reload blackout periods (${response.status})`
+        );
+      }
+
+      const json = await response.json();
+      const items = Array.isArray(json.data) ? json.data : [];
+
+      setBlackoutRaw(items);
+      if (!items.length) {
+        setDemoEvents(generateDemoEvents());
+      } else {
+        setDemoEvents([]);
+      }
+    } catch (err) {
+      console.error("Error reloading blackout periods:", err);
+      setError("Unable to load blackout periods for this room.");
+    }
+  };
 
   const handlePrevMonth = () => {
     setCurrentMonth((prev) => {
@@ -365,6 +433,113 @@ const RoomCalendarPanel = ({ room }) => {
     },
   };
 
+  const handleBlackoutFieldChange = (name, value) => {
+    setBlackoutForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAddBlackout = async () => {
+    setBlackoutSaveError(null);
+
+    if (!roomKey) {
+      setBlackoutSaveError(
+        "Please select a room with a Code/ID before adding blackout periods."
+      );
+      return;
+    }
+
+    const { startDate, endDate, startTime, endTime, title } = blackoutForm;
+
+    if (!startDate) {
+      setBlackoutSaveError("Start date is required.");
+      return;
+    }
+
+    const effectiveEndDate = endDate || startDate;
+
+    // Default times:
+    // - If no times at all: full day (00:00–23:59)
+    // - If only startTime: endTime defaults to end of that day
+    const effectiveStartTime = startTime || "00:00";
+    const effectiveEndTime = endTime || "23:59";
+
+    const startDateObj = buildDateTimeFromLocalParts(
+      startDate,
+      effectiveStartTime
+    );
+    const endDateObj = buildDateTimeFromLocalParts(
+      effectiveEndDate,
+      effectiveEndTime
+    );
+
+    if (!startDateObj || !endDateObj) {
+      setBlackoutSaveError("Please enter valid dates and times.");
+      return;
+    }
+
+    if (endDateObj <= startDateObj) {
+      setBlackoutSaveError("End date/time must be after start date/time.");
+      return;
+    }
+
+    const payload = {
+      roomId: roomKey,
+      startsAt: startDateObj.toISOString(),
+      endsAt: endDateObj.toISOString(),
+      title: title && title.trim() ? title.trim() : null,
+    };
+
+    setBlackoutSaving(true);
+    try {
+      const response = await fetch("/.netlify/functions/blackout_periods", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok || !json.ok || !json.data) {
+        const msg =
+          (json && json.error) ||
+          `Failed to save blackout (status ${response.status})`;
+        throw new Error(msg);
+      }
+
+      // Re-fetch to refresh the view and ensure real data replaces demo
+      await reloadBlackoutsForCurrentRoom();
+
+      // Reset form
+      setBlackoutForm({
+        startDate: "",
+        endDate: "",
+        startTime: "",
+        endTime: "",
+        title: "",
+      });
+    } catch (err) {
+      console.error("Error saving blackout:", err);
+      setBlackoutSaveError("Could not save blackout. Please try again.");
+    } finally {
+      setBlackoutSaving(false);
+    }
+  };
+
+  const handleDeleteBlackout = async (blackoutId) => {
+    // NOTE: blackout_periods.mjs currently only supports GET and POST (create).
+    // There is no delete endpoint defined yet, so we cannot safely call the
+    // backend to remove blackout periods without a contract update.
+    //
+    // For now, we surface a clear message and leave the data unchanged.
+    setBlackoutSaveError(
+      "Removing blackout periods is not yet supported by the blackout_periods API (GET/POST only). Please ask HUB #8 to define a delete contract."
+    );
+  };
+
   if (!room) {
     return (
       <div
@@ -388,6 +563,11 @@ const RoomCalendarPanel = ({ room }) => {
     selectedDateIso && dateEvents[selectedDateIso]
       ? dateEvents[selectedDateIso]
       : [];
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayIso = getDateOnlyString(new Date());
 
   return (
     <div
@@ -466,6 +646,136 @@ const RoomCalendarPanel = ({ room }) => {
         <button type="button" onClick={handleNextMonth}>
           Next →
         </button>
+      </div>
+
+      {/* Admin Blackout Editor */}
+      <div
+        style={{
+          marginBottom: "0.75rem",
+          padding: "0.75rem",
+          border: "1px solid #eee",
+          borderRadius: "4px",
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <h4 style={{ margin: "0 0 0.5rem" }}>Add Admin Blackout</h4>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: "0.5rem",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <div>
+            <label style={{ fontSize: "0.8rem" }}>
+              Start date
+              <br />
+              <input
+                type="date"
+                value={blackoutForm.startDate}
+                onChange={(e) =>
+                  handleBlackoutFieldChange("startDate", e.target.value)
+                }
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
+          <div>
+            <label style={{ fontSize: "0.8rem" }}>
+              End date (optional)
+              <br />
+              <input
+                type="date"
+                value={blackoutForm.endDate}
+                onChange={(e) =>
+                  handleBlackoutFieldChange("endDate", e.target.value)
+                }
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
+          <div>
+            <label style={{ fontSize: "0.8rem" }}>
+              Start time (optional)
+              <br />
+              <input
+                type="time"
+                value={blackoutForm.startTime}
+                onChange={(e) =>
+                  handleBlackoutFieldChange("startTime", e.target.value)
+                }
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
+          <div>
+            <label style={{ fontSize: "0.8rem" }}>
+              End time (optional)
+              <br />
+              <input
+                type="time"
+                value={blackoutForm.endTime}
+                onChange={(e) =>
+                  handleBlackoutFieldChange("endTime", e.target.value)
+                }
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto",
+            gap: "0.5rem",
+            alignItems: "flex-end",
+          }}
+        >
+          <div>
+            <label style={{ fontSize: "0.8rem" }}>
+              Title / Reason
+              <br />
+              <input
+                type="text"
+                value={blackoutForm.title}
+                onChange={(e) =>
+                  handleBlackoutFieldChange("title", e.target.value)
+                }
+                placeholder="e.g. Maintenance, Private Event"
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <button
+              type="button"
+              onClick={handleAddBlackout}
+              disabled={blackoutSaving}
+              style={{
+                padding: "0.4rem 0.9rem",
+                cursor: blackoutSaving ? "not-allowed" : "pointer",
+              }}
+            >
+              {blackoutSaving ? "Saving…" : "Add Blackout"}
+            </button>
+          </div>
+        </div>
+        {blackoutSaveError && (
+          <div
+            style={{
+              marginTop: "0.5rem",
+              padding: "0.4rem 0.6rem",
+              borderRadius: "4px",
+              border: "1px solid #e57373",
+              backgroundColor: "#ffebee",
+              color: "#b71c1c",
+              fontSize: "0.8rem",
+            }}
+          >
+            {blackoutSaveError}
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -622,7 +932,7 @@ const RoomCalendarPanel = ({ room }) => {
                       }}
                     >
                       {iso}
-                      {isToday && (
+                      {iso === todayIso && (
                         <span
                           style={{ marginLeft: "0.5rem", fontWeight: "bold" }}
                         >
@@ -720,7 +1030,7 @@ const RoomCalendarPanel = ({ room }) => {
         </ul>
       </div>
 
-      {/* Day details for selected date */}
+      {/* Day details for selected date, with Remove controls for real admin blackouts */}
       {selectedEvents.length > 0 && (
         <div
           style={{
@@ -740,12 +1050,29 @@ const RoomCalendarPanel = ({ room }) => {
                 evt.type === "booked" ? "Booked –" : "Admin Blackout –";
               const demoTag = evt.source === "demo" ? " (demo)" : "";
 
+              const canRemove =
+                evt.type === "admin" && evt.source === "real" && evt.id;
+
               return (
                 <li key={`${selectedDateIso}-${idx}`}>
                   {evt.detail ||
                     `${prefix} ${evt.title || ""}${demoTag} ${
                       rangeText ? `(${rangeText})` : ""
                     }`.trim()}
+                  {canRemove && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBlackout(evt.id)}
+                      style={{
+                        marginLeft: "0.5rem",
+                        fontSize: "0.75rem",
+                        padding: "0.15rem 0.4rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  )}
                 </li>
               );
             })}
