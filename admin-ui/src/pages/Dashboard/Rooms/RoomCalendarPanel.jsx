@@ -14,7 +14,7 @@ const formatTimeRange = (start, end) => {
   if (!start) return "";
   const s = new Date(start);
   const e = end ? new Date(end) : null;
-  if (Number.isNaN(s.getTime())) return "";
+  if (Number.isNaNaN?.(s.getTime()) || Number.isNaN(s.getTime())) return "";
   const startStr = s.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
@@ -295,12 +295,15 @@ const RoomCalendarPanel = ({ room }) => {
       let status = "free";
       let label = "Free";
 
-      if (blackoutDates.has(iso)) {
+      if (blackoutDates.has(iso) && bookedDates.has(iso)) {
+        status = "mixed";
+        label = "Mixed";
+      } else if (blackoutDates.has(iso)) {
         status = "blocked-admin";
-        label = "Blocked (Admin Blackout)";
+        label = "Admin blackout";
       } else if (bookedDates.has(iso)) {
         status = "blocked-booked";
-        label = "Blocked (Booked)";
+        label = "Booked";
       }
 
       const isToday = iso === todayIso;
@@ -340,6 +343,21 @@ const RoomCalendarPanel = ({ room }) => {
     },
   };
 
+  const hourStyleMap = {
+    free: {
+      backgroundColor: "#e6f4ea",
+      border: "1px solid #c4e3ce",
+    },
+    admin: {
+      backgroundColor: "#ffebee",
+      border: "1px solid #ffcdd2",
+    },
+    booked: {
+      backgroundColor: "#e3f2fd",
+      border: "1px solid #bbdefb",
+    },
+  };
+
   if (!room) {
     return (
       <div
@@ -374,8 +392,8 @@ const RoomCalendarPanel = ({ room }) => {
       </h3>
       <p style={{ marginTop: 0, marginBottom: "0.75rem", fontSize: "0.9rem" }}>
         Month list view for room{" "}
-        <strong>{room.code || room.name || room.id}</strong>. Days are marked as
-        Free, Blocked (Admin Blackout), or Blocked (Booked).
+        <strong>{room.code || room.name || room.id}</strong>. Each row shows 24
+        hourly slots, colour-coded for Free, Admin Blackout, and Booked.
       </p>
 
       {/* Legend */}
@@ -465,7 +483,7 @@ const RoomCalendarPanel = ({ room }) => {
         </div>
       )}
 
-      {/* Day list with hourly / slot view (Option A: collapsible per day) */}
+      {/* Day list with 24-hour bar per day */}
       <div
         className="room-calendar-list"
         style={{
@@ -486,36 +504,103 @@ const RoomCalendarPanel = ({ room }) => {
               eventsForDay,
               firstDetail,
             } = day;
-            const pillStyle = statusStyleMap[status] || statusStyleMap.free;
             const isSelected = selectedDateIso === iso;
             const hasEvents = eventsForDay.length > 0;
+
+            // Build 24-hour slots with precedence: booked > admin > free
+            const slots = new Array(24).fill("free");
+            const slotEvents = new Array(24).fill(null).map(() => []);
+
+            if (hasEvents) {
+              const dayStart = new Date(
+                dateObj.getFullYear(),
+                dateObj.getMonth(),
+                dateObj.getDate(),
+                0,
+                0,
+                0,
+                0
+              );
+              const dayEnd = new Date(
+                dateObj.getFullYear(),
+                dateObj.getMonth(),
+                dateObj.getDate(),
+                23,
+                59,
+                59,
+                999
+              );
+
+              eventsForDay.forEach((evt) => {
+                if (!evt.startsAt) return;
+                const evtStart = new Date(evt.startsAt);
+                const evtEnd = new Date(evt.endsAt || evt.startsAt);
+                if (Number.isNaN(evtStart.getTime())) return;
+
+                const effectiveStart =
+                  evtStart < dayStart ? dayStart : evtStart;
+                const effectiveEnd =
+                  Number.isNaN(evtEnd.getTime()) || evtEnd > dayEnd
+                    ? dayEnd
+                    : evtEnd;
+
+                if (effectiveEnd <= effectiveStart) return;
+
+                let startHour = effectiveStart.getHours();
+                let endHourExclusive = effectiveEnd.getHours();
+                // If there are minutes/seconds, include the ending hour
+                if (
+                  effectiveEnd.getMinutes() > 0 ||
+                  effectiveEnd.getSeconds() > 0 ||
+                  effectiveEnd.getMilliseconds() > 0
+                ) {
+                  endHourExclusive += 1;
+                }
+
+                startHour = Math.max(0, Math.min(23, startHour));
+                endHourExclusive = Math.max(
+                  startHour + 1,
+                  Math.min(24, endHourExclusive)
+                );
+
+                for (let h = startHour; h < endHourExclusive; h += 1) {
+                  slotEvents[h].push(evt);
+                  const current = slots[h];
+                  if (evt.type === "booked") {
+                    slots[h] = "booked";
+                  } else if (evt.type === "admin") {
+                    if (current === "free") {
+                      slots[h] = "admin";
+                    }
+                  }
+                }
+              });
+            }
 
             return (
               <li
                 key={iso}
-                title={hasEvents ? firstDetail : ""}
-                onClick={() => {
-                  if (hasEvents) {
-                    setSelectedDateIso((prev) => (prev === iso ? null : iso));
-                  }
-                }}
                 style={{
                   padding: "0.4rem 0",
                   borderBottom: "1px solid #f2f2f2",
                   fontSize: "0.9rem",
-                  cursor: hasEvents ? "pointer" : "default",
                   backgroundColor: isSelected ? "#fffde7" : "transparent",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: "0.75rem",
                   }}
                 >
-                  <div>
+                  {/* Date + label column */}
+                  <div
+                    style={{
+                      minWidth: "140px",
+                      flexShrink: 0,
+                    }}
+                  >
                     <div>
                       {dateObj.toLocaleDateString(undefined, {
                         weekday: "short",
@@ -538,81 +623,128 @@ const RoomCalendarPanel = ({ room }) => {
                         </span>
                       )}
                     </div>
-                    {hasEvents && firstDetail && (
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          opacity: 0.8,
-                          marginTop: "0.15rem",
-                        }}
-                      >
-                        {firstDetail}
-                      </div>
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      ...pillStyle,
-                      padding: "0.2rem 0.5rem",
-                      borderRadius: "999px",
-                      fontSize: "0.8rem",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
-
-                {/* Collapsible hourly slots for this day (Option A) */}
-                {isSelected && hasEvents && (
-                  <div
-                    style={{
-                      marginTop: "0.3rem",
-                      paddingLeft: "0.5rem",
-                      borderLeft: "2px solid #eee",
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    <ul
+                    <div
                       style={{
-                        margin: 0,
-                        paddingLeft: "0.9rem",
-                        listStyle: "disc",
+                        fontSize: "0.75rem",
+                        opacity: 0.8,
+                        marginTop: "0.15rem",
                       }}
                     >
-                      {eventsForDay.map((evt, idx) => {
-                        const rangeText = formatTimeRange(
-                          evt.startsAt,
-                          evt.endsAt
+                      {label}
+                      {hasEvents && firstDetail && (
+                        <>
+                          {" – "}
+                          <span>{firstDetail}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 24-hour bar */}
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      gap: "1px",
+                      minWidth: 0,
+                      cursor: hasEvents ? "pointer" : "default",
+                    }}
+                    onClick={() => {
+                      if (hasEvents) {
+                        setSelectedDateIso((prev) =>
+                          prev === iso ? null : iso
                         );
-                        const typeLabel =
-                          evt.type === "booked"
+                      }
+                    }}
+                  >
+                    {slots.map((slot, hour) => {
+                      const style =
+                        slot === "booked"
+                          ? hourStyleMap.booked
+                          : slot === "admin"
+                          ? hourStyleMap.admin
+                          : hourStyleMap.free;
+
+                      const eventsHere = slotEvents[hour];
+                      const hourLabel = `${String(hour).padStart(
+                        2,
+                        "0"
+                      )}:00–${String((hour + 1) % 24).padStart(
+                        2,
+                        "0"
+                      )}:00`;
+
+                      let tooltip = `${hourLabel} – Free`;
+                      if (eventsHere && eventsHere.length > 0) {
+                        const firstEvt = eventsHere[0];
+                        const kind =
+                          firstEvt.type === "booked"
                             ? "Booked"
                             : "Admin Blackout";
-                        const demoTag =
-                          evt.source === "demo" ? " (demo)" : "";
-
-                        return (
-                          <li key={`${iso}-${idx}`}>
-                            <strong>
-                              {rangeText || "All day"}{" "}
-                              {typeLabel}
-                              {demoTag}
-                            </strong>
-                            {": "}
-                            {evt.detail ||
-                              `${evt.title || ""}`.trim()}
-                          </li>
+                        const rangeText = formatTimeRange(
+                          firstEvt.startsAt,
+                          firstEvt.endsAt
                         );
-                      })}
-                    </ul>
+                        const demoTag =
+                          firstEvt.source === "demo" ? " (demo)" : "";
+                        tooltip = `${hourLabel} – ${kind}${demoTag}${
+                          firstEvt.title ? `: ${firstEvt.title}` : ""
+                        }${rangeText ? ` (${rangeText})` : ""}`;
+                      }
+
+                      return (
+                        <div
+                          key={`${iso}-${hour}`}
+                          title={tooltip}
+                          style={{
+                            ...style,
+                            flex: 1,
+                            height: "14px",
+                            borderRadius: 0,
+                          }}
+                        />
+                      );
+                    })}
                   </div>
-                )}
+                </div>
               </li>
             );
           })}
         </ul>
       </div>
+
+      {/* Day details for selected date */}
+      {selectedEvents.length > 0 && (
+        <div
+          style={{
+            marginTop: "0.75rem",
+            padding: "0.5rem 0.75rem",
+            border: "1px solid #ddd",
+            borderRadius: "4px",
+            fontSize: "0.85rem",
+            backgroundColor: "#fafafa",
+          }}
+        >
+          <strong>Day details – {selectedDateIso}</strong>
+          <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.1rem" }}>
+            {selectedEvents.map((evt, idx) => {
+              const rangeText = formatTimeRange(evt.startsAt, evt.endsAt);
+              const prefix =
+                evt.type === "booked" ? "Booked –" : "Admin Blackout –";
+              const demoTag = evt.source === "demo" ? " (demo)" : "";
+
+              return (
+                <li key={`${selectedDateIso}-${idx}`}>
+                  {evt.detail ||
+                    `${prefix} ${evt.title || ""}${demoTag} ${
+                      rangeText ? `(${rangeText})` : ""
+                    }`.trim()}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Vision / preview notice */}
       <div
