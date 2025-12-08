@@ -1,5 +1,5 @@
 // admin-ui/src/pages/Dashboard/VenueSetup/Tabs/AddOnsTab.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * Canonical Add-On shape (what this tab reads and writes)
@@ -99,7 +99,7 @@ function getSuggestedCodeForCategory(addOns, category) {
   const prefix = CATEGORY_CODE_PREFIX[category] || "AD";
   // Find max numeric suffix for this category
   let maxNumber = 0;
-  addOns
+  (Array.isArray(addOns) ? addOns : [])
     .filter((a) => a.category === category && typeof a.code === "string")
     .forEach((a) => {
       const match = a.code.match(/-(\d+)$/);
@@ -115,8 +115,27 @@ function getSuggestedCodeForCategory(addOns, category) {
 }
 
 function normaliseExistingAddOn(addOn) {
-  // Ensure we always have the shape we expect
+  if (!addOn || typeof addOn !== "object") {
+    return {
+      id: createId(),
+      code: "",
+      name: "",
+      description: "",
+      category: "other",
+      included: true,
+      pricing: {
+        model: DEFAULT_PRICING_MODEL,
+        amount: 0,
+        periodUnit: DEFAULT_PERIOD_UNIT,
+      },
+      vatClass: "",
+      public: true,
+      active: true,
+    };
+  }
+
   const pricing = addOn.pricing || {};
+
   return {
     id: addOn.id || createId(),
     code: addOn.code || "",
@@ -143,6 +162,22 @@ function AddOnsTab({
 }) {
   const [selectedCategory, setSelectedCategory] = useState("fnb");
   const [editingId, setEditingId] = useState(null); // null = none, "new" = new, otherwise existing id
+
+  // Local, normalised copy so the table updates immediately even if parent
+  // state / persistence is slow or temporarily not wired.
+  const [localAddOns, setLocalAddOns] = useState(() =>
+    Array.isArray(addOns) ? addOns.map(normaliseExistingAddOn) : []
+  );
+
+  // Keep localAddOns in sync when parent addOns prop changes (e.g. reload).
+  useEffect(() => {
+    if (Array.isArray(addOns)) {
+      setLocalAddOns(addOns.map(normaliseExistingAddOn));
+    } else {
+      setLocalAddOns([]);
+    }
+  }, [addOns]);
+
   const [formState, setFormState] = useState({
     id: null,
     code: "",
@@ -161,10 +196,10 @@ function AddOnsTab({
 
   const filteredAddOns = useMemo(
     () =>
-      (Array.isArray(addOns) ? addOns : [])
-        .map(normaliseExistingAddOn)
-        .filter((a) => a.category === selectedCategory),
-    [addOns, selectedCategory]
+      (Array.isArray(localAddOns) ? localAddOns : []).filter(
+        (a) => a.category === selectedCategory
+      ),
+    [localAddOns, selectedCategory]
   );
 
   const resetForm = (categoryOverride) => {
@@ -188,7 +223,7 @@ function AddOnsTab({
   const startNewAddOn = () => {
     setEditingId("new");
     const cat = selectedCategory;
-    const suggestedCode = getSuggestedCodeForCategory(addOns || [], cat);
+    const suggestedCode = getSuggestedCodeForCategory(localAddOns, cat);
     setFormErrors({});
     setFormState({
       id: null,
@@ -342,10 +377,23 @@ function AddOnsTab({
   };
 
   const persistAndSave = (newAddOnsArray, options = { resetAfter: false }) => {
-    setAddOns(newAddOnsArray);
+    const normalised = (Array.isArray(newAddOnsArray)
+      ? newAddOnsArray
+      : []
+    ).map(normaliseExistingAddOn);
+
+    // 1) Update local view immediately so the table refreshes at once
+    setLocalAddOns(normalised);
+
+    // 2) Tell parent about the raw array so it can persist to save_config
+    if (typeof setAddOns === "function") {
+      setAddOns(newAddOnsArray);
+    }
     if (typeof onSave === "function") {
       onSave(newAddOnsArray);
     }
+
+    // 3) Optionally reset form + exit edit mode
     if (options.resetAfter) {
       resetForm();
       setEditingId(null);
@@ -361,12 +409,12 @@ function AddOnsTab({
     let nextAddOns;
     if (editingId && editingId !== "new") {
       // Update existing
-      nextAddOns = (addOns || []).map((a) =>
+      nextAddOns = (Array.isArray(localAddOns) ? localAddOns : []).map((a) =>
         a.id === editingId ? builtAddOn : a
       );
     } else {
       // Create new
-      nextAddOns = [...(addOns || []), builtAddOn];
+      nextAddOns = [...(Array.isArray(localAddOns) ? localAddOns : []), builtAddOn];
     }
 
     persistAndSave(nextAddOns, { resetAfter: addAnother });
@@ -381,7 +429,7 @@ function AddOnsTab({
       );
       setEditingId("new");
       setFormErrors({});
-      setFormState((prev) => ({
+      setFormState({
         id: null,
         code: suggestedCode,
         name: "",
@@ -394,7 +442,7 @@ function AddOnsTab({
         vatClass: "",
         public: true,
         active: true,
-      }));
+      });
     }
   };
 
@@ -406,9 +454,11 @@ function AddOnsTab({
   const handleToggleActive = (addOn) => {
     const normalised = normaliseExistingAddOn(addOn);
     const updated = { ...normalised, active: !normalised.active };
-    const nextAddOns = (addOns || []).map((a) =>
-      a.id === updated.id ? updated : a
+
+    const nextAddOns = (Array.isArray(localAddOns) ? localAddOns : []).map(
+      (a) => (a.id === updated.id ? updated : a)
     );
+
     persistAndSave(nextAddOns, { resetAfter: false });
   };
 
@@ -477,8 +527,7 @@ function AddOnsTab({
 
       {filteredAddOns.length === 0 ? (
         <p style={{ fontStyle: "italic" }}>
-          No Add-Ons defined for this category yet. Click &ldquo;New Add-On
-          &rdquo; to create one.
+          No Add-Ons defined for this category yet. Click &ldquo;New Add-On&rdquo; to create one.
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -923,3 +972,4 @@ const smallButtonStyle = {
 };
 
 export default AddOnsTab;
+
