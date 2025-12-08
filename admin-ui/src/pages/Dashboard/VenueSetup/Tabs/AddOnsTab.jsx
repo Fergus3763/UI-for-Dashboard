@@ -1,6 +1,31 @@
 // admin-ui/src/pages/Dashboard/VenueSetup/Tabs/AddOnsTab.jsx
 import React, { useMemo, useState } from "react";
 
+/**
+ * Canonical Add-On shape (what this tab reads and writes)
+ *
+ * {
+ *   id: string,
+ *   code: string,
+ *   name: string,
+ *   description: string,
+ *   category: "fnb" | "av" | "services" | "labour" | "other",
+ *   included: boolean,   // if true, treated as "included" / non-charge (amount forced to 0)
+ *   pricing: {
+ *     model: "PER_EVENT" | "PER_PERSON" | "PER_PERIOD" | "PER_UNIT",
+ *     amount: number,
+ *     periodUnit?: "MINUTE" | "HOUR" | "DAY"  // only used when model === "PER_PERIOD"
+ *   },
+ *   vatClass: string,
+ *   public: boolean,     // visible to guests in any public UI
+ *   active: boolean      // usable vs archived
+ * }
+ *
+ * Backwards compatibility:
+ * - Missing fields are defaulted by normaliseExistingAddOn().
+ * - Older shapes are tolerated as long as they can be mapped into this structure.
+ */
+
 const CATEGORY_KEYS = ["fnb", "av", "services", "labour", "other"];
 
 const CATEGORY_LABELS = {
@@ -57,8 +82,13 @@ function formatPricing(addOn) {
   const base = `${amount.toFixed(2)}`;
 
   if (model === "PER_PERIOD") {
-    const unitLabel = periodUnit && PERIOD_UNIT_LABELS[periodUnit] ? PERIOD_UNIT_LABELS[periodUnit] : "";
-    return `${base} (${PRICING_MODE_LABELS[model]} ${unitLabel ? unitLabel : ""})`.trim();
+    const unitLabel =
+      periodUnit && PERIOD_UNIT_LABELS[periodUnit]
+        ? PERIOD_UNIT_LABELS[periodUnit]
+        : "";
+    return `${base} (${PRICING_MODE_LABELS[model]} ${
+      unitLabel ? unitLabel : ""
+    })`.trim();
   }
 
   const label = PRICING_MODE_LABELS[model] || model;
@@ -131,7 +161,8 @@ function AddOnsTab({
 
   const filteredAddOns = useMemo(
     () =>
-      (Array.isArray(addOns) ? addOns : []).map(normaliseExistingAddOn)
+      (Array.isArray(addOns) ? addOns : [])
+        .map(normaliseExistingAddOn)
         .filter((a) => a.category === selectedCategory),
     [addOns, selectedCategory]
   );
@@ -247,13 +278,15 @@ function AddOnsTab({
     if (!included) {
       const amountNumber = parseFloat(pricingAmount);
       if (Number.isNaN(amountNumber) || amountNumber < 0) {
-        errors.pricingAmount = "Amount must be a number greater than or equal to 0.";
+        errors.pricingAmount =
+          "Amount must be a number greater than or equal to 0.";
       }
     }
 
     if (pricingModel === "PER_PERIOD") {
       if (!pricingPeriodUnit) {
-        errors.pricingPeriodUnit = "Period unit is required for per-period pricing.";
+        errors.pricingPeriodUnit =
+          "Period unit is required for per-period pricing.";
       }
     }
 
@@ -380,7 +413,14 @@ function AddOnsTab({
   };
 
   const renderCategoryFilters = () => (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "0.5rem",
+        marginBottom: "1rem",
+      }}
+    >
       {CATEGORY_KEYS.map((key) => (
         <button
           key={key}
@@ -408,7 +448,13 @@ function AddOnsTab({
 
   const renderTable = () => (
     <div style={{ marginBottom: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <h3 style={{ marginBottom: "0.5rem" }}>
           {CATEGORY_LABELS[selectedCategory]} Add-Ons
         </h3>
@@ -431,7 +477,8 @@ function AddOnsTab({
 
       {filteredAddOns.length === 0 ? (
         <p style={{ fontStyle: "italic" }}>
-          No Add-Ons defined for this category yet. Click &ldquo;New Add-On&rdquo; to create one.
+          No Add-Ons defined for this category yet. Click &ldquo;New Add-On
+          &rdquo; to create one.
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -476,7 +523,7 @@ function AddOnsTab({
                       style={{
                         ...smallButtonStyle,
                         marginLeft: "0.5rem",
-                        backgroundColor: addOn.active ? "#ffffff" : "#ffffff",
+                        backgroundColor: "#ffffff",
                         borderColor: addOn.active ? "#f57c00" : "#388e3c",
                       }}
                     >
@@ -525,7 +572,13 @@ function AddOnsTab({
         </h3>
         <form onSubmit={(e) => handleSubmit(e, { addAnother: false })}>
           {/* Code & Name */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              marginBottom: "0.75rem",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 Code
@@ -574,13 +627,23 @@ function AddOnsTab({
                 onChange={(e) =>
                   handleFormFieldChange("description", e.target.value)
                 }
-                style={{ ...inputStyle, minHeight: "70px", resize: "vertical" }}
+                style={{
+                  ...inputStyle,
+                  minHeight: "70px",
+                  resize: "vertical",
+                }}
               />
             </label>
           </div>
 
           {/* Category & Visibility */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              marginBottom: "0.75rem",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 Category *
@@ -615,7 +678,9 @@ function AddOnsTab({
                 />
                 Included (no extra charge)
               </label>
-              <label style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}>
+              <label
+                style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}
+              >
                 <input
                   type="checkbox"
                   checked={isPublic}
@@ -626,7 +691,9 @@ function AddOnsTab({
                 />
                 Public (visible to guests)
               </label>
-              <label style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}>
+              <label
+                style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}
+              >
                 <input
                   type="checkbox"
                   checked={active}
@@ -641,7 +708,13 @@ function AddOnsTab({
           </div>
 
           {/* Pricing */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              marginBottom: "0.75rem",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 Pricing model *
@@ -690,7 +763,10 @@ function AddOnsTab({
                   <select
                     value={pricingPeriodUnit}
                     onChange={(e) =>
-                      handleFormFieldChange("pricingPeriodUnit", e.target.value)
+                      handleFormFieldChange(
+                        "pricingPeriodUnit",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
                   >
@@ -724,7 +800,13 @@ function AddOnsTab({
           </div>
 
           {/* Form actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
             <button
               type="submit"
               disabled={saving}
@@ -782,11 +864,11 @@ function AddOnsTab({
     <div>
       <h2 style={{ marginTop: 0, marginBottom: "0.5rem" }}>Add-Ons</h2>
       <p style={{ marginBottom: "1rem", maxWidth: "720px" }}>
-        Add-Ons are goods or services that can be attached to a meeting-room booking,
-        such as F&amp;B items, AV/tech equipment, services and amenities, labour,
-        or other extras. This is the master list for all categories, with a common
-        form and clear flags for whether an Add-On is included, chargeable, public,
-        or active.
+        Add-Ons are goods or services that can be attached to a meeting-room
+        booking, such as F&amp;B items, AV/tech equipment, services and
+        amenities, labour, or other extras. This is the master list for all
+        categories, with a common form and clear flags for whether an Add-On is
+        included, chargeable, public, or active.
       </p>
 
       {renderCategoryFilters()}
