@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useState } from "react";
  *   included: boolean,   // if true, treated as "included" / non-charge (amount forced to 0)
  *   pricing: {
  *     model: "PER_EVENT" | "PER_PERSON" | "PER_PERIOD" | "PER_UNIT",
- *     amount: number,
+ *     amount: number,    // stored as plain euros with decimals (e.g. 21.50 for €21.50)
  *     periodUnit?: "MINUTE" | "HOUR" | "DAY"  // only used when model === "PER_PERIOD"
  *   },
  *   vatClass: string,
@@ -353,6 +353,8 @@ function AddOnsTab({
       amountNumber = 0;
     }
 
+    // IMPORTANT: amountNumber is already in euro-and-cents scale (e.g. 21.50).
+    // We store it as-is; no conversion to "cents" or multiplication/division.
     const pricing = {
       model: pricingModel || DEFAULT_PRICING_MODEL,
       amount: included ? 0 : amountNumber,
@@ -508,21 +510,25 @@ function AddOnsTab({
         <h3 style={{ marginBottom: "0.5rem" }}>
           {CATEGORY_LABELS[selectedCategory]} Add-Ons
         </h3>
-        <button
-          type="button"
-          onClick={startNewAddOn}
-          style={{
-            padding: "0.4rem 0.9rem",
-            borderRadius: "4px",
-            border: "1px solid #1976d2",
-            backgroundColor: "#1976d2",
-            color: "#ffffff",
-            cursor: "pointer",
-            fontSize: "0.9rem",
-          }}
-        >
-          + New Add-On
-        </button>
+
+        {/* UX tweak: hide "+ New Add-On" while a form is open */}
+        {editingId === null && (
+          <button
+            type="button"
+            onClick={startNewAddOn}
+            style={{
+              padding: "0.4rem 0.9rem",
+              borderRadius: "4px",
+              border: "1px solid #1976d2",
+              backgroundColor: "#1976d2",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+            }}
+          >
+            + New Add-On
+          </button>
+        )}
       </div>
 
       {filteredAddOns.length === 0 ? (
@@ -787,7 +793,7 @@ function AddOnsTab({
 
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
-                Amount {included && "(ignored when Included is ticked)"}
+                Amount (€) {included && "(ignored when Included is ticked)"}
                 <input
                   type="number"
                   min="0"
@@ -803,6 +809,9 @@ function AddOnsTab({
               {formErrors.pricingAmount && (
                 <div style={errorTextStyle}>{formErrors.pricingAmount}</div>
               )}
+              <div style={{ fontSize: "0.8rem", color: "#555" }}>
+                Enter the total price in euro and cents, e.g. 21.50 for €21.50.
+              </div>
             </div>
 
             {pricingModel === "PER_PERIOD" && (
@@ -972,4 +981,3 @@ const smallButtonStyle = {
 };
 
 export default AddOnsTab;
-
