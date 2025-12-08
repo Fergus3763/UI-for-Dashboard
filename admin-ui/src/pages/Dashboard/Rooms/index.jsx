@@ -278,7 +278,6 @@ const RoomsPage = () => {
       const payload = await res.json();
       if (payload?.error) throw new Error(payload.error);
 
-      // Keep local state in canonical shape too
       setConfig((prev) => ({
         ...(prev || {}),
         rooms: canonicalRooms,
@@ -295,19 +294,22 @@ const RoomsPage = () => {
     }
   };
 
-  // ---------- Save add-ons (AddOnsTab) ----------
+  // ---------- Save full config for add-ons ----------
 
   const handleSaveFullConfig = async (nextConfig) => {
     setSavingConfig(true);
     setSaveConfigError(null);
 
     try {
+      // Send the full config object along with the key,
+      // so save_config can persist addOns in the same way
+      // it handles venue/bookingPolicy/rooms.
       const res = await fetch("/.netlify/functions/save_config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key: CONFIG_KEY,
-          addOns: nextConfig.addOns ?? [],
+          ...nextConfig,
         }),
       });
 
@@ -316,9 +318,10 @@ const RoomsPage = () => {
       const payload = await res.json();
       if (payload?.error) throw new Error(payload.error);
 
+      // Update local config state to reflect what was just sent.
       setConfig((prev) => ({
         ...(prev || {}),
-        addOns: nextConfig.addOns ?? [],
+        ...nextConfig,
       }));
     } catch (err) {
       console.error("Error saving add-ons:", err);
@@ -359,6 +362,12 @@ const RoomsPage = () => {
             minute: "2-digit",
             second: "2-digit",
           })}
+        </div>
+      )}
+
+      {saveConfigError && (
+        <div style={{ color: "red", marginBottom: "1rem" }}>
+          Error saving add-ons: {saveConfigError}
         </div>
       )}
 
@@ -412,11 +421,14 @@ const RoomsPage = () => {
 
         {activeTab === "ADDONS" && (
           <AddOnsTab
-            config={config}
-            onConfigChange={setConfig}
-            onSaveConfig={handleSaveFullConfig}
+            addOns={addOns}
+            setAddOns={(next) =>
+              setConfig((prev) => ({ ...(prev || {}), addOns: next ?? [] }))
+            }
+            onSave={(nextAddOns) =>
+              handleSaveFullConfig({ ...(config || {}), addOns: nextAddOns })
+            }
             saving={savingConfig}
-            error={saveConfigError}
           />
         )}
       </div>
