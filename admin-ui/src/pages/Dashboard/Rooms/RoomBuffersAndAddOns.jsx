@@ -273,7 +273,7 @@ const RoomBuffersAndAddOns = ({
 
       {/* Add-Ons */}
       <div className="form-group">
-        <label>Buffers &amp; Add-Ons</label>
+        <label> Add-Ons</label>
       <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.5rem" }}>
   For each add-on you can mark it as <strong>Inclusive</strong> (included in
   this room&rsquo;s base price) or <strong>Optional</strong> (offered as a
