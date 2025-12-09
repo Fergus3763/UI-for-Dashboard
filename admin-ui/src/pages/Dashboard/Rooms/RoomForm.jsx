@@ -21,6 +21,14 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
     onChange({ ...room, [field]: value });
   };
 
+  const handleCodeInputChange = (e) => {
+    const newCode = e.target.value;
+    onChange({ ...room, code: newCode });
+    if (typeof onCodeChange === "function") {
+      onCodeChange(room, newCode);
+    }
+  };
+
   const toggleFeature = (feature) => {
     const hasFeature = room.features?.includes(feature);
     const nextFeatures = hasFeature
@@ -44,11 +52,6 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
 
   const handleBuffersAndAddOnsChange = (changes) => {
     onChange({ ...room, ...changes });
-  };
-
-  const handleCodeInputChange = (e) => {
-    const newCode = e.target.value;
-    onCodeChange(room, newCode);
   };
 
   return (
@@ -128,7 +131,10 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
           Upload up to 6 images. You can upload, replace, delete and reorder
           images. Only the image URLs are stored in the configuration.
         </p>
-        <RoomImagesEditor images={room.images || []} onChange={handleImagesChange} />
+        <RoomImagesEditor
+          images={room.images || []}
+          onChange={handleImagesChange}
+        />
       </section>
 
       {/* FEATURES */}
@@ -144,8 +150,7 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
           className="features-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "0.5rem",
+            gridTemplateColumns: "repeat(affig...)" // <-- keep your existing layout here
           }}
         >
           {PREDEFINED_FEATURES.map((feature) => (
@@ -188,20 +193,19 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
       >
         <h3>Base Pricing</h3>
         <RoomPricingEditor
-          pricing={
-            room.pricing || { perPerson: 0, perRoom: 0, rule: "higher" }
-          }
+          pricing={room.pricing || { perPerson: 0, perRoom: 0, rule: "higher" }}
           onChange={handlePricingChange}
         />
       </section>
 
       {/* BUFFER + ADD-ONS */}
       <section className="room-section" style={{ marginBottom: "1.5rem" }}>
-        <h3>Buffer & Included Add-Ons</h3>
+        <h3>Buffer &amp; Add-Ons</h3>
         <RoomBuffersAndAddOns
           bufferBefore={room.bufferBefore}
           bufferAfter={room.bufferAfter}
           includedAddOns={room.includedAddOns || []}
+          optionalAddOns={room.optionalAddOns || []}
           addOns={addOns}
           onChange={handleBuffersAndAddOnsChange}
         />
