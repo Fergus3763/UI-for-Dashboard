@@ -331,6 +331,50 @@ const RoomsPage = () => {
     }
   };
 
+  // ---------- Update room assignments for a single add-on ----------
+
+  const handleUpdateRoomAssignments = (roomId, assignmentPatch) => {
+    setConfig((prev) => {
+      const prevConfig = prev || {};
+      const prevRooms = Array.isArray(prevConfig.rooms)
+        ? prevConfig.rooms
+        : [];
+
+      const normaliseIds = (value) =>
+        Array.isArray(value) ? value.map((v) => String(v)) : [];
+
+      const nextRooms = prevRooms.map((room) => {
+        if (!room || room.id !== roomId) return room;
+
+        const existingIncluded = normaliseIds(room.includedAddOns);
+        const existingOptional = normaliseIds(room.optionalAddOns);
+
+        const patchIncluded = normaliseIds(assignmentPatch.includedAddOns);
+        const patchOptional = normaliseIds(assignmentPatch.optionalAddOns);
+
+        const included = patchIncluded.length ? patchIncluded : existingIncluded;
+        const optionalRaw = patchOptional.length
+          ? patchOptional
+          : existingOptional;
+
+        // Enforce exclusivity: anything in included must NOT appear in optional.
+        const includedSet = new Set(included);
+        const optional = optionalRaw.filter((id) => !includedSet.has(id));
+
+        return {
+          ...room,
+          includedAddOns: included,
+          optionalAddOns: optional,
+        };
+      });
+
+      return {
+        ...prevConfig,
+        rooms: nextRooms,
+      };
+    });
+  };
+
   // ---------- Render ----------
 
   if (loadingConfig) return <div>Loading configuration…</div>;
@@ -429,6 +473,9 @@ const RoomsPage = () => {
               handleSaveFullConfig({ ...(config || {}), addOns: nextAddOns })
             }
             saving={savingConfig}
+            // Phase 3 extras:
+            rooms={rooms}
+            onUpdateRoomAssignments={handleUpdateRoomAssignments}
           />
         )}
       </div>
