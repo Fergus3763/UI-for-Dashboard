@@ -274,11 +274,13 @@ const RoomBuffersAndAddOns = ({
       {/* Add-Ons */}
       <div className="form-group">
         <label>Buffers &amp; Add-Ons</label>
-        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.5rem" }}>
-          For each add-on, choose whether it is <strong>not used</strong> in this
-          room, <strong>included</strong> in the base price, or offered as an
-          <strong> optional (chargeable)</strong> extra.
-        </p>
+      <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.5rem" }}>
+  For each add-on you can mark it as <strong>Inclusive</strong> (included in
+  this room&rsquo;s base price) or <strong>Optional</strong> (offered as a
+  chargeable extra). If neither button is selected, the add-on is treated as
+  <strong>Not used</strong> for this room.
+</p>
+  
 
       {/* Add-Ons list */}
         <div
