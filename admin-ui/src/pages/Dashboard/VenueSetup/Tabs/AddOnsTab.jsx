@@ -159,6 +159,9 @@ function AddOnsTab({
   setAddOns,
   onSave,
   saving = false,
+  // Phase 3 additions:
+  rooms = [],
+  onUpdateRoomAssignments,
 }) {
   const [selectedCategory, setSelectedCategory] = useState("fnb");
   const [editingId, setEditingId] = useState(null); // null = none, "new" = new, otherwise existing id
@@ -464,6 +467,271 @@ function AddOnsTab({
     persistAndSave(nextAddOns, { resetAfter: false });
   };
 
+  // ─────────────────────────────────────
+  // Assigned Rooms Panel (Phase 3)
+  // ─────────────────────────────────────
+
+  const normaliseIdArray = (value) => {
+    if (!Array.isArray(value)) return [];
+    return value.map((v) => String(v));
+  };
+
+  const getRoomStateForAddOn = (room, addOnId) => {
+    const includedIds = normaliseIdArray(room.includedAddOns);
+    const optionalIds = normaliseIdArray(room.optionalAddOns);
+
+    if (includedIds.includes(addOnId)) return "inclusive";
+    if (optionalIds.includes(addOnId)) return "optional";
+    return "none";
+  };
+
+  const handleRoomAssignmentClick = (room, currentState, targetState, addOnId) => {
+    if (!onUpdateRoomAssignments || !room || !room.id) return;
+
+    const idString = String(addOnId);
+
+    // Clicking the active state again → Not used
+    const nextState = currentState === targetState ? "none" : targetState;
+
+    const includedIds = new Set(normaliseIdArray(room.includedAddOns));
+    const optionalIds = new Set(normaliseIdArray(room.optionalAddOns));
+
+    // Start by removing from both to guarantee exclusivity
+    includedIds.delete(idString);
+    optionalIds.delete(idString);
+
+    if (nextState === "inclusive") {
+      includedIds.add(idString);
+    } else if (nextState === "optional") {
+      optionalIds.add(idString);
+    }
+    // "none" leaves it removed from both
+
+    onUpdateRoomAssignments(room.id, {
+      includedAddOns: Array.from(includedIds),
+      optionalAddOns: Array.from(optionalIds),
+    });
+  };
+
+  const renderStatePill = (label, stateKey, currentState) => {
+    const isActive = currentState === stateKey;
+
+    const baseStyle = {
+      flex: 1,
+      padding: "0.25rem 0.4rem",
+      fontSize: "0.75rem",
+      border: "1px solid #cbd5f5",
+      backgroundColor: "#ffffff",
+      cursor: "pointer",
+      borderRadius: 0,
+      whiteSpace: "nowrap",
+    };
+
+    const activeStyles = {
+      none: {
+        backgroundColor: "#f1f5f9",
+        fontWeight: 600,
+      },
+      inclusive: {
+        backgroundColor: "#dcfce7",
+        borderColor: "#16a34a",
+        color: "#166534",
+        fontWeight: 600,
+      },
+      optional: {
+        backgroundColor: "#dbeafe",
+        borderColor: "#1d4ed8",
+        color: "#1e40af",
+        fontWeight: 600,
+      },
+    };
+
+    const radiusOverrides = {
+      none: { borderTopLeftRadius: "999px", borderBottomLeftRadius: "999px" },
+      optional: {
+        borderTopRightRadius: "999px",
+        borderBottomRightRadius: "999px",
+      },
+    };
+
+    return {
+      style: {
+        ...baseStyle,
+        ...(radiusOverrides[stateKey] || {}),
+        ...(isActive ? activeStyles[stateKey] : {}),
+      },
+      label,
+    };
+  };
+
+  const renderAssignedRoomsSection = () => {
+    // Only show when editing an existing Add-On with a stable ID
+    const isNew = editingId === "new";
+    const addOnId = formState.id || editingId;
+
+    if (!editingId || isNew) {
+      return null;
+    }
+
+    if (!rooms || rooms.length === 0) {
+      return (
+        <div style={{ marginTop: "1rem" }}>
+          <h3 style={{ marginBottom: "0.5rem" }}>Assigned Rooms</h3>
+          <p style={{ fontSize: "0.9rem", color: "#555" }}>
+            No rooms configured yet. You can add rooms in the Room Setup tab,
+            then return here to assign this add-on per room.
+          </p>
+        </div>
+      );
+    }
+
+    const addOnIdString = String(addOnId);
+
+    return (
+      <div style={{ marginTop: "1rem" }}>
+        <h3 style={{ marginBottom: "0.5rem" }}>Assigned Rooms</h3>
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.75rem" }}>
+          For each room, choose whether this add-on is not used, included in the
+          base price, or offered as an optional (chargeable) extra.
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "0.5rem",
+          }}
+        >
+          {rooms.map((room) => {
+            if (!room || !room.id) return null;
+
+            const name = room.name || "Untitled room";
+            const code = room.code || "";
+            const currentState = getRoomStateForAddOn(room, addOnIdString);
+
+            const nonePill = renderStatePill("Not used", "none", currentState);
+            const inclusivePill = renderStatePill(
+              "Inclusive",
+              "inclusive",
+              currentState
+            );
+            const optionalPill = renderStatePill(
+              "Optional",
+              "optional",
+              currentState
+            );
+
+            return (
+              <div
+                key={room.id}
+                style={{
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  padding: "0.5rem 0.6rem",
+                  backgroundColor: "#f8fafc",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.25rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "0.5rem",
+                    alignItems: "baseline",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 500,
+                      color: "#0f172a",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                    title={name}
+                  >
+                    {name}
+                  </div>
+                  {code && (
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#64748b",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {code}
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "stretch",
+                    borderRadius: "999px",
+                    overflow: "hidden",
+                    marginTop: "0.15rem",
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={nonePill.style}
+                    onClick={() =>
+                      handleRoomAssignmentClick(
+                        room,
+                        currentState,
+                        "none",
+                        addOnIdString
+                      )
+                    }
+                  >
+                    {nonePill.label}
+                  </button>
+                  <button
+                    type="button"
+                    style={inclusivePill.style}
+                    onClick={() =>
+                      handleRoomAssignmentClick(
+                        room,
+                        currentState,
+                        "inclusive",
+                        addOnIdString
+                      )
+                    }
+                  >
+                    {inclusivePill.label}
+                  </button>
+                  <button
+                    type="button"
+                    style={optionalPill.style}
+                    onClick={() =>
+                      handleRoomAssignmentClick(
+                        room,
+                        currentState,
+                        "optional",
+                        addOnIdString
+                      )
+                    }
+                  >
+                    {optionalPill.label}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ─────────────────────────────────────
+  // Existing UI (table + form)
+  // ─────────────────────────────────────
+
   const renderCategoryFilters = () => (
     <div
       style={{
@@ -533,7 +801,8 @@ function AddOnsTab({
 
       {filteredAddOns.length === 0 ? (
         <p style={{ fontStyle: "italic" }}>
-          No Add-Ons defined for this category yet. Click &ldquo;New Add-On&rdquo; to create one.
+          No Add-Ons defined for this category yet. Click &ldquo;New Add-On
+          &rdquo; to create one.
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -857,12 +1126,16 @@ function AddOnsTab({
             </label>
           </div>
 
+          {/* Assigned Rooms (Phase 3) */}
+          {renderAssignedRoomsSection()}
+
           {/* Form actions */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
+              marginTop: "0.75rem",
             }}
           >
             <button
