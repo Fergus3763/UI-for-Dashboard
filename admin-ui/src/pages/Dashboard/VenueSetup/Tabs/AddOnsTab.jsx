@@ -10,11 +10,11 @@ import React, { useEffect, useMemo, useState } from "react";
  *   name: string,
  *   description: string,
  *   category: "fnb" | "av" | "services" | "labour" | "other",
- *   included: boolean,   // if true, treated as "included" / non-charge (amount forced to 0)
+ *   included: boolean,   // legacy/global flag; room-level inclusion is canonical
  *   pricing: {
  *     model: "PER_EVENT" | "PER_PERSON" | "PER_PERIOD" | "PER_UNIT",
  *     amount: number,    // stored as plain euros with decimals (e.g. 21.50 for €21.50)
- *     periodUnit?: "MINUTE" | "HOUR" | "DAY"  // only used when model === "PER_PERIOD"
+ *     periodUnit?: "MINUTE" | "HOUR" | "DAY"
  *   },
  *   vatClass: string,
  *   public: boolean,     // visible to guests in any public UI
@@ -75,6 +75,8 @@ function formatPricing(addOn) {
   const amount = typeof pricing.amount === "number" ? pricing.amount : 0;
   const periodUnit = pricing.periodUnit;
 
+  // Legacy support: if a global "included" flag exists for this add-on,
+  // keep showing it as "Included" in the pricing column.
   if (included) {
     return "Included";
   }
@@ -122,7 +124,7 @@ function normaliseExistingAddOn(addOn) {
       name: "",
       description: "",
       category: "other",
-      included: true,
+      included: false,
       pricing: {
         model: DEFAULT_PRICING_MODEL,
         amount: 0,
@@ -142,7 +144,8 @@ function normaliseExistingAddOn(addOn) {
     name: addOn.name || "",
     description: addOn.description || "",
     category: CATEGORY_KEYS.includes(addOn.category) ? addOn.category : "other",
-    included: typeof addOn.included === "boolean" ? addOn.included : true,
+    included:
+      typeof addOn.included === "boolean" ? addOn.included : false,
     pricing: {
       model: pricing.model || DEFAULT_PRICING_MODEL,
       amount: typeof pricing.amount === "number" ? pricing.amount : 0,
@@ -187,7 +190,7 @@ function AddOnsTab({
     name: "",
     description: "",
     category: "fnb",
-    included: true,
+    included: false, // legacy, kept for backwards compatibility only
     pricingModel: DEFAULT_PRICING_MODEL,
     pricingAmount: "0",
     pricingPeriodUnit: DEFAULT_PERIOD_UNIT,
@@ -213,7 +216,7 @@ function AddOnsTab({
       name: "",
       description: "",
       category: categoryOverride || selectedCategory,
-      included: true,
+      included: false,
       pricingModel: DEFAULT_PRICING_MODEL,
       pricingAmount: "0",
       pricingPeriodUnit: DEFAULT_PERIOD_UNIT,
@@ -234,7 +237,7 @@ function AddOnsTab({
       name: "",
       description: "",
       category: cat,
-      included: true,
+      included: false,
       pricingModel: DEFAULT_PRICING_MODEL,
       pricingAmount: "0",
       pricingPeriodUnit: DEFAULT_PERIOD_UNIT,
@@ -254,7 +257,7 @@ function AddOnsTab({
       name: n.name,
       description: n.description,
       category: n.category,
-      included: n.included,
+      included: n.included, // legacy; no longer editable via UI
       pricingModel: n.pricing.model,
       pricingAmount: String(
         typeof n.pricing.amount === "number" ? n.pricing.amount : 0
@@ -267,30 +270,19 @@ function AddOnsTab({
   };
 
   const handleFormFieldChange = (field, value) => {
-    setFormState((prev) => {
-      let updated = { ...prev, [field]: value };
-
-      // When included is turned on, normalise amount to 0
-      if (field === "included" && value === true) {
-        updated.pricingAmount = "0";
-      }
-
-      // When pricingModel changes away from PER_PERIOD, keep period unit but it will be ignored
-      if (field === "pricingModel" && value !== "PER_PERIOD") {
-        // no-op for now but kept in state
-      }
-
-      return updated;
-    });
+    setFormState((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const validateForm = () => {
     const errors = {};
     const {
+      id,
       code,
       name,
       category,
-      included,
       pricingModel,
       pricingAmount,
       pricingPeriodUnit,
@@ -309,16 +301,29 @@ function AddOnsTab({
       errors.code = "Code is required.";
     }
 
+    // Code must be unique (case-sensitive) across all add-ons except itself
+    if (trimmedCode) {
+      const hasDuplicate = (Array.isArray(localAddOns) ? localAddOns : []).some(
+        (a) =>
+          a &&
+          a.id !== id &&
+          typeof a.code === "string" &&
+          a.code.trim() === trimmedCode
+      );
+      if (hasDuplicate) {
+        errors.code =
+          "Code must be unique. Another Add-On already uses this code.";
+      }
+    }
+
     if (!pricingModel) {
       errors.pricingModel = "Pricing model is required.";
     }
 
-    if (!included) {
-      const amountNumber = parseFloat(pricingAmount);
-      if (Number.isNaN(amountNumber) || amountNumber < 0) {
-        errors.pricingAmount =
-          "Amount must be a number greater than or equal to 0.";
-      }
+    const amountNumber = parseFloat(pricingAmount);
+    if (Number.isNaN(amountNumber) || amountNumber < 0) {
+      errors.pricingAmount =
+        "Amount must be a number greater than or equal to 0.";
     }
 
     if (pricingModel === "PER_PERIOD") {
@@ -339,7 +344,7 @@ function AddOnsTab({
       name,
       description,
       category,
-      included,
+      // included, // legacy – will be persisted but no longer editable from UI
       pricingModel,
       pricingAmount,
       pricingPeriodUnit,
@@ -356,11 +361,9 @@ function AddOnsTab({
       amountNumber = 0;
     }
 
-    // IMPORTANT: amountNumber is already in euro-and-cents scale (e.g. 21.50).
-    // We store it as-is; no conversion to "cents" or multiplication/division.
     const pricing = {
       model: pricingModel || DEFAULT_PRICING_MODEL,
-      amount: included ? 0 : amountNumber,
+      amount: amountNumber,
     };
 
     if (pricingModel === "PER_PERIOD") {
@@ -373,7 +376,8 @@ function AddOnsTab({
       name: trimmedName,
       description: description || "",
       category: CATEGORY_KEYS.includes(category) ? category : "other",
-      included: !!included,
+      // Keep legacy included flag; default new add-ons to false
+      included: false,
       pricing,
       vatClass: vatClass || "",
       public: !!isPublic,
@@ -440,7 +444,7 @@ function AddOnsTab({
         name: "",
         description: "",
         category: selectedCategory,
-        included: true,
+        included: false,
         pricingModel: DEFAULT_PRICING_MODEL,
         pricingAmount: "0",
         pricingPeriodUnit: DEFAULT_PERIOD_UNIT,
@@ -468,7 +472,7 @@ function AddOnsTab({
   };
 
   // ─────────────────────────────────────
-  // Assigned Rooms Panel (Phase 3)
+  // Assigned Rooms Panel
   // ─────────────────────────────────────
 
   const normaliseIdArray = (value) => {
@@ -590,9 +594,14 @@ function AddOnsTab({
     return (
       <div style={{ marginTop: "1rem" }}>
         <h3 style={{ marginBottom: "0.5rem" }}>Assigned Rooms</h3>
-        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.75rem" }}>
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.35rem" }}>
           For each room, choose whether this add-on is not used, included in the
           base price, or offered as an optional (chargeable) extra.
+        </p>
+        <p style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "0.75rem" }}>
+          Changes here are the same as changing this add-on in each room’s
+          “Buffers &amp; Add-Ons” section. This view just lets you manage rooms
+          for this add-on in one place.
         </p>
 
         <div
@@ -817,7 +826,6 @@ function AddOnsTab({
               <tr>
                 <th style={thStyle}>Code</th>
                 <th style={thStyle}>Name</th>
-                <th style={thStyle}>Included?</th>
                 <th style={thStyle}>Public?</th>
                 <th style={thStyle}>Pricing</th>
                 <th style={thStyle}>Active?</th>
@@ -829,7 +837,6 @@ function AddOnsTab({
                 <tr key={addOn.id}>
                   <td style={tdStyle}>{addOn.code}</td>
                   <td style={tdStyle}>{addOn.name}</td>
-                  <td style={tdStyle}>{addOn.included ? "Yes" : "No"}</td>
                   <td style={tdStyle}>{addOn.public ? "Yes" : "No"}</td>
                   <td style={tdStyle}>{formatPricing(addOn)}</td>
                   <td style={tdStyle}>{addOn.active ? "Yes" : "No"}</td>
@@ -871,7 +878,6 @@ function AddOnsTab({
       name,
       description,
       category,
-      included,
       pricingModel,
       pricingAmount,
       pricingPeriodUnit,
@@ -994,19 +1000,6 @@ function AddOnsTab({
               <label style={{ ...labelStyle, display: "block" }}>
                 <input
                   type="checkbox"
-                  checked={included}
-                  onChange={(e) =>
-                    handleFormFieldChange("included", e.target.checked)
-                  }
-                  style={{ marginRight: "0.5rem" }}
-                />
-                Included (no extra charge)
-              </label>
-              <label
-                style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}
-              >
-                <input
-                  type="checkbox"
                   checked={isPublic}
                   onChange={(e) =>
                     handleFormFieldChange("public", e.target.checked)
@@ -1062,13 +1055,12 @@ function AddOnsTab({
 
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
-                Amount (€) {included && "(ignored when Included is ticked)"}
+                Amount (€)
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={pricingAmount}
-                  disabled={included}
                   onChange={(e) =>
                     handleFormFieldChange("pricingAmount", e.target.value)
                   }
@@ -1126,7 +1118,7 @@ function AddOnsTab({
             </label>
           </div>
 
-          {/* Assigned Rooms (Phase 3) */}
+          {/* Assigned Rooms */}
           {renderAssignedRoomsSection()}
 
           {/* Form actions */}
@@ -1199,7 +1191,7 @@ function AddOnsTab({
         booking, such as F&amp;B items, AV/tech equipment, services and
         amenities, labour, or other extras. This is the master list for all
         categories, with a common form and clear flags for whether an Add-On is
-        included, chargeable, public, or active.
+        chargeable, public, or active.
       </p>
 
       {renderCategoryFilters()}
