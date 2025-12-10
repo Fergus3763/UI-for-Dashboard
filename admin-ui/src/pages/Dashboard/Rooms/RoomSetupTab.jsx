@@ -91,6 +91,7 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
         rule: "higher",
       },
       includedAddOns: [],
+      optionalAddOns: [],
     };
 
     const newRooms = [...draftRooms, newRoom];
