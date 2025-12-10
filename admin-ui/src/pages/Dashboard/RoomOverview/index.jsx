@@ -343,17 +343,27 @@ const RoomOverviewPage = () => {
   };
 
   const renderAddOns = (room) => {
-    const includedIds = Array.isArray(room.includedAddOns)
+    // Canonical fields win; legacy arrays are fallback only.
+    const rawIncluded = Array.isArray(room.includedAddOns)
       ? room.includedAddOns
       : Array.isArray(room.includedAddOnIds)
       ? room.includedAddOnIds
       : [];
 
-    const optionalIds = Array.isArray(room.optionalAddOns)
+    const rawOptional = Array.isArray(room.optionalAddOns)
       ? room.optionalAddOns
       : Array.isArray(room.optionalAddOnIds)
       ? room.optionalAddOnIds
       : [];
+
+    const includedSet = new Set(rawIncluded.map((id) => String(id)));
+    const optionalSetRaw = new Set(rawOptional.map((id) => String(id)));
+
+    // Ensure exclusivity: if an ID appears in both, treat it as Included.
+    const includedIds = Array.from(includedSet);
+    const optionalIds = Array.from(optionalSetRaw).filter(
+      (id) => !includedSet.has(id)
+    );
 
     const hasAny = includedIds.length > 0 || optionalIds.length > 0;
     if (!hasAny) {
