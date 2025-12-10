@@ -28,39 +28,6 @@ const RoomBuffersAndAddOns = ({
   const includedIds = toIdArray(includedAddOns);
   const optionalIds = toIdArray(optionalAddOns);
 
-  const statusStyleMap = {
-    free: {
-      backgroundColor: "#e6f4ea",
-      border: "1px solid #c4e3ce",
-      color: "#1b5e20",
-    },
-    admin: {
-      backgroundColor: "#ffebee",
-      border: "1px solid #ffcdd2",
-      color: "#b71c1c",
-    },
-    booked: {
-      backgroundColor: "#e3f2fd",
-      border: "1px solid #bbdefb",
-      color: "#0d47a1",
-    },
-  };
-
-  const hourStyleMap = {
-    free: {
-      backgroundColor: "#e6f4ea",
-      border: "1px solid #c4e3ce",
-    },
-    admin: {
-      backgroundColor: "#ffebee",
-      border: "1px solid #ffcdd2",
-    },
-    booked: {
-      backgroundColor: "#e3f2fd",
-      border: "1px solid #bbdefb",
-    },
-  };
-
   const getAddOnId = (addOn) => {
     if (!addOn || typeof addOn !== "object") return null;
     return (
@@ -78,15 +45,7 @@ const RoomBuffersAndAddOns = ({
     );
   };
 
-  const getStatusForDay = (iso) => {
-    if (includedIds.includes(iso) && optionalIds.includes(iso)) {
-      return "mixed";
-    }
-    if (includedIds.includes(iso)) return "blocked-admin";
-    if (optionalIds.includes(iso)) return "blocked-booked";
-    return "free";
-  };
-
+  // status is "none" | "included" | "optional"
   const toggleAddOnStatus = (id, status) => {
     const idString = String(id);
     const nextIncluded = new Set(includedIds);
@@ -109,49 +68,6 @@ const RoomBuffersAndAddOns = ({
     });
   };
 
-  const renderStatusPill = (status, label) => {
-    if (status === "included") {
-      return (
-        <span
-          style={{
-            ...statusStyleMap["blocked-admin"],
-            padding: "0.2rem 0.45rem",
-            borderRadius: "999px",
-            fontSize: "0.8rem",
-          }}
-        >
-          Included
-        </span>
-      );
-    }
-    if (status === "optional") {
-      return (
-        <span
-          style={{
-            ...statusStyleMap["blocked-booked"],
-            padding: "0.2rem 0.45rem",
-            borderRadius: "999px",
-            fontSize: "0.8rem",
-          }}
-        >
-          Optional
-        </span>
-      );
-    }
-    return (
-      <span
-        style={{
-          ...statusStyleMap.free,
-          padding: "0.2rem 0.45rem",
-          borderRadius: "999px",
-          fontSize: "0.8rem",
-        }}
-      >
-        Not used
-      </span>
-    );
-  };
-
   const renderAddOnRow = (addOn) => {
     const id = getAddOnId(addOn);
     if (!id) return null;
@@ -162,6 +78,11 @@ const RoomBuffersAndAddOns = ({
     let status = "none";
     if (includedIds.includes(key)) status = "included";
     else if (optionalIds.includes(key)) status = "optional";
+
+    const categoryLabel =
+      addOn.category && CATEGORY_LABELS[addOn.category]
+        ? CATEGORY_LABELS[addOn.category]
+        : "";
 
     return (
       <div
@@ -182,11 +103,11 @@ const RoomBuffersAndAddOns = ({
         >
           <div>
             <div>{label}</div>
-            <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-              {addOn.category && CATEGORY_LABELS[addOn.category]
-                ? CATEGORY_LABELS[addOn.category]
-                : ""}
-            </div>
+            {categoryLabel && (
+              <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                {categoryLabel}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: "0.25rem" }}>
             <button
@@ -194,7 +115,7 @@ const RoomBuffersAndAddOns = ({
               onClick={() =>
                 toggleAddOnStatus(
                   id,
-                  status === "none" ? "included" : "none"
+                  status === "included" ? "none" : "included"
                 )
               }
               style={{
@@ -237,6 +158,11 @@ const RoomBuffersAndAddOns = ({
     );
   };
 
+  // Only show active add-ons (or add-ons where active is undefined)
+  const visibleAddOns = (addOns || []).filter(
+    (a) => a && (a.active === undefined || a.active === true)
+  );
+
   return (
     <div className="room-buffers-addons">
       {/* Buffers */}
@@ -273,16 +199,23 @@ const RoomBuffersAndAddOns = ({
 
       {/* Add-Ons */}
       <div className="form-group">
-        <label> Add-Ons</label>
-      <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "0.5rem" }}>
-  For each add-on you can mark it as <strong>Inclusive</strong> (included in
-  this room&rsquo;s base price) or <strong>Optional</strong> (offered as a
-  chargeable extra). If neither button is selected, the add-on is treated as
-  <strong>Not used</strong> for this room.
-</p>
-  
+        <label>Add-Ons for this room</label>
+        <p
+          style={{
+            fontSize: "0.9rem",
+            color: "#555",
+            marginBottom: "0.5rem",
+          }}
+        >
+          Add-Ons shown here come from your central Add-On Catalogue. Use{" "}
+          <strong>Inclusive</strong> to mark items that are included in this
+          room&apos;s base price, and <strong>Optional</strong> for chargeable
+          extras. If neither is selected, the add-on is treated as{" "}
+          <strong>Not used</strong> for this room. To create, retire, or
+          maintain Add-Ons, use the <strong>Add-Ons</strong> tab.
+        </p>
 
-      {/* Add-Ons list */}
+        {/* Add-Ons list */}
         <div
           className="addons-grid"
           style={{
@@ -291,11 +224,12 @@ const RoomBuffersAndAddOns = ({
             gap: "0.35rem",
           }}
         >
-          {(addOns || []).map((addOn) => renderAddOnRow(addOn))}
+          {visibleAddOns.map((addOn) => renderAddOnRow(addOn))}
 
-          {(!addOns || !addOns.length) && (
+          {(!visibleAddOns || !visibleAddOns.length) && (
             <span style={{ fontSize: "0.9rem", color: "#777" }}>
-              No add-ons configured yet.
+              No active add-ons available for this room. Configure add-ons in
+              the Add-Ons tab first.
             </span>
           )}
         </div>
