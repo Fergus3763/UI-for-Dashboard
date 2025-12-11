@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import RoomSetupTab from "./RoomSetupTab";
-import AddOnsTab from "../VenueSetup/Tabs/AddOnsTab";
+import AddOnsCreateEdit from "./AddOnsCreateEdit";
+import AddOnsCatalogueAssignment from "./AddOnsCatalogueAssignment";
 
 const CONFIG_KEY = "default";
 
@@ -221,6 +222,7 @@ const RoomsPage = () => {
   const [saveConfigError, setSaveConfigError] = useState(null);
 
   const [activeTab, setActiveTab] = useState("ROOMS");
+  const [activeAddOnsTab, setActiveAddOnsTab] = useState("CREATE_EDIT");
 
   const rooms = useMemo(() => (config?.rooms ?? []), [config]);
   const addOns = useMemo(() => (config?.addOns ?? []), [config]);
@@ -331,6 +333,14 @@ const RoomsPage = () => {
     }
   };
 
+  // Wrapper so subtabs can just pass updated addOns[]
+  const handleSaveAddOns = (nextAddOns) => {
+    return handleSaveFullConfig({
+      ...(config || {}),
+      addOns: nextAddOns ?? [],
+    });
+  };
+
   // ---------- Update room assignments for a single add-on ----------
 
   const handleUpdateRoomAssignments = (roomId, assignmentPatch) => {
@@ -416,6 +426,7 @@ const RoomsPage = () => {
       )}
 
       <div style={{ marginTop: "1.5rem" }}>
+        {/* Top-level tabs: Room Setup vs Add-Ons */}
         <div style={{ borderBottom: "1px solid #ccc", marginBottom: "1rem" }}>
           <button
             type="button"
@@ -464,19 +475,76 @@ const RoomsPage = () => {
         )}
 
         {activeTab === "ADDONS" && (
-          <AddOnsTab
-            addOns={addOns}
-            setAddOns={(next) =>
-              setConfig((prev) => ({ ...(prev || {}), addOns: next ?? [] }))
-            }
-            onSave={(nextAddOns) =>
-              handleSaveFullConfig({ ...(config || {}), addOns: nextAddOns })
-            }
-            saving={savingConfig}
-            // Phase 3 extras:
-            rooms={rooms}
-            onUpdateRoomAssignments={handleUpdateRoomAssignments}
-          />
+          <div>
+            {/* Subtabs inside Add-Ons */}
+            <div
+              style={{
+                borderBottom: "1px solid #e2e8f0",
+                marginBottom: "1rem",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveAddOnsTab("CREATE_EDIT")}
+                style={{
+                  padding: "0.4rem 0.8rem",
+                  border: "none",
+                  borderBottom:
+                    activeAddOnsTab === "CREATE_EDIT"
+                      ? "3px solid #000"
+                      : "3px solid transparent",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontWeight:
+                    activeAddOnsTab === "CREATE_EDIT" ? "bold" : "normal",
+                  fontSize: "0.9rem",
+                  marginRight: "0.5rem",
+                }}
+              >
+                Create &amp; Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveAddOnsTab("CATALOGUE")}
+                style={{
+                  padding: "0.4rem 0.8rem",
+                  border: "none",
+                  borderBottom:
+                    activeAddOnsTab === "CATALOGUE"
+                      ? "3px solid #000"
+                      : "3px solid transparent",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontWeight:
+                    activeAddOnsTab === "CATALOGUE" ? "bold" : "normal",
+                  fontSize: "0.9rem",
+                }}
+              >
+                Catalogue &amp; Assignment
+              </button>
+            </div>
+
+            {activeAddOnsTab === "CREATE_EDIT" && (
+              <AddOnsCreateEdit
+                addOns={addOns}
+                setAddOns={(next) =>
+                  setConfig((prev) => ({ ...(prev || {}), addOns: next ?? [] }))
+                }
+                onSaveAddOns={handleSaveAddOns}
+                saving={savingConfig}
+              />
+            )}
+
+            {activeAddOnsTab === "CATALOGUE" && (
+              <AddOnsCatalogueAssignment
+                rooms={rooms}
+                addOns={addOns}
+                onSaveAddOns={handleSaveAddOns}
+                onUpdateRoomAssignments={handleUpdateRoomAssignments}
+                saving={savingConfig}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>
