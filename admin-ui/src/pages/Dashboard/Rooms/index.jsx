@@ -1,6 +1,7 @@
 // admin-ui/src/pages/Dashboard/Rooms/index.jsx
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import RoomSetupTab from "./RoomSetupTab";
 import AddOnsCreateEdit from "./AddOnsCreateEdit";
 import AddOnsCatalogueAssignment from "./AddOnsCatalogueAssignment";
@@ -210,6 +211,8 @@ const normaliseConfig = (raw) => {
 };
 
 const RoomsPage = () => {
+  const location = useLocation();
+
   const [config, setConfig] = useState(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [configError, setConfigError] = useState(null);
@@ -226,6 +229,30 @@ const RoomsPage = () => {
 
   const rooms = useMemo(() => (config?.rooms ?? []), [config]);
   const addOns = useMemo(() => (config?.addOns ?? []), [config]);
+
+  // ---------- Deep-linking via query string (UI/navigation only) ----------
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const view = params.get("view");
+
+    if (!view) return;
+
+    if (view === "room-setup") {
+      setActiveTab("ROOMS");
+      return;
+    }
+
+    if (view === "addons-create") {
+      setActiveTab("ADDONS");
+      setActiveAddOnsTab("CREATE_EDIT");
+      return;
+    }
+
+    if (view === "addons-catalogue") {
+      setActiveTab("ADDONS");
+      setActiveAddOnsTab("CATALOGUE");
+    }
+  }, [location.search]);
 
   // ---------- Load config ----------
 
