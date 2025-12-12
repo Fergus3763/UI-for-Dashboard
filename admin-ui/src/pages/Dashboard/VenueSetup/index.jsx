@@ -1,6 +1,7 @@
 // admin-ui/src/pages/Dashboard/VenueSetup/index.jsx
 
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import AdminTabs from "../../../components/AdminTabs";
 import BookingPolicyTab from "./Tabs/BookingPolicyTab";
 
@@ -167,14 +168,34 @@ function hydrateBookingPolicy(rawBookingPolicy) {
 }
 
 const VenueSetup = () => {
+  const location = useLocation();
+
   const [venue, setVenue] = useState(defaultVenue);
   const [bookingPolicy, setBookingPolicy] = useState(defaultBookingPolicy);
-  
+
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [initialised, setInitialised] = useState(false);
   const [activeTab, setActiveTab] = useState("venue");
+
+  // ---------- Deep-linking via query string (UI/navigation only) ----------
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const viewRaw = params.get("view");
+    const view = typeof viewRaw === "string" ? viewRaw.toLowerCase() : "";
+
+    if (!view) return;
+
+    if (view === "venue") {
+      setActiveTab("venue");
+      return;
+    }
+
+    if (view === "terms" || view === "booking") {
+      setActiveTab("booking");
+    }
+  }, [location.search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,12 +214,10 @@ const VenueSetup = () => {
 
           const hydratedVenue = hydrateVenue(data.venue);
           const hydratedBooking = hydrateBookingPolicy(data.bookingPolicy);
-          
 
           if (!cancelled) {
             setVenue(hydratedVenue);
             setBookingPolicy(hydratedBooking);
-           
           }
         }
       } catch (err) {
@@ -243,7 +262,7 @@ const VenueSetup = () => {
     const payload = {
       venue,
       bookingPolicy,
-      };
+    };
 
     setSaving(true);
 
@@ -608,7 +627,6 @@ const VenueSetup = () => {
         </div>
       ),
     },
-    
   ];
 
   return (
