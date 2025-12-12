@@ -108,8 +108,10 @@ function App() {
         >
           {/* Venue dropdown */}
           <Dropdown label="Venue" dropdownKey="VENUE">
-            <DropdownItem to="/admin/venue">Venue</DropdownItem>
-            <DropdownItem to="/admin/venue">Booking Policy / Terms</DropdownItem>
+            <DropdownItem to="/admin/venue?view=venue">Venue</DropdownItem>
+            <DropdownItem to="/admin/venue?view=terms">
+              Booking Policy / Terms
+            </DropdownItem>
           </Dropdown>
 
           {/* Rooms dropdown */}
