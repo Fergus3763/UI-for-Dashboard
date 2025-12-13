@@ -8,6 +8,9 @@ import Rooms from "./pages/Dashboard/Rooms";
 import AddonDB from "./pages/AddonDB";
 import RoomOverviewPage from "./pages/Dashboard/RoomOverview";
 
+// NEW page (folder has index.jsx)
+import SimulationPage from "./pages/Dashboard/Simulation";
+
 function App() {
   const [openDropdown, setOpenDropdown] = useState(null); // "VENUE" | "ROOMS" | null
   const navRef = useRef(null);
@@ -132,21 +135,27 @@ function App() {
             Room Overview
           </Link>
 
+          {/* NEW direct link */}
+          <Link to="/admin/simulation" onClick={closeDropdown}>
+            Simulation / Modelling
+          </Link>
+
           {/* Addon DB nav link intentionally removed (route stays) */}
         </nav>
 
         {/* Main content area */}
         <main style={{ padding: "1.5rem" }}>
           <Routes>
-            {/* Existing routes (unchanged paths and elements) */}
+            {/* Existing routes */}
             <Route path="/admin/venue" element={<VenueSetup />} />
             <Route path="/admin/rooms" element={<Rooms />} />
-
-            {/* Existing routes for Room Overview and Addon DB */}
             <Route path="/admin/room-overview" element={<RoomOverviewPage />} />
             <Route path="/admin/addon-db" element={<AddonDB />} />
 
-            {/* Optional default route – can stay as is */}
+            {/* NEW route */}
+            <Route path="/admin/simulation" element={<SimulationPage />} />
+
+            {/* Optional default route */}
             <Route path="*" element={<VenueSetup />} />
           </Routes>
         </main>
