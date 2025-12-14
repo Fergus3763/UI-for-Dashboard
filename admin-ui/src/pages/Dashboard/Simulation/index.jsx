@@ -1,20 +1,22 @@
-// admin-ui/src/pages/Dashboard/Simulation/index.jsx
-
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Simulation / Modelling — Hotel-only Price Simulator (MVP)
+ * Simulation / Modelling — Hotel-only Price Simulator (Phase 2: Hour Blocks + PER_PERIOD(HOUR))
  *
- * Read-only:
+ * Hard constraints satisfied:
  * - Uses ONLY GET /.netlify/functions/load_config
- * - Saves nothing, writes nothing
+ * - Read-only: saves nothing, writes nothing
+ * - Does not touch booking/reserve/payment, room setup, add-on DB logic, netlify functions, or supabase schema
  *
- * Aligns with current config schema:
- * - load_config returns payload.data
- * - addOns store pricing in addOn.pricing.model + addOn.pricing.amount
+ * Pricing terms (HUB #8):
+ * A) Room Base Price (now per-hour + total)
+ * B) Bundle Price
+ * C) Offer Price
+ * D) Provisional Price
+ * E) Final Price
  */
 
-// ---------- helpers ----------
+// ---------- Small helpers (allowed: inside this file only) ----------
 
 function toNumberSafe(v) {
   const n = Number(v);
@@ -23,68 +25,119 @@ function toNumberSafe(v) {
 
 function formatMoney(amount) {
   const n = toNumberSafe(amount);
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "EUR",
-  }).format(n);
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" }).format(n);
 }
 
 function getRoomDisplayName(room) {
-  const name = room?.name || "Unnamed Room";
-  const code = room?.code || "";
+  const name = room?.name || room?.roomName || room?.title || "Unnamed Room";
+  const code = room?.code || room?.roomCode || room?.room_code || "";
   return code ? `${name} (${code})` : name;
 }
 
-function getRoomId(room) {
-  return room?.id ?? room?.code ?? "";
-}
-
-function getAddOnId(addOn) {
-  return addOn?.id ?? addOn?.code ?? addOn?.slug ?? addOn?.name ?? "";
+function makeHourOptions() {
+  const opts = [];
+  for (let h = 0; h <= 23; h += 1) {
+    const hh = String(h).padStart(2, "0");
+    opts.push(`${hh}:00`);
+  }
+  return opts;
 }
 
 function indexAddOnsById(addOns) {
   const map = new Map();
   (addOns || []).forEach((a) => {
-    const id = getAddOnId(a);
-    if (id) map.set(String(id), a);
+    const id = a?.id ?? a?._id ?? a?.addOnId ?? a?.addonId;
+    if (id != null) map.set(String(id), a);
   });
   return map;
 }
 
 /**
- * Add-on pricing models supported for MVP:
+ * Normalise add-on pricing fields.
+ * If pricing model lives in addOn.pricing.model and addOn.pricing.amount, use that.
+ * Otherwise fall back to top-level fields used previously.
+ */
+function getAddOnPricing(addOn) {
+  const pricingObj = addOn?.pricing && typeof addOn.pricing === "object" ? addOn.pricing : null;
+
+  const modelRaw =
+    pricingObj?.model ??
+    addOn?.pricingModel ??
+    addOn?.pricing_model ??
+    addOn?.model ??
+    "";
+
+  const amountRaw =
+    pricingObj?.amount ??
+    addOn?.amount ??
+    addOn?.price ??
+    addOn?.value ??
+    0;
+
+  // Some schemas may include a unit for PER_PERIOD (e.g., HOUR / DAY)
+  const unitRaw =
+    pricingObj?.unit ??
+    pricingObj?.periodUnit ??
+    addOn?.unit ??
+    addOn?.periodUnit ??
+    addOn?.period_unit ??
+    "";
+
+  return {
+    model: String(modelRaw).toUpperCase(),
+    amount: toNumberSafe(amountRaw),
+    unit: String(unitRaw).toUpperCase(),
+  };
+}
+
+/**
+ * Add-on pricing models supported for Phase 2:
  * - PER_EVENT: add once
  * - PER_PERSON: add × attendees
- * Others:
- * - PER_PERIOD / PER_UNIT: show "Not yet supported in simulator" and treat as 0
+ * - PER_PERIOD + HOUR: add × durationHours
+ *
+ * Unsupported:
+ * - PER_PERIOD + DAY or other units
+ * - PER_UNIT
+ * - Unknown models
+ * => show "Not yet supported in simulator" and treat as 0
  */
-function calcAddOnValue(addOn, attendees) {
-  const model = String(addOn?.pricing?.model || "").toUpperCase();
-  const amount = toNumberSafe(addOn?.pricing?.amount);
+function calcAddOnValue(addOn, attendees, durationHours) {
+  const { model, amount, unit } = getAddOnPricing(addOn);
 
   if (model === "PER_EVENT") return { value: amount, supported: true, note: "" };
-  if (model === "PER_PERSON")
-    return { value: amount * toNumberSafe(attendees), supported: true, note: "" };
+  if (model === "PER_PERSON") return { value: amount * toNumberSafe(attendees), supported: true, note: "" };
 
-  if (model === "PER_PERIOD" || model === "PER_UNIT") {
-    return { value: 0, supported: false, note: "Not yet supported in simulator" };
+  if (model === "PER_PERIOD") {
+    if (unit === "HOUR") {
+      return { value: amount * toNumberSafe(durationHours), supported: true, note: "" };
+    }
+    return { value: 0, supported: false, note: "Not yet supported in simulator (PER_PERIOD non-hour)" };
   }
 
+  if (model === "PER_UNIT") return { value: 0, supported: false, note: "Not yet supported in simulator (PER_UNIT)" };
+
+  // Unknown model: treat as unsupported (safe default)
   return { value: 0, supported: false, note: "Not yet supported in simulator" };
 }
 
 /**
- * Room Base Price:
+ * A) Room Base Price (hotel-only)
+ * Existing base formula stays EXACTLY as-is:
+ *
  * per-person total = attendees × perPerson
  * per-room total = perRoom
- * apply rule if both exist (rule = "higher" or "lower")
+ * apply rule if both exist (room.pricing.rule = "higher" or "lower")
+ *
+ * Phase 2:
+ * - Treat result as "per hour"
+ * - Total = per-hour base × durationHours
  */
-function calcRoomBasePrice(room, attendees) {
+function calcRoomBasePricePerBooking(room, attendees) {
   const pricing = room?.pricing || {};
   const perPerson = toNumberSafe(pricing?.perPerson);
   const perRoom = toNumberSafe(pricing?.perRoom);
-  const rule = String(pricing?.rule || "").toLowerCase(); // "higher" | "lower"
+  const rule = String(pricing?.rule || "").toLowerCase(); // "higher" or "lower"
 
   const perPersonTotal = perPerson > 0 ? toNumberSafe(attendees) * perPerson : 0;
   const perRoomTotal = perRoom > 0 ? perRoom : 0;
@@ -98,27 +151,24 @@ function calcRoomBasePrice(room, attendees) {
   if (hasPerson && hasRoom) {
     if (rule === "lower") {
       base = Math.min(perPersonTotal, perRoomTotal);
-      explanation = `lower rule → min(${attendees} × ${formatMoney(
-        perPerson
-      )}, ${formatMoney(perRoom)})`;
+      explanation = `min(attendees × perPerson, perRoom) = min(${attendees} × ${formatMoney(perPerson)}, ${formatMoney(perRoom)})`;
     } else {
+      // Default to "higher" if unspecified
       base = Math.max(perPersonTotal, perRoomTotal);
-      explanation = `higher rule → max(${attendees} × ${formatMoney(
-        perPerson
-      )}, ${formatMoney(perRoom)})`;
+      explanation = `max(attendees × perPerson, perRoom) = max(${attendees} × ${formatMoney(perPerson)}, ${formatMoney(perRoom)})`;
     }
   } else if (hasPerson) {
     base = perPersonTotal;
-    explanation = `per-person → ${attendees} × ${formatMoney(perPerson)}`;
+    explanation = `attendees × perPerson = ${attendees} × ${formatMoney(perPerson)}`;
   } else if (hasRoom) {
     base = perRoomTotal;
-    explanation = `per-room → ${formatMoney(perRoom)}`;
+    explanation = `perRoom = ${formatMoney(perRoom)}`;
   } else {
     base = 0;
-    explanation = "No base pricing configured on this room.";
+    explanation = "No pricing found on room.pricing (perPerson/perRoom).";
   }
 
-  return { basePrice: base, explanation };
+  return { basePrice: base, explanation, perPerson, perRoom, rule: rule || (hasPerson && hasRoom ? "higher (default)" : "") };
 }
 
 function sum(values) {
@@ -143,29 +193,21 @@ function Card({ title, children }) {
 
 function Row({ label, value, sub }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 14,
-        padding: "8px 0",
-        borderBottom: "1px solid rgba(0,0,0,0.06)",
-      }}
-    >
-      <div style={{ minWidth: 220 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "8px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+      <div style={{ minWidth: 240 }}>
         <div style={{ fontWeight: 700 }}>{label}</div>
-        {sub ? (
-          <div style={{ fontSize: 12, opacity: 0.75, marginTop: 3 }}>{sub}</div>
-        ) : null}
+        {sub ? <div style={{ fontSize: 12, opacity: 0.75, marginTop: 3 }}>{sub}</div> : null}
       </div>
       <div style={{ fontWeight: 800, whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
 
-// ---------- page ----------
+// ---------- Page ----------
 
 export default function SimulationPage() {
+  const hourOptions = useMemo(() => makeHourOptions(), []);
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -174,6 +216,11 @@ export default function SimulationPage() {
 
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [attendees, setAttendees] = useState(10);
+
+  // Phase 2 inputs
+  const [startTime, setStartTime] = useState("09:00"); // full hours only
+  const [durationHours, setDurationHours] = useState(2); // 1..12
+
   const [selectedOptionalAddOnIds, setSelectedOptionalAddOnIds] = useState(() => new Set());
 
   useEffect(() => {
@@ -187,9 +234,9 @@ export default function SimulationPage() {
         const res = await fetch("/.netlify/functions/load_config", { method: "GET" });
         if (!res.ok) throw new Error(`load_config failed (${res.status})`);
 
+        // REQUIRED FIX: load_config returns config under payload.data
         const payload = await res.json();
         const data = payload?.data ?? payload ?? {};
-
         const nextRooms = Array.isArray(data?.rooms) ? data.rooms : [];
         const nextAddOns = Array.isArray(data?.addOns) ? data.addOns : [];
 
@@ -198,9 +245,10 @@ export default function SimulationPage() {
         setRooms(nextRooms);
         setAddOns(nextAddOns);
 
+        // default room selection
         const firstRoom = nextRooms[0];
-        const firstId = firstRoom ? String(getRoomId(firstRoom)) : "";
-        setSelectedRoomId(firstId);
+        const firstId = firstRoom?.id ?? firstRoom?._id ?? firstRoom?.roomId;
+        setSelectedRoomId(firstId != null ? String(firstId) : "");
       } catch (e) {
         if (!alive) return;
         setLoadError(e?.message || "Failed to load config.");
@@ -219,11 +267,11 @@ export default function SimulationPage() {
   const addOnById = useMemo(() => indexAddOnsById(addOns), [addOns]);
 
   const selectedRoom = useMemo(() => {
-    const r = (rooms || []).find((x) => String(getRoomId(x)) === String(selectedRoomId));
+    const r = (rooms || []).find((x) => String(x?.id ?? x?._id ?? x?.roomId) === String(selectedRoomId));
     return r || null;
   }, [rooms, selectedRoomId]);
 
-  // Clear optional selections when room changes
+  // When room changes, clear selected optional add-ons (scenarios are not persisted)
   useEffect(() => {
     setSelectedOptionalAddOnIds(new Set());
   }, [selectedRoomId]);
@@ -250,21 +298,24 @@ export default function SimulationPage() {
       .filter((x) => x.addOn);
   }, [optionalAddOnIds, addOnById]);
 
-  const roomBase = useMemo(() => calcRoomBasePrice(selectedRoom, attendees), [selectedRoom, attendees]);
+  // Existing base formula result (treated as per-hour in Phase 2)
+  const roomBasePerHour = useMemo(() => calcRoomBasePricePerBooking(selectedRoom, attendees), [selectedRoom, attendees]);
+
+  const roomBaseTotal = useMemo(() => roomBasePerHour.basePrice * toNumberSafe(durationHours), [roomBasePerHour.basePrice, durationHours]);
 
   const inclusiveValues = useMemo(() => {
     return includedAddOnsResolved.map(({ addOn }) => {
-      const { value, supported, note } = calcAddOnValue(addOn, attendees);
+      const { value, supported, note } = calcAddOnValue(addOn, attendees, durationHours);
       return { addOn, value, supported, note };
     });
-  }, [includedAddOnsResolved, attendees]);
+  }, [includedAddOnsResolved, attendees, durationHours]);
 
   const inclusiveTotal = useMemo(() => sum(inclusiveValues.map((x) => x.value)), [inclusiveValues]);
 
-  // Bundle Price
-  const bundlePrice = useMemo(() => roomBase.basePrice + inclusiveTotal, [roomBase.basePrice, inclusiveTotal]);
+  // B) Bundle Price = Room Base Price (total) + Sum(Inclusive Add-Ons values)
+  const bundlePrice = useMemo(() => roomBaseTotal + inclusiveTotal, [roomBaseTotal, inclusiveTotal]);
 
-  // Offer Price (shown to booker initially)
+  // C) Offer Price = Bundle Price
   const offerPrice = useMemo(() => bundlePrice, [bundlePrice]);
 
   const selectedOptionalResolved = useMemo(() => {
@@ -275,17 +326,17 @@ export default function SimulationPage() {
 
   const optionalValues = useMemo(() => {
     return selectedOptionalResolved.map(({ addOn }) => {
-      const { value, supported, note } = calcAddOnValue(addOn, attendees);
+      const { value, supported, note } = calcAddOnValue(addOn, attendees, durationHours);
       return { addOn, value, supported, note };
     });
-  }, [selectedOptionalResolved, attendees]);
+  }, [selectedOptionalResolved, attendees, durationHours]);
 
   const optionalTotal = useMemo(() => sum(optionalValues.map((x) => x.value)), [optionalValues]);
 
-  // Provisional Price
+  // D) Provisional Price = Offer Price + Sum(Selected Optional Add-Ons)
   const provisionalPrice = useMemo(() => offerPrice + optionalTotal, [offerPrice, optionalTotal]);
 
-  // Final Price (MVP = Provisional at confirmation)
+  // E) Final Price (MVP = Provisional at time of confirmation)
   const finalPrice = useMemo(() => provisionalPrice, [provisionalPrice]);
 
   function toggleOptionalAddOn(id) {
@@ -297,6 +348,12 @@ export default function SimulationPage() {
       return next;
     });
   }
+
+  const durationOptions = useMemo(() => {
+    const opts = [];
+    for (let i = 1; i <= 12; i += 1) opts.push(i);
+    return opts;
+  }, []);
 
   if (loading) {
     return (
@@ -330,6 +387,7 @@ export default function SimulationPage() {
         </div>
       </div>
 
+      {/* Inputs */}
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <Card title="Simulator Inputs">
           <div style={{ display: "grid", gap: 12 }}>
@@ -341,14 +399,50 @@ export default function SimulationPage() {
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
               >
                 {(rooms || []).map((r) => {
-                  const id = String(getRoomId(r));
+                  const id = r?.id ?? r?._id ?? r?.roomId;
                   return (
-                    <option key={id} value={id}>
+                    <option key={String(id)} value={String(id)}>
                       {getRoomDisplayName(r)}
                     </option>
                   );
                 })}
               </select>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Start time (hour blocks)</label>
+                <select
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                >
+                  {hourOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Duration (hours)</label>
+                <select
+                  value={durationHours}
+                  onChange={(e) => setDurationHours(Math.min(12, Math.max(1, toNumberSafe(e.target.value))))}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                >
+                  {durationOptions.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              This simulator assumes bookings are sold in whole-hour blocks.
             </div>
 
             <div>
@@ -371,10 +465,14 @@ export default function SimulationPage() {
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {optionalAddOnsResolved.map(({ id, addOn }) => {
-                const name = addOn?.name || "Unnamed add-on";
-                const model = String(addOn?.pricing?.model || "").toUpperCase();
-                const unitPrice = toNumberSafe(addOn?.pricing?.amount);
-                const { value, supported, note } = calcAddOnValue(addOn, attendees);
+                const name = addOn?.name || addOn?.title || "Unnamed add-on";
+                const { model, amount, unit } = getAddOnPricing(addOn);
+                const { value, supported, note } = calcAddOnValue(addOn, attendees, durationHours);
+
+                const modelLabel =
+                  model === "PER_PERIOD"
+                    ? `${model}${unit ? `(${unit})` : ""}`
+                    : (model || "UNKNOWN_MODEL");
 
                 return (
                   <label
@@ -398,10 +496,8 @@ export default function SimulationPage() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800 }}>{name}</div>
                       <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
-                        {(model || "UNKNOWN_MODEL")} • Unit: {formatMoney(unitPrice)}
-                        {supported
-                          ? ` • This scenario adds: ${formatMoney(value)}`
-                          : ` • ${note} (treated as ${formatMoney(0)})`}
+                        {modelLabel} • Unit: {formatMoney(amount)}
+                        {supported ? ` • This scenario adds: ${formatMoney(value)}` : ` • ${note} (treated as ${formatMoney(0)})`}
                       </div>
                     </div>
                   </label>
@@ -416,9 +512,23 @@ export default function SimulationPage() {
         </Card>
       </div>
 
+      {/* Outputs */}
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <Card title="A) Hotel Breakdown (full visibility)">
-          <Row label="Room Base Price" sub={roomBase.explanation} value={formatMoney(roomBase.basePrice)} />
+        {/* Hotel breakdown */}
+        <Card title="Hotel Breakdown (full visibility)">
+          <Row label="Start time" sub="Hour blocks only" value={startTime} />
+          <Row label="Duration Hours" sub="Whole hours (1–12)" value={`${durationHours} hour(s)`} />
+
+          <Row
+            label="Room Base Price (per hour)"
+            sub={roomBasePerHour.explanation}
+            value={formatMoney(roomBasePerHour.basePrice)}
+          />
+          <Row
+            label="Room Base Price (total)"
+            sub={`per-hour base × duration = ${formatMoney(roomBasePerHour.basePrice)} × ${durationHours}`}
+            value={formatMoney(roomBaseTotal)}
+          />
 
           <div style={{ padding: "8px 0" }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>Inclusive Add-Ons (bundled)</div>
@@ -427,11 +537,28 @@ export default function SimulationPage() {
             ) : (
               <div style={{ display: "grid", gap: 6 }}>
                 {inclusiveValues.map(({ addOn, value, supported, note }) => {
-                  const name = addOn?.name || "Unnamed add-on";
+                  const name = addOn?.name || addOn?.title || "Unnamed add-on";
+                  const { model, amount, unit } = getAddOnPricing(addOn);
+
+                  const modelLabel =
+                    model === "PER_PERIOD"
+                      ? `${model}${unit ? `(${unit})` : ""}`
+                      : (model || "UNKNOWN_MODEL");
+
+                  const multiplierNote =
+                    model === "PER_PERSON"
+                      ? `× attendees (${attendees})`
+                      : (model === "PER_PERIOD" && unit === "HOUR")
+                        ? `× duration (${durationHours})`
+                        : "";
+
                   return (
-                    <div key={String(getAddOnId(addOn) || name)} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <div key={String(addOn?.id ?? addOn?._id ?? name)} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ fontWeight: 700 }}>
                         {name}
+                        <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
+                          {modelLabel} • {formatMoney(amount)} {multiplierNote ? ` ${multiplierNote}` : ""}
+                        </span>
                         {!supported ? <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>({note})</span> : null}
                       </div>
                       <div style={{ fontWeight: 800 }}>{formatMoney(value)}</div>
@@ -442,8 +569,14 @@ export default function SimulationPage() {
             )}
           </div>
 
-          <Row label="Bundle Price" sub="Room Base Price + Sum(Inclusive Add-Ons)" value={formatMoney(bundlePrice)} />
-          <Row label="Offer Price" sub="Booker sees initially (equals Bundle Price)" value={formatMoney(offerPrice)} />
+          <Row label="Inclusive Add-Ons Total" sub="Sum(Inclusive Add-Ons values)" value={formatMoney(inclusiveTotal)} />
+
+          <Row
+            label="Bundle Price"
+            sub="Room Base Price (total) + Inclusive Add-Ons Total"
+            value={formatMoney(bundlePrice)}
+          />
+          <Row label="Offer Price" sub="Booker sees initially (MVP: equals Bundle Price)" value={formatMoney(offerPrice)} />
 
           <div style={{ padding: "8px 0" }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>Selected Optional Add-Ons</div>
@@ -452,11 +585,28 @@ export default function SimulationPage() {
             ) : (
               <div style={{ display: "grid", gap: 6 }}>
                 {optionalValues.map(({ addOn, value, supported, note }) => {
-                  const name = addOn?.name || "Unnamed add-on";
+                  const name = addOn?.name || addOn?.title || "Unnamed add-on";
+                  const { model, amount, unit } = getAddOnPricing(addOn);
+
+                  const modelLabel =
+                    model === "PER_PERIOD"
+                      ? `${model}${unit ? `(${unit})` : ""}`
+                      : (model || "UNKNOWN_MODEL");
+
+                  const multiplierNote =
+                    model === "PER_PERSON"
+                      ? `× attendees (${attendees})`
+                      : (model === "PER_PERIOD" && unit === "HOUR")
+                        ? `× duration (${durationHours})`
+                        : "";
+
                   return (
-                    <div key={String(getAddOnId(addOn) || name)} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <div key={String(addOn?.id ?? addOn?._id ?? name)} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ fontWeight: 700 }}>
                         {name}
+                        <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
+                          {modelLabel} • {formatMoney(amount)} {multiplierNote ? ` ${multiplierNote}` : ""}
+                        </span>
                         {!supported ? <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>({note})</span> : null}
                       </div>
                       <div style={{ fontWeight: 800 }}>{formatMoney(value)}</div>
@@ -467,22 +617,31 @@ export default function SimulationPage() {
             )}
           </div>
 
-          <Row label="Provisional Price" sub="Offer Price + Sum(Selected Optional Add-Ons)" value={formatMoney(provisionalPrice)} />
+          <Row label="Optional Add-Ons Total" sub="Sum(Selected Optional Add-Ons values)" value={formatMoney(optionalTotal)} />
+
+          <Row
+            label="Provisional Price"
+            sub="Offer Price + Optional Add-Ons Total"
+            value={formatMoney(provisionalPrice)}
+          />
           <Row label="Final Price" sub="MVP: equals Provisional Price" value={formatMoney(finalPrice)} />
         </Card>
 
-        <Card title="B) Booker Preview (minimal)">
+        {/* Booker preview */}
+        <Card title="Booker Preview (minimal)">
           <Row label="Offer Price" sub="Initial price shown to booker" value={formatMoney(offerPrice)} />
-          <Row label="Selected Optional Add-Ons Total" sub="Does not show inclusive add-on values" value={formatMoney(optionalTotal)} />
+          <Row label="Selected Optional Add-Ons Total" sub="Inclusive values hidden" value={formatMoney(optionalTotal)} />
           <Row label="Final Price" sub="MVP: equals Provisional at confirmation" value={formatMoney(finalPrice)} />
+
           <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
             Inclusive add-on values are intentionally hidden in the Booker preview (bundled into Offer Price).
           </div>
         </Card>
       </div>
 
+      {/* Footnote */}
       <div style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
-        Data source: <code>/.netlify/functions/load_config</code> only. No scenarios are saved.
+        Data source: <code>/.netlify/functions/load_config</code> only. No scenarios are saved. (No POST requests.)
       </div>
     </div>
   );
