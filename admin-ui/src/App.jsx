@@ -1,167 +1,128 @@
-// admin-ui/src/App.jsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from "react-router-dom";
 
-import React, { useEffect, useRef, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-
-import VenueSetup from "./pages/Dashboard/VenueSetup";
-import Rooms from "./pages/Dashboard/Rooms";
-import AddonDB from "./pages/AddonDB";
+// Existing pages (keep your existing imports/paths if they differ)
+import DashboardHome from "./pages/Dashboard";
+import VenuePage from "./pages/Dashboard/Venue";
+import RoomsPage from "./pages/Dashboard/Rooms";
 import RoomOverviewPage from "./pages/Dashboard/RoomOverview";
-
-// NEW page (folder has index.jsx)
 import SimulationPage from "./pages/Dashboard/Simulation";
 
-function App() {
-  const [openDropdown, setOpenDropdown] = useState(null); // "VENUE" | "ROOMS" | null
-  const navRef = useRef(null);
+// NEW page
+import BookerPreviewPage from "./pages/Dashboard/BookerPreview";
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const navEl = navRef.current;
-      if (!navEl) return;
-      if (!navEl.contains(event.target)) setOpenDropdown(null);
-    };
+const linkStyle = ({ isActive }) => ({
+  textDecoration: "none",
+  padding: "10px 12px",
+  borderRadius: 8,
+  fontWeight: 600,
+  color: isActive ? "#111" : "#444",
+  background: isActive ? "rgba(0,0,0,0.06)" : "transparent",
+});
 
-    window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleDropdown = (key) => {
-    setOpenDropdown((prev) => (prev === key ? null : key));
-  };
-
-  const closeDropdown = () => setOpenDropdown(null);
-
-  const Dropdown = ({ label, dropdownKey, children }) => {
-    const isOpen = openDropdown === dropdownKey;
-
-    return (
-      <div style={{ position: "relative", display: "inline-flex" }}>
-        <button
-          type="button"
-          onClick={() => toggleDropdown(dropdownKey)}
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            padding: 0,
-            font: "inherit",
-          }}
-          aria-haspopup="menu"
-          aria-expanded={isOpen}
-        >
-          {label} ▾
-        </button>
-
-        {isOpen && (
-          <div
-            role="menu"
-            style={{
-              position: "absolute",
-              top: "calc(100% + 0.5rem)",
-              left: 0,
-              minWidth: "14rem",
-              border: "1px solid #ddd",
-              background: "#fff",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              borderRadius: "6px",
-              padding: "0.35rem",
-              zIndex: 1000,
-            }}
-          >
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const DropdownItem = ({ to, children }) => {
-    return (
-      <Link
-        to={to}
-        onClick={closeDropdown}
-        role="menuitem"
-        style={{
-          display: "block",
-          padding: "0.5rem 0.6rem",
-          borderRadius: "4px",
-          textDecoration: "none",
-          color: "inherit",
-        }}
-      >
-        {children}
-      </Link>
-    );
-  };
-
+export default function App() {
   return (
     <Router>
-      <div>
-        {/* Top-level Admin navigation */}
-        <nav
-          ref={navRef}
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        {/* Top Nav */}
+        <header
           style={{
             display: "flex",
-            gap: "1.25rem",
             alignItems: "center",
-            padding: "0.75rem 1.5rem",
-            borderBottom: "1px solid #ddd",
+            gap: 10,
+            padding: "12px 16px",
+            borderBottom: "1px solid rgba(0,0,0,0.08)",
           }}
         >
-          {/* Venue dropdown */}
-          <Dropdown label="Venue" dropdownKey="VENUE">
-            <DropdownItem to="/admin/venue?view=venue">Venue</DropdownItem>
-            <DropdownItem to="/admin/venue?view=terms">
-              Booking Policy / Terms
-            </DropdownItem>
-          </Dropdown>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <strong style={{ fontSize: 16 }}>Admin</strong>
+          </div>
 
-          {/* Rooms dropdown */}
-          <Dropdown label="Rooms" dropdownKey="ROOMS">
-            <DropdownItem to="/admin/rooms?view=room-setup">
-              Rooms (Create / Edit Rooms)
-            </DropdownItem>
-            <DropdownItem to="/admin/rooms?view=addons-create">
-              Add-Ons (Create / Edit)
-            </DropdownItem>
-            <DropdownItem to="/admin/rooms?view=addons-catalogue">
-              Add-On Catalogue &amp; Assignment
-            </DropdownItem>
-          </Dropdown>
+          <nav style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 12, flexWrap: "wrap" }}>
+            {/* Keep existing dropdown nav as-is (Venue ▾, Rooms ▾, Room Overview). */}
 
-          {/* Room Overview stays direct */}
-          <Link to="/admin/room-overview" onClick={closeDropdown}>
-            Room Overview
-          </Link>
+            <details style={{ position: "relative" }}>
+              <summary style={{ cursor: "pointer", listStyle: "none", padding: "10px 12px", borderRadius: 8, fontWeight: 700 }}>
+                Venue ▾
+              </summary>
+              <div
+                style={{
+                  position: "absolute",
+                  top: 44,
+                  left: 0,
+                  background: "#fff",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  borderRadius: 10,
+                  padding: 8,
+                  minWidth: 220,
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.10)",
+                  zIndex: 10,
+                }}
+              >
+                <NavLink to="/admin/venue" style={linkStyle}>
+                  Venue Setup
+                </NavLink>
+              </div>
+            </details>
 
-          {/* NEW direct link */}
-          <Link to="/admin/simulation" onClick={closeDropdown}>
-            Simulation / Modelling
-          </Link>
+            <details style={{ position: "relative" }}>
+              <summary style={{ cursor: "pointer", listStyle: "none", padding: "10px 12px", borderRadius: 8, fontWeight: 700 }}>
+                Rooms ▾
+              </summary>
+              <div
+                style={{
+                  position: "absolute",
+                  top: 44,
+                  left: 0,
+                  background: "#fff",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  borderRadius: 10,
+                  padding: 8,
+                  minWidth: 220,
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.10)",
+                  zIndex: 10,
+                }}
+              >
+                <NavLink to="/admin/rooms" style={linkStyle}>
+                  Rooms Setup
+                </NavLink>
+              </div>
+            </details>
 
-          {/* Addon DB nav link intentionally removed (route stays) */}
-        </nav>
+            <NavLink to="/admin/room-overview" style={linkStyle}>
+              Room Overview
+            </NavLink>
 
-        {/* Main content area */}
-        <main style={{ padding: "1.5rem" }}>
+            <NavLink to="/admin/simulation" style={linkStyle}>
+              Simulation / Modelling
+            </NavLink>
+
+            {/* NEW top-level link */}
+            <NavLink to="/admin/booker-preview" style={linkStyle}>
+              Booker Preview
+            </NavLink>
+          </nav>
+        </header>
+
+        {/* Main */}
+        <main style={{ flex: 1 }}>
           <Routes>
-            {/* Existing routes */}
-            <Route path="/admin/venue" element={<VenueSetup />} />
-            <Route path="/admin/rooms" element={<Rooms />} />
+            {/* Existing routes (do not remove/rename) */}
+            <Route path="/" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin" element={<DashboardHome />} />
+            <Route path="/admin/venue" element={<VenuePage />} />
+            <Route path="/admin/rooms" element={<RoomsPage />} />
             <Route path="/admin/room-overview" element={<RoomOverviewPage />} />
-            <Route path="/admin/addon-db" element={<AddonDB />} />
-
-            {/* NEW route */}
             <Route path="/admin/simulation" element={<SimulationPage />} />
 
-            {/* Optional default route */}
-            <Route path="*" element={<VenueSetup />} />
+            {/* NEW route */}
+            <Route path="/admin/booker-preview" element={<BookerPreviewPage />} />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </main>
       </div>
     </Router>
   );
 }
-
-export default App;
