@@ -1,222 +1,149 @@
-HUB9_QUICK_START.md
+# HUB #9 — QUICK START
 
-Purpose
-This file gets a new Hub productive fast without re-interpreting the product.
-It assumes PERSISTANT_HUB_HANDOVER.md has already been read.
+## Purpose of HUB #9
 
-1. What exists now (current state)
-Top-level Admin Navigation
+HUB #9 continues development of the **Automated Meeting Room Booking Platform**, with a primary focus on:
 
-Venue ▾
+- Booker-facing pricing confidence
+- Strict alignment between:
+  - Hotel Admin pricing logic
+  - Simulation / Modelling
+  - Booker Preview
+- Preserving architectural integrity while extending functionality
 
-Venue Setup
+This Hub inherits its **full business, market, and product context** from:
 
-Booking Policy / Terms
+➡️ `UI-for-Dashboard/handover/project-context.md`  
+(This document is authoritative and must not be reinterpreted or shortened.)
 
-Rooms ▾
+---
 
-Rooms (Create / Edit)
+## Core Product Principle (Non-Negotiable)
 
-Add-Ons (Create / Edit)
+> **At the moment of BUY → ORDER CONFIRMED, both parties must trust the price.**
 
-Add-On Catalogue & Assignment
+Everything built in HUB #9 must reinforce:
+- Price accuracy
+- Transparency
+- Determinism
+- Consistency across Admin, Simulator, and Booker Preview
 
-Room Overview
+---
 
-Simulation / Modelling ✅
+## Current System State (Start of HUB #9)
 
-Booker Preview ✅
+The following elements are **live and working**:
 
-Addon DB is intentionally removed from navigation.
-Add-Ons now live where they are used, not as a standalone concept.
+### Admin Dashboard
+- Venue Setup (with Booking Policy / Terms)
+- Room Setup
+- Add-On Catalogue & Assignment
+- Room Overview
 
-2. Pricing system (DO NOT reinterpret)
+### Pricing Infrastructure
+- Canonical pricing rules defined and implemented
+- Hour-block pricing model (per-hour base × duration)
+- Inclusive vs Optional add-ons fully respected
+- PER_EVENT, PER_PERSON, PER_PERIOD(HOUR) supported
 
-The canonical pricing model is locked and documented in:
+### Validation Tools
+- **Simulation / Modelling** (hotel-only reassurance + testing)
+- **Booker Preview** (booker-facing pricing mirror)
 
-📄 PERSISTANT_HUB_HANDOVER.md
+Both tools:
+- Use **GET `/.netlify/functions/load_config` only**
+- Perform **no writes**
+- Share the **same pricing logic**
 
-Key reminder:
+---
 
-Room Base Price → hotel input (per person / per room, rule applies)
+## What HUB #9 Is Responsible For
 
-Bundle Price → base + inclusive add-ons
+### 1. Protect What Already Works
+- No regression in pricing behaviour
+- No change to existing Netlify functions
+- No schema changes unless explicitly approved
+- No silent changes to pricing semantics
 
-Offer Price → what the booker first sees
+### 2. Extend Booker-Facing Flow Carefully
+- Booker Preview must remain a **mirror**, not a fork
+- Any new Booker-side feature must:
+  - Use existing pricing rules
+  - Be explainable to a hotel admin in plain English
 
-Provisional Price → offer + selected optional add-ons
+### 3. Maintain One Source of Truth
+- Pricing logic must never diverge between:
+  - Admin setup
+  - Simulator
+  - Booker Preview
 
-Final Price → provisional at confirmation (MVP)
+If logic cannot be shared directly, it must be **textually identical**.
 
-Both Simulation and Booker Preview use the same logic.
+---
 
-⚠️ Any change to pricing logic must update both or neither.
+## Working Rules (Critical)
 
-3. Simulation / Modelling (Hotel-only)
+### File Discipline
+- **No new files** unless:
+  - Requested by the Hub, OR
+  - Requested by a Spoke and explicitly approved
+- Full delete-and-replace files only
+- If it’s not in GitHub, it does not exist
 
-Location:
+### Communication Style
+- 2–4 short steps per message
+- Explicit **DONE** required before moving on
+- No long explanations unless requested
 
-/admin/simulation
+---
 
+## Spoke Management Rules
 
-Purpose:
-
-Hotel reassurance
-
-Internal validation
-
-Demo credibility
-
-Current assumptions:
-
-Hour-block bookings only
-
-Start times on the hour
-
-Duration: 1–12 hours
-
-PER_EVENT, PER_PERSON, PER_PERIOD(HOUR) supported
-
-No availability, no reservation, no payment
-
-Hard rule:
-Simulation is read-only.
-No POSTs. No saves. No side effects.
-
-4. Booker Preview (Admin-only demo)
-
-Location:
-
-/admin/booker-preview
-
-
-Purpose:
-
-Show exactly what a booker would experience
-
-Validate trust: “what the hotel calculates = what the booker sees”
-
-Key constraints:
-
-Inclusive add-ons: names only, no prices shown
-
-Optional add-ons: selectable, priced live
-
-Same hour-block assumptions as Simulation
-
-No availability logic
-
-No payment
-
-No persistence
-
-This page is not the real booking flow — it is a truthful preview.
-
-5. File ownership (critical for Spoke management)
-Core pricing logic lives in:
-
-SimulationPage
-
-BookerPreviewPage
-
-These must evolve together.
-
-Navigation & routing:
-
-admin-ui/src/App.jsx
-
-Query-string driven views for Venue and Rooms
-
-Rooms & Add-Ons:
-
-Rooms/index.jsx owns:
-
-room state
-
-add-on assignment
-
-canonical data wiring
-
-6. Spoke management rules (non-negotiable)
-
-When briefing Spokes:
-
-✅ DO
-
-Give access only to files required for the task
-
-Require full delete-and-replace for modified files
-
-Require explicit commit messages
-
-Require confirmation that no existing functionality is removed
-
-❌ DO NOT
-
-Allow “helpful refactors”
-
-Allow renaming of pricing terms
-
-Allow silent schema changes
-
-Allow touching Netlify functions unless explicitly approved
-
-Allow “temporary” logic forks between Simulation and Booker Preview
-
-If a Spoke needs a new file:
-
-They must ask
-
-Hub must approve
-
-Scope must be written down first
-
-7. What is intentionally not done yet
-
-These are known and deferred — not missing:
-
-Availability / calendar enforcement
-
-Partial-hour bookings
-
-+30 min extensions
-
-Payment / reservation logic
-
-Saving simulator scenarios
-
-Pricing analytics / margin tooling
-
-Do not let a Spoke “just add a bit of logic” here.
-
-8. Immediate safe next steps for Hub #9
-
-Recommended order:
-
-Stabilise Simulator + Booker Preview (UX polish only)
-
-Align copy/labels (after helper walkthrough is planned)
-
-Prepare demo script for hotels
-
-Only then consider:
-
-Availability logic
-
-Booker journey wiring
-
-Margin tooling
-
-9. If something breaks
-
-First check:
-
-Was PERSISTANT_HUB_HANDOVER.md violated?
-
-Did a Spoke touch files they weren’t assigned?
-
-Did pricing logic diverge between Simulator and Booker Preview?
-
-If yes → revert immediately.
-
-End of HUB9 Quick Start
+HUB #9 is expected to:
+- Proactively propose Spokes for heavy lifting
+- Provide Spokes with:
+  - Only the files they need
+  - Only the context they need
+- Avoid:
+  - Copy-pasting large parts of the repo
+  - Allowing Spokes to “explore” the codebase
+  - Letting Spokes invent new abstractions
+
+Spokes must:
+- Work from **tight prompts**
+- Return **full files**
+- Avoid architectural decisions
+
+---
+
+## Immediate Focus Areas for HUB #9
+
+1. Booker journey completeness (without booking/payment yet)
+2. Clear explanation of price components to the booker
+3. Ensuring hotels can *demonstrate* price integrity confidently
+4. Preparing the ground for:
+   - Availability logic
+   - Reservation / payment
+   - Pricing Lab (future phase)
+
+---
+
+## What HUB #9 Must NOT Do
+
+- Do not redesign Admin UI unless explicitly requested
+- Do not add booking, payment, or availability logic yet
+- Do not introduce partial persistence or “temporary saves”
+- Do not rename pricing terms without agreement
+
+---
+
+## Definition of Success for HUB #9
+
+- A hotel can confidently demo:
+  - Admin setup
+  - Simulation
+  - Booker Preview
+- And say:
+  > “This is exactly the price the system will charge.”
+
+When that is true, HUB #9 is successful.
