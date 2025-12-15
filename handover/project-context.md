@@ -1,17 +1,249 @@
-UI-for-Dashboard/handover/project-context.md in main
-START
-1) I'm working with a company in the hospitality sector. 
-2) They have developed a SaaS offering for Hotels to market and manage their Spas and treatments. 
-3) It is a fully automated service for the User (The hotels Spa Customer).Fully Automated in that from the point of clicking on the "Book A Treatment" button right through Offers, Information, Filtering, T&Cs, Payment to the point of arriving for the treatment there's is no human engagement in the process from the Hotel/Venue side. I am working with them to create a similar SaaS offering that would enable Hotels(and other venues) with Meeting rooms to a) Speed up sales and b) cut down cost
-4) We believe there is a substantial part of that Meeting Room Hire market which is not being catered for = The Post-Covid on-demand Small-Team meeting. Traditionally meeting rooms were booked wholly in direct, human-to-human engagement or an Online Enquiry followed by a human-to-human engagement and confirmation. This works ok for large events with a long lead time. Covid changed the Market, seeing a drop off in large gatherings and an increase in small 2-20 person meetups. In contrast this market wants low friction engagement, instant pricing and instant booking. These use cases are expensive for hotels with high labour costs for lower return. 
-5) We aim to resolve that by automating the entire process for both parties. That requires that at the end of the process BOTH parties have sufficient CONFIDENCE in the integrity of the product and the price that they contract = [BUY] responded to by [ORDER CONFIRMED]. From a sales point of view we have one issue = Our customers will not buy and deploy 2 Meeting Room Property Management Systems (ours and existing Large event focused one) therefore we must build ours to accommodate/facilitate all their room sizes and configurations. Bookers of large events will always want Human to Human engagement but both sides will value the price accuracy. The set-up for the Hotel Admin person is more detailed than they are used to but once done can be replicated easily(our ambition). Additionally for the venue the very granular level of detail they can bring to their pricing will be enlightening and price points easily tweaked to ensure consistent margins across all the inputs dictating room price.
- 
-6) Meeting Room Booking is currently slow and labour intensive for both the booker and the hotel. 
-7) This is due to the large amount of variables involved, from the number of attendees, the number of hours/days, Preferred Layout(Board room, U-Shape, Classroom etc. etc. Inclusive and exclusive services, ALL possible Add-Ons(including custom/hotel-unique) in multiple cost centres =Inclusive F&B, AV, Labour, 3rd Party hire-ins, Other, VAT. 
-8) Each Meeting room (there could be multiple) must have a calendar where, a) already booked &Paid reservation is closed out, Days which are typically not available for meetings, can be closed out by the Hotel Administrator. Venues must have ability to Close out periods at their discretion. 
-9) Venues/Hotels committing to a fully automated booking system must be confident that the price Generated (and paid for by the Room Booker) is accurate. To this end they will have to front load all price creators. This requires a detailed input UI Interface feeding a database with ALL the possible query answers necessary to automate the user/room booker's [Search, Customise, Pay and Arrive experience]. 
-10) Working with me:  I am not technical but I know the Hotel/Workspace business and the market, I know the Solution I am looking for visually and it’s usability. I have a basic understanding of GITHUB and Netlify and no desire (if possible) to learn  to navigate new applications -If I have to, I have to. 
-11)  Working with me:  At ALL TIMES (and I cannot emphasise this point enough) I must be able to see all agreed work in a single page/file. If something is not in the page/file = IT DOES NOT EXIST. 
-12)  Working with me:  Please keep my steps short = 2-4 short parts per post. Request DONE message from me for each Post.  If it is in Github or Netlify I do not require you to do a preamble/Explainer of what we are doing other than in the broadest(shortest) terms. If I have an issue I will ask. 
-13) Spokes: Your Processing Capacity/Tokens must be protected at all times. Creating New/Next Hub is onerous and potentially detrimental to the Project. Where at all possible you should propose a Spoke to do development/heavy lifting with Prompts and fine tuning being your Spoke related tasks. I expect YOU to propose Spokes as required. Your choice between spinning out a project(Spoke) and doing the work itself will be informed by A) The time involved in Creating a prompt Vs the time it would take you to develop the code. B) The time and Tokens Spoke will expend WALKING ME(Entirely non-technical) through the process and fixing bugs V’s You the Hub will expend in FINITE RESOURCES  WALKING ME through it. I will absolutely slow either of you down but a spoke is focused on nothing BUT his short term task. You will have multiple Spokes and management tasks going on. 
+# Project Context — Automated Meeting Room Booking Platform
 
+## 1. Business Background
+
+I am working with a company in the hospitality sector.
+
+They have successfully developed and deployed a **SaaS platform for Hotels to market and manage their Spas and treatments**. That product is **fully automated for the end user** (the hotel’s spa customer):
+
+From clicking “Book a Treatment” → through offers, information, filtering, terms & conditions, payment → to arriving for the treatment, **there is no human engagement required from the hotel side**.
+
+The system works commercially and operationally.
+
+My work here is to create a **similar SaaS offering for Meeting Rooms**, aimed primarily at:
+- Hotels
+- Venues with rentable meeting/workspace rooms
+
+The goals are:
+- **Speed up sales**
+- **Reduce operational cost**
+- **Increase confidence in price accuracy for both parties**
+
+---
+
+## 2. The Market Problem We Are Solving
+
+Meeting room booking today is **slow, labour-intensive, and expensive** for both:
+- The room booker
+- The hotel / venue
+
+Traditionally:
+- Meeting rooms were booked via **human-to-human engagement**
+- Or via an online enquiry followed by **manual follow-up and confirmation**
+
+This works tolerably well for **large events with long lead times**.
+
+### Post-Covid Shift
+
+Covid fundamentally changed the market:
+- Large gatherings declined
+- Small, short-notice meetings increased
+
+There is now a **significant, under-served market**:
+- Small team meetings (typically **2–20 people**)
+- On-demand
+- Short duration (often hours, not days)
+- Low tolerance for friction
+
+This market:
+- Wants **instant pricing**
+- Wants **instant booking**
+- Does **not** want email chains or sales calls
+
+For hotels, this segment:
+- Has **lower revenue per booking**
+- Has **high labour cost**
+- Is often commercially unattractive to handle manually
+
+---
+
+## 3. The Core Solution
+
+We aim to **fully automate the meeting room booking process**, end-to-end, in the same way the Spa SaaS did.
+
+From the room booker’s perspective:
+- Search
+- Customise
+- See price instantly
+- Pay
+- Arrive
+
+From the hotel’s perspective:
+- No human intervention required
+- Price integrity guaranteed
+- Margins protected
+
+### Critical Requirement: Confidence
+
+For this to work, **both parties must have supreme confidence** in the price:
+
+- The **hotel** must trust that:
+  - Every cost element is included
+  - No hidden losses exist
+  - The system produces the *same price they would calculate themselves*
+
+- The **booker** must trust that:
+  - The price shown is final
+  - No surprises appear later
+  - The contract is clear at the moment of payment
+
+The contractual moment is:
+> **[BUY] → [ORDER CONFIRMED]**
+
+---
+
+## 4. Why This System Must Support All Room Sizes
+
+Hotels will **not** buy or operate two systems:
+- One for large events
+- One for small meetings
+
+Even though:
+- Large events will always involve human-to-human engagement
+- Small meetings are the primary automation target
+
+**Our system must support all room sizes and configurations**, because:
+- Hotels demand a single source of truth
+- Price accuracy benefits *all* bookings
+- Setup effort must be reusable across rooms
+
+The setup process for the hotel administrator is more detailed than they are used to — but:
+- It is done once
+- It can be replicated easily
+- It gives unprecedented insight into pricing and margins
+
+Over time, hotels will be able to:
+- See true cost composition
+- Adjust price points
+- Maintain consistent margins across all booking types
+
+---
+
+## 5. Complexity of Meeting Room Pricing
+
+Meeting room booking is complex because of the number of variables involved, including:
+
+- Number of attendees
+- Duration (hours / days)
+- Room layouts (Boardroom, U-Shape, Classroom, etc.)
+- Inclusive services
+- Optional services
+- Add-ons across multiple cost centres:
+  - F&B
+  - AV
+  - Labour
+  - Third-party hire-ins
+  - Other custom items
+- VAT handling
+
+Each room:
+- May have multiple configurations
+- Must have its own **availability calendar**
+- Must respect:
+  - Existing paid bookings
+  - Hotel blackout days
+  - Administrator-defined closures
+
+Hotels must be able to:
+- Close out dates or periods at will
+- Trust that unavailable inventory cannot be sold
+
+---
+
+## 6. Front-Loading the Intelligence
+
+To achieve full automation, hotels must **front-load all price creators**:
+
+- Every rule
+- Every cost
+- Every variable
+
+This requires:
+- A detailed but usable Admin UI
+- A database capable of answering *every possible query* required to automate:
+  - Search
+  - Customisation
+  - Pricing
+  - Payment
+
+This is non-negotiable for price integrity.
+
+---
+
+## 7. How to Work With Me (Critical)
+
+I am **not technical**.
+
+I do, however:
+- Understand the hotel and workspace business deeply
+- Understand the market problem
+- Know exactly what the solution should look like visually
+- Know how it should *feel* to use
+
+I have:
+- A basic understanding of GitHub and Netlify
+- **No desire to learn new tools unless absolutely necessary**
+
+### Absolute Rules
+
+1. **Single Source of Truth**
+   - At all times, I must be able to see *all agreed work* in a **single page/file**
+   - If it is not in that page/file: **IT DOES NOT EXIST**
+
+2. **Short, Controlled Steps**
+   - 2–4 short steps per post
+   - Explicit **DONE** confirmation requested from me for each step
+
+3. **No Unnecessary Explanation**
+   - If work is visible in GitHub or Netlify, no preamble is needed
+   - If I have a problem, I will ask
+
+---
+
+## 8. Hub & Spoke Operating Model (Critical)
+
+Processing capacity must be protected at all times.
+
+Creating a new Hub is:
+- Onerous
+- Risky
+- Potentially detrimental to the project
+
+Therefore:
+
+- The **Hub**:
+  - Owns architecture, logic, pricing rules, UI direction
+  - Manages Spokes
+  - Protects system integrity and continuity
+
+- **Spokes**:
+  - Do focused development or heavy lifting
+  - Work from tightly defined prompts
+  - Are disposable and task-specific
+  - Do NOT accumulate long-term context
+
+The decision to:
+- Spin out a Spoke **vs**
+- Do the work directly as Hub
+
+Must be based on:
+- Time to write a prompt vs time to code
+- Token/capacity cost of walking *me* through work
+- Risk of fragmenting context
+
+I expect the **Hub to propose Spokes proactively** where appropriate.
+
+---
+
+## 9. Summary
+
+This project exists to:
+- Automate meeting room booking
+- Restore confidence in pricing
+- Reduce cost
+- Increase speed
+- Serve a post-Covid market reality
+
+Accuracy, clarity, and confidence are **not optional** — they are the product.
+
+Everything else is secondary.
