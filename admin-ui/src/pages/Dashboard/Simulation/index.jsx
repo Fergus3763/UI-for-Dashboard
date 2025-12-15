@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Section from "../../../components/ui/Section";
 import Card from "../../../components/ui/Card";
 import Divider from "../../../components/ui/Divider";
-import { Badge } from "../../../components/ui/Badge";
+import Badge from "../../../components/ui/Badge";
+
 
 /**
  * Simulation / Modelling — Hotel-only Price Simulator (Phase 2: Hour Blocks + PER_PERIOD(HOUR))
