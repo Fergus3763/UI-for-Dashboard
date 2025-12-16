@@ -1,5 +1,3 @@
-// admin-ui/src/pages/Dashboard/Rooms/AddOnsCreateEdit.jsx
-
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
@@ -458,29 +456,58 @@ const AddOnsCreateEdit = ({
         flexWrap: "wrap",
         gap: "0.5rem",
         marginBottom: "1rem",
+        alignItems: "center",
       }}
     >
-      {CATEGORY_KEYS.map((key) => (
+      {CATEGORY_KEYS.map((key) => {
+        const isSelected = selectedCategory === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => {
+              setSelectedCategory(key);
+              setEditingId(null);
+              resetForm(key);
+            }}
+            style={{
+              padding: "0.45rem 0.85rem",
+              borderRadius: 999,
+              border: isSelected
+                ? "1px solid rgba(59, 130, 246, 0.22)"
+                : "1px solid rgba(0,0,0,0.14)",
+              backgroundColor: isSelected ? "rgba(59, 130, 246, 0.10)" : "#ffffff",
+              color: isSelected ? "#1d4ed8" : "#444",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+            }}
+          >
+            {CATEGORY_LABELS[key]}
+          </button>
+        );
+      })}
+
+      {/* + New Add-On sits beside category pills (after “Other”) */}
+      {editingId === null && (
         <button
-          key={key}
           type="button"
-          onClick={() => {
-            setSelectedCategory(key);
-            setEditingId(null);
-            resetForm(key);
-          }}
+          onClick={startNewAddOn}
           style={{
-            padding: "0.4rem 0.8rem",
-            borderRadius: "16px",
-            border: "1px solid #ccc",
-            backgroundColor: selectedCategory === key ? "#e0e0e0" : "#ffffff",
+            marginLeft: "0.25rem",
+            padding: "0.45rem 0.9rem",
+            borderRadius: 10,
+            border: "1px solid #1976d2",
+            backgroundColor: "#1976d2",
+            color: "#ffffff",
             cursor: "pointer",
             fontSize: "0.9rem",
+            fontWeight: 700,
           }}
         >
-          {CATEGORY_LABELS[key]}
+          + New Add-On
         </button>
-      ))}
+      )}
     </div>
   );
 
@@ -490,30 +517,12 @@ const AddOnsCreateEdit = ({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: "baseline",
         }}
       >
         <h3 style={{ marginBottom: "0.5rem" }}>
           {CATEGORY_LABELS[selectedCategory]} Add-Ons
         </h3>
-
-        {editingId === null && (
-          <button
-            type="button"
-            onClick={startNewAddOn}
-            style={{
-              padding: "0.4rem 0.9rem",
-              borderRadius: "4px",
-              border: "1px solid #1976d2",
-              backgroundColor: "#1976d2",
-              color: "#ffffff",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-            }}
-          >
-            + New Add-On
-          </button>
-        )}
       </div>
 
       {filteredAddOns.length === 0 ? (
