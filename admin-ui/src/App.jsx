@@ -16,20 +16,36 @@ import RoomOverviewPage from "./pages/Dashboard/RoomOverview";
 import SimulationPage from "./pages/Dashboard/Simulation";
 import BookerPreviewPage from "./pages/Dashboard/BookerPreview";
 
-const topLinkStyle = ({ isActive }) => ({
-  textDecoration: "none",
+const NAV_PILL = {
   padding: "10px 12px",
-  borderRadius: 8,
+  borderRadius: 999,
   fontWeight: 700,
-  color: isActive ? "#111" : "#444",
-  background: isActive ? "rgba(0,0,0,0.06)" : "transparent",
+  fontSize: 14,
+  lineHeight: "18px",
+  textDecoration: "none",
+  border: "1px solid transparent",
+  background: "transparent",
+  color: "#444",
+};
+
+const NAV_PILL_ACTIVE = {
+  color: "#1d4ed8",
+  background: "rgba(59, 130, 246, 0.10)",
+  border: "1px solid rgba(59, 130, 246, 0.22)",
+};
+
+const topLinkStyle = ({ isActive }) => ({
+  ...NAV_PILL,
+  ...(isActive ? NAV_PILL_ACTIVE : null),
 });
 
 const dropdownItemStyle = {
   textDecoration: "none",
   padding: "10px 12px",
-  borderRadius: 8,
+  borderRadius: 10,
   fontWeight: 700,
+  fontSize: 14,
+  lineHeight: "18px",
   color: "#444",
   background: "transparent",
   display: "block",
@@ -62,12 +78,8 @@ function Dropdown({ label, children, isOpen, setIsOpen }) {
         onClick={() => setIsOpen((v) => !v)}
         style={{
           cursor: "pointer",
-          padding: "10px 12px",
-          borderRadius: 8,
-          border: "1px solid transparent",
-          background: isOpen ? "rgba(0,0,0,0.06)" : "transparent",
-          fontWeight: 800,
-          color: "#222",
+          ...NAV_PILL,
+          ...(isOpen ? NAV_PILL_ACTIVE : null),
         }}
         aria-expanded={isOpen}
       >
@@ -82,7 +94,7 @@ function Dropdown({ label, children, isOpen, setIsOpen }) {
             left: 0,
             background: "#fff",
             border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 10,
+            borderRadius: 12,
             padding: 8,
             minWidth: 280,
             boxShadow: "0 6px 24px rgba(0,0,0,0.10)",
