@@ -18,6 +18,7 @@ import BookerPreviewPage from "./pages/Dashboard/BookerPreview";
 
 const NAV_PILL = {
   fontFamily: "inherit",
+  font: "inherit",
   appearance: "none",
   padding: "10px 12px",
   borderRadius: 999,
@@ -42,6 +43,8 @@ const topLinkStyle = ({ isActive }) => ({
 });
 
 const dropdownItemStyle = {
+  fontFamily: "inherit",
+  font: "inherit",
   textDecoration: "none",
   padding: "10px 12px",
   borderRadius: 10,
