@@ -1,0 +1,218 @@
+📌 SPOKE PROMPT — RFQ Add-On Exposure (Phase 1)
+Role
+
+You are acting as a UI + light logic Spoke implementing RFQ add-on exposure for large meetings.
+
+This is not a booking system change.
+This is not a pricing logic rewrite.
+This is not a backend or Netlify function change.
+
+You will only touch admin / hotel dashboard + admin Booker Preview code.
+
+🎯 Objective (Plain English)
+
+Enable larger meetings (above a hotel-defined capacity threshold) to:
+
+expose the full optional add-on catalogue to the booker,
+
+allow the booker to select and price those add-ons,
+
+produce a priced RFQ / pre-contract view,
+
+without allowing instant booking.
+
+Small meetings must remain exactly as they are today.
+
+🔑 Core Rule (Do Not Violate)
+
+Small meetings stay curated. Large meetings get full choice.
+
+There must be no behaviour change for meetings below the threshold.
+
+🧠 Definitions (Use These Terms Exactly)
+
+ONLINE BOOKABLE
+
+Layout max capacity ≤ threshold
+
+Existing behaviour only
+
+Curated optional add-ons only
+
+RFQ / PRE-CONTRACT
+
+Layout max capacity > threshold
+
+Full optional add-on catalogue visible
+
+Pricing calculated, booking disabled
+
+🏗️ Scope of Work (What You MAY Touch)
+In scope
+
+Admin / Hotel dashboard pages only:
+
+Booker Preview (admin preview only)
+
+Simulation / Modelling (if needed for parity)
+
+Room Layout logic (read-only consumption)
+
+Add-Ons catalogue (read-only consumption)
+
+Light logic only:
+
+conditional rendering
+
+filtering
+
+gating UI sections
+
+Explicitly OUT of scope ❌
+
+No changes to:
+
+pricing formulas
+
+save_config / load_config
+
+booking, availability, or calendar logic
+
+Netlify functions
+
+database schema
+
+No duplication of pricing logic
+
+No new APIs
+
+No new dependencies
+
+🧩 Implementation Rules
+1. Capacity Threshold
+
+Assume a single numeric threshold (e.g. 20).
+
+For Phase 1:
+
+You may hardcode this value OR
+
+Read it from an existing config if already present
+
+Do not design a new admin UI for it yet.
+
+2. How to Detect RFQ Mode
+
+Use layout max capacity:
+
+IF selectedLayout.maxCapacity > threshold
+→ RFQ MODE
+ELSE
+→ ONLINE MODE
+
+
+This logic must be:
+
+isolated
+
+readable
+
+easy to remove or extend later
+
+3. Add-On Exposure Rules
+ONLINE MODE
+
+Show:
+
+included add-ons
+
+room-level optional add-ons only
+
+Behaviour must remain unchanged
+
+RFQ MODE
+
+Show:
+
+included add-ons
+
+ALL optional add-ons from the global catalogue
+
+Ignore room-level optional filtering
+
+Allow selection + pricing
+
+Label clearly as:
+
+“Pre-contract configuration (subject to confirmation)”
+
+4. Booker Preview Behaviour
+
+In RFQ mode:
+
+Show full pricing breakdown
+
+Show total price
+
+Replace any “Book” CTA with:
+
+“Request confirmation”
+
+or equivalent non-committal language
+
+No submission logic required.
+No saving required.
+
+🧪 Acceptance Criteria
+
+This work is complete when:
+
+Small meetings behave exactly as before
+
+Large meetings expose full optional add-on catalogue
+
+Pricing totals update correctly
+
+No instant booking is possible for RFQ mode
+
+No backend changes are required
+
+No existing tests / flows are broken
+
+📂 Files & Permissions
+
+You must not guess file paths.
+
+You are explicitly allowed to:
+
+request any file you need (read-only),
+
+request confirmation before touching shared components.
+
+If unsure → ask.
+
+📦 Deliverables
+
+For each batch of work:
+
+Full delete-and-replace for modified files
+
+One clear commit message
+
+3–5 bullet summary of what changed
+
+🧭 Design Philosophy Reminder
+
+This feature exists to:
+
+eliminate pricing labour,
+
+qualify serious buyers,
+
+preserve human closing.
+
+Do not over-engineer.
+Do not future-proof.
+Do not optimise prematurely.
+
+Acknowledge when ready and request the first file you need.
