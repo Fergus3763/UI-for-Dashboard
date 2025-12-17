@@ -17,6 +17,8 @@ import SimulationPage from "./pages/Dashboard/Simulation";
 import BookerPreviewPage from "./pages/Dashboard/BookerPreview";
 
 const NAV_PILL = {
+  fontFamily: "inherit",
+  appearance: "none",
   padding: "10px 12px",
   borderRadius: 999,
   fontWeight: 700,
@@ -134,7 +136,17 @@ function AppShell() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <strong style={{ fontSize: 16 }}>Admin</strong>
+          <span
+            style={{
+              ...NAV_PILL,
+              padding: 0,
+              border: "none",
+              background: "transparent",
+              cursor: "default",
+            }}
+          >
+            Admin
+          </span>
         </div>
 
         <nav style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 12, flexWrap: "wrap" }}>
