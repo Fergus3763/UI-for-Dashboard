@@ -1,0 +1,236 @@
+🎯 SPOKE PROMPT — Booker Add-On Catalogue (Phase 1, Read-Only)
+Role
+
+You are a UI + light logic Spoke working on a read-only Booker Add-On Catalogue feature.
+
+Your task is to extend the Booker Preview experience so that a room booker can:
+
+See all optional add-ons available to the selected room
+
+Browse, filter, and select them freely
+
+Instantly see updated provisional and final prices
+
+Do all of this without saving anything and without triggering booking/payment
+
+This feature is intentionally designed to support larger, more complex bookings (20–200 people) while remaining safe, low-risk, and reversible.
+
+HARD CONSTRAINTS (Non-Negotiable)
+
+You must not:
+
+Write to Supabase
+
+Call save_config
+
+Create or modify bookings
+
+Touch availability, calendars, payment, or reservation logic
+
+Change pricing rules or invent new ones
+
+Rename existing concepts (Offer Price, Provisional Price, Final Price)
+
+You may only:
+
+Use GET /.netlify/functions/load_config
+
+Reuse existing pricing logic from:
+
+Simulation / Modelling
+
+Booker Preview
+
+Add UI + client-side state only
+
+If something feels like it might cross these boundaries → stop and ask.
+
+SCOPE (Phase 1 Only)
+Page / Location
+
+Extend the existing Booker Preview page
+
+OR create a clearly labelled sub-section within it:
+
+“Optional Add-Ons Catalogue (Preview)”
+
+No new routes unless explicitly approved.
+
+FUNCTIONAL BEHAVIOUR (Phase 1)
+Data Source
+
+Load only from load_config
+
+Use:
+
+rooms[]
+
+addOns[]
+
+room-level optionalAddOns[]
+
+Add-On Visibility Rules
+
+Show all optional add-ons assigned to the selected room
+
+Do not show add-ons not assigned to that room
+
+Do not show inactive add-ons
+
+Inclusive add-ons:
+
+Shown as “Included”
+
+Not selectable
+
+Price hidden (bundled)
+
+User Interaction
+
+Booker can:
+
+Browse add-ons
+
+Filter by category (F&B, AV, Services, Labour, Other)
+
+Select / deselect add-ons
+
+Adjust quantities only where pricing model allows (e.g. per-person auto-scales)
+
+Pricing
+
+Use exact same pricing logic as Simulation Phase 2:
+
+PER_EVENT
+
+PER_PERSON × attendees
+
+PER_PERIOD(HOUR) × duration
+
+Unsupported pricing models:
+
+Clearly labelled
+
+Treated as €0
+
+Never crash UI
+
+Price Outputs (Live)
+
+Must show:
+
+Offer Price (bundle)
+
+Selected Optional Add-Ons total
+
+Provisional Price
+
+Final Price (same as Provisional in MVP)
+
+Prices must update instantly as selections change.
+
+UI REQUIREMENTS
+Visual Tone
+
+Calm, serious, enterprise-safe
+
+This must look credible for high-value bookings
+
+Use existing UI primitives where available:
+
+<Card>
+
+<Section>
+
+<Badge>
+
+Layout Suggestion (Not Prescriptive)
+
+Left: Add-On Catalogue (filter + list)
+
+Right / Bottom: Price Summary
+
+Clear separation between:
+
+Included (bundled)
+
+Optional (selectable)
+
+Copy / Labelling
+
+Use explicit reassurance language:
+
+“Preview only — no booking or payment at this stage”
+
+“Prices update instantly”
+
+“Final confirmation happens with the venue”
+
+WHAT YOU SHOULD DELIVER
+Code
+
+Full delete-and-replace for any file you touch
+
+No partial diffs
+
+No refactors outside this scope
+
+For each delivery:
+
+✅ One commit message
+
+✅ 3–5 bullet summary of what changed
+
+✅ Clear note of anything intentionally not handled
+
+WHAT YOU SHOULD NOT ATTEMPT (Phase 2+)
+
+Do not:
+
+Persist selections
+
+Email hotels
+
+Generate PDFs
+
+Introduce approval flows
+
+Add “Request Quote” buttons
+
+Add permissions or roles
+
+We will design those later.
+
+SUCCESS CRITERIA (Very Important)
+
+At the end of Phase 1:
+
+A hotel can say:
+
+“Yes — this captures the full value of a complex booking”
+
+A booker can say:
+
+“I understand the price and I’m not surprised by it”
+
+The system remains:
+
+Safe
+
+Reversible
+
+Non-binding
+
+Confidence-building
+
+FIRST STEP (Start Here)
+
+Before coding, reply with:
+
+Proposed UI layout (short, bullet points)
+
+Confirmation of which existing pricing functions you will reuse
+
+Any risks you foresee within Phase 1 only
+
+Do not write code until this is confirmed.
