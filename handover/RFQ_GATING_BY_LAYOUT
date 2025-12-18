@@ -1,0 +1,181 @@
+📌 SPOKE PROMPT — RFQ GATING BY LAYOUT (Phase 1)
+Context (read carefully)
+
+We already have:
+
+A Booker Preview (admin-only) page
+
+Online vs RFQ logic temporarily gated by capacity threshold
+
+Optional add-on behaviour:
+
+ONLINE → curated optional add-ons only
+
+RFQ → full optional add-on catalogue
+
+We are now formalising the correct rule and implementing it cleanly.
+
+This work is UI + light logic only, no backend changes, no saving, no booking flow.
+
+🎯 Objective
+
+Replace the temporary “capacity > X = RFQ” rule with a layout-level RFQ override, while keeping capacity eligibility as the first gate.
+
+The system must default to ONLINE booking wherever possible.
+
+✅ Final rules (do not reinterpret)
+1️⃣ Eligibility gate (always first)
+
+A layout is eligible if:
+
+capacityMin ≤ attendees ≤ capacityMax
+
+
+If not eligible:
+
+The layout does not appear at all
+
+No online
+
+No RFQ
+
+No warnings
+
+2️⃣ Booking mode (applies only to eligible layouts)
+
+For each eligible layout:
+
+ONLINE is the default
+
+Layout becomes RFQ-only only if the hotel explicitly flags it
+
+There is no third state.
+
+3️⃣ RFQ override (hotel-controlled)
+
+Each layout has a boolean flag:
+
+layout.rfqOnly === true
+
+
+Rules:
+
+rfqOnly === true → layout is ⛔ RFQ
+
+rfqOnly !== true → layout is Online
+
+If the hotel does nothing → layout is Online.
+
+4️⃣ Booker-facing behaviour
+
+The booker:
+
+Sees only eligible layouts
+
+May see some layouts labelled “Requires quote”
+
+Proceeds online if at least one eligible online layout exists
+
+Is never silently switched to RFQ
+
+⛔ RFQ is an exception label, not a system decision.
+
+5️⃣ Optional add-ons behaviour (already implemented, must remain)
+
+ONLINE layout selected
+
+Optional add-ons = curated room-level optional list
+
+RFQ layout selected
+
+Optional add-ons = full global catalogue (active + public)
+
+Do not change this logic — only rewire the gate.
+
+🔧 Scope of work (strict)
+You MAY touch:
+
+admin-ui/src/pages/Dashboard/BookerPreview/index.jsx
+
+Layout selection logic
+
+RFQ / Online gating logic
+
+UI labels (“Requires quote”)
+
+You MUST NOT:
+
+Add backend fields
+
+Persist anything
+
+Change pricing maths
+
+Change Simulation page
+
+Add booking / submission logic
+
+Guess file paths (ask if unsure)
+
+🧱 Required implementation steps
+
+Read layouts from selectedRoom.layouts[]
+
+Extract:
+
+capacityMin
+
+capacityMax
+
+rfqOnly (boolean)
+
+Filter layouts by eligibility first
+
+Apply RFQ override second
+
+Replace capacity-threshold logic entirely
+
+Keep optional add-on logic exactly as-is
+
+Add a visible “⛔ Requires quote” label for RFQ layouts
+
+🧪 Example (must behave exactly like this)
+
+Attendees = 18
+
+Layouts:
+
+Boardroom (6–20), rfqOnly = false → Online
+
+Classroom (15–40), rfqOnly = true → ⛔ RFQ
+
+Result:
+
+Booker can book Boardroom fully online
+
+Classroom appears but is RFQ-only
+
+Optional add-ons behave correctly per mode
+
+📦 Deliverables
+
+Full delete-and-replace of modified file(s)
+
+One commit
+
+Commit message example:
+
+feat: gate RFQ by layout override after capacity eligibility
+
+
+Short explanation (3–5 bullets max)
+
+❓If anything is unclear
+
+Ask before coding.
+Do not invent fields or behaviours.
+
+This prompt is now tight, visual, business-aligned, and safe to execute.
+Once Spoke completes this, you’ll have the clearest differentiation in the market between “online bookable” and “human-closed” meetings — without breaking the flow for either party.
+
+When you’re ready after this, the next natural phase is making rfqOnly editable in Room Setup → Layouts, but that’s for HUB#9.
