@@ -76,3 +76,58 @@ Notes:
 ______________________________________________________________________
 ______________________________________________________________________
 ______________________________________________________________________
+HUB#9 – Latest Update (Post-HUB#8)
+
+What was just completed
+
+RFQ vs Online logic implemented in Booker Preview
+
+Gating is now driven by:
+
+Attendee count → eligible layouts
+
+Layout-level override: “RFQ only” (hotel-controlled)
+
+Behaviour confirmed:
+
+Online mode → curated optional add-ons only
+
+RFQ mode → full public + active add-on catalogue (read-only, pre-contract)
+
+Simulator and Booker Preview remain pricing-identical
+
+Key positioning decision (important)
+
+System default = Online booking
+
+RFQ is an explicit hotel throttle, not an automatic outcome
+
+Goal: maximise fully online bookings while preserving hotel control
+
+What this enables (business-wise)
+
+Large bookings can progress to a near-contract state without human pricing effort
+
+Hotel engagement shifts from pricing → confirmation/closing
+
+Sales effort compressed, not removed
+
+What is intentionally NOT built yet
+
+Availability calendars
+
+Submission / RFQ workflow
+
+Saved proposals
+
+Payments
+
+(All are deliberately deferred and safe to demo as “Coming soon”.)
+
+Next recommended focus
+
+Stabilise demo narrative (no new logic)
+
+Optional: minor UI clarity (labels/badges only)
+
+Begin positioning MVP externally to hotels
