@@ -187,16 +187,17 @@ function ExplainerPanel({ expanded, onToggle, sections }) {
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 16,
-              lineHeight: "20px",
-              fontWeight: 880,
-              color: "rgba(17, 24, 39, 0.92)",
-            }}
-          >
-            Why this page exists
-          </div>
+         <div
+  style={{
+    fontSize: 17,
+    lineHeight: "20px",
+    fontWeight: 880,
+    color: "rgba(30, 64, 175, 0.95)",
+  }}
+>
+  Why this page exists
+</div>
+ 
           <div
             style={{
               marginTop: 6,
