@@ -434,9 +434,10 @@ export default function SimulationPage() {
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, lineHeight: "20px", fontWeight: 880, color: "rgba(17, 24, 39, 0.92)" }}>
-              Why this page exists
-            </div>
+          <div style={{ fontSize: 17, lineHeight: "20px", fontWeight: 880, color: "rgba(30, 64, 175, 0.95)" }}>
+          Why this page exists
+          </div>
+  
             <div style={{ marginTop: 6, fontSize: 12, lineHeight: "16px", color: "rgba(17, 24, 39, 0.68)" }}>
               A short, self-guided explanation to help you trust what the simulator is showing.
             </div>
