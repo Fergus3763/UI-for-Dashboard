@@ -118,7 +118,8 @@ function calcRoomBasePricePerBooking(room, attendees) {
   const perRoom = toNumberSafe(pricing?.perRoom);
   const rule = String(pricing?.rule || "").toLowerCase(); // "higher" | "lower"
 
-  const perPersonTotal = perPerson > 0 ? toNumberSafe(attendees) * perPerson : 0;
+  const perPersonTotal =
+    perPerson > 0 ? toNumberSafe(attendees) * perPerson : 0;
   const perRoomTotal = perRoom > 0 ? perRoom : 0;
 
   const hasPerson = perPerson > 0;
@@ -211,6 +212,9 @@ export default function BookerPreviewPage() {
     () => new Set()
   );
 
+  // UI-only: collapsible explainer (collapsed by default; never disappears)
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
+
   useEffect(() => {
     let alive = true;
 
@@ -263,7 +267,9 @@ export default function BookerPreviewPage() {
   }, [rooms, selectedRoomId]);
 
   const roomLayouts = useMemo(() => {
-    const layouts = Array.isArray(selectedRoom?.layouts) ? selectedRoom.layouts : [];
+    const layouts = Array.isArray(selectedRoom?.layouts)
+      ? selectedRoom.layouts
+      : [];
     return layouts;
   }, [selectedRoom]);
 
@@ -399,7 +405,11 @@ export default function BookerPreviewPage() {
   const optionalLineItems = useMemo(() => {
     return selectedOptionalResolved.map(({ addOn }) => {
       const { model, amount, unit } = getAddOnPricing(addOn);
-      const { value, supported } = calcAddOnValue(addOn, attendees, durationHours);
+      const { value, supported } = calcAddOnValue(
+        addOn,
+        attendees,
+        durationHours
+      );
 
       const label =
         model === "PER_PERIOD"
@@ -461,6 +471,134 @@ export default function BookerPreviewPage() {
 
   return (
     <div style={{ padding: 18, maxWidth: 1000 }}>
+      {/* Collapsible explainer (UI-only; collapsed by default; never disappears) */}
+      <div
+        style={{
+          marginBottom: 14,
+          borderRadius: 14,
+          border: "1px solid rgba(59, 130, 246, 0.22)",
+          background: "rgba(59, 130, 246, 0.06)",
+          padding: 14,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(17, 24, 39, 0.92)",
+              }}
+            >
+              Why this page exists
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                lineHeight: "16px",
+                color: "rgba(17, 24, 39, 0.68)",
+              }}
+            >
+              A short, self-guided explanation (read-only guidance).
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setExplainerExpanded((v) => !v)}
+            style={{
+              border: "1px solid rgba(59, 130, 246, 0.32)",
+              background: "rgba(59, 130, 246, 0.10)",
+              color: "rgba(30, 64, 175, 0.95)",
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontWeight: 820,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+            aria-expanded={explainerExpanded}
+          >
+            {explainerExpanded ? "Collapse ▴" : "Expand ▾"}
+          </button>
+        </div>
+
+        {explainerExpanded ? (
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                Why this page exists
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                This page shows exactly what a guest will experience — without
+                taking a booking.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                What this page does
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                It mirrors live pricing behaviour using the same rules as the
+                simulator.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                How this is used
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                To verify guest-facing pricing, optional add-ons, and RFQ
+                behaviour.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                Why this matters
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                If the price is correct here, it will be correct for guests.
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       {/* Banner */}
       <div
         style={{
@@ -472,7 +610,8 @@ export default function BookerPreviewPage() {
           marginBottom: 14,
         }}
       >
-        Preview only — availability, reservation and payment are not active in this demo.
+        Preview only — availability, reservation and payment are not active in
+        this demo.
       </div>
 
       {/* RFQ banner (Phase 1) */}
@@ -496,19 +635,35 @@ export default function BookerPreviewPage() {
         This mirrors the booker pricing flow using the same rules as Simulation.
       </div>
 
-      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div
+        style={{
+          marginTop: 16,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 14,
+        }}
+      >
         {/* Inputs */}
         <Card title="Inputs">
           <div style={{ display: "grid", gap: 12 }}>
             <div>
-              <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Room</label>
+              <label
+                style={{ fontWeight: 800, display: "block", marginBottom: 6 }}
+              >
+                Room
+              </label>
               <select
                 value={selectedRoomId}
                 onChange={(e) => {
                   setSelectedRoomId(e.target.value);
                   setSelectedLayoutIndex(0);
                 }}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,0.15)",
+                }}
               >
                 {(rooms || []).map((r) => {
                   const id = r?.id ?? r?._id ?? r?.roomId;
@@ -523,18 +678,32 @@ export default function BookerPreviewPage() {
 
             {/* Layout selector (Phase 1 gating input) */}
             <div>
-              <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Layout</label>
+              <label
+                style={{ fontWeight: 800, display: "block", marginBottom: 6 }}
+              >
+                Layout
+              </label>
 
               {roomLayouts.length === 0 ? (
                 <div style={{ opacity: 0.75 }}>
-                  No layouts configured for this room. (RFQ mode cannot be determined.)
+                  No layouts configured for this room. (RFQ mode cannot be
+                  determined.)
                 </div>
               ) : (
                 <>
                   <select
                     value={String(selectedLayoutIndex)}
-                    onChange={(e) => setSelectedLayoutIndex(Math.max(0, toNumberSafe(e.target.value)))}
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                    onChange={(e) =>
+                      setSelectedLayoutIndex(
+                        Math.max(0, toNumberSafe(e.target.value))
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.15)",
+                    }}
                   >
                     {roomLayouts.map((l, idx) => {
                       const label = getLayoutLabel(l);
@@ -548,20 +717,38 @@ export default function BookerPreviewPage() {
                   </select>
 
                   <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                    Mode: <strong>{isRFQMode ? "RFQ / PRE-CONTRACT" : "ONLINE BOOKABLE"}</strong>{" "}
+                    Mode:{" "}
+                    <strong>
+                      {isRFQMode ? "RFQ / PRE-CONTRACT" : "ONLINE BOOKABLE"}
+                    </strong>{" "}
                     (threshold {RFQ_CAPACITY_THRESHOLD})
                   </div>
                 </>
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+              }}
+            >
               <div>
-                <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Start time</label>
+                <label
+                  style={{ fontWeight: 800, display: "block", marginBottom: 6 }}
+                >
+                  Start time
+                </label>
                 <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                  }}
                 >
                   {hourOptions.map((t) => (
                     <option key={t} value={t}>
@@ -572,11 +759,24 @@ export default function BookerPreviewPage() {
               </div>
 
               <div>
-                <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Duration (hours)</label>
+                <label
+                  style={{ fontWeight: 800, display: "block", marginBottom: 6 }}
+                >
+                  Duration (hours)
+                </label>
                 <select
                   value={durationHours}
-                  onChange={(e) => setDurationHours(Math.min(12, Math.max(1, toNumberSafe(e.target.value))))}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                  onChange={(e) =>
+                    setDurationHours(
+                      Math.min(12, Math.max(1, toNumberSafe(e.target.value)))
+                    )
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                  }}
                 >
                   {durationOptions.map((h) => (
                     <option key={h} value={h}>
@@ -588,13 +788,24 @@ export default function BookerPreviewPage() {
             </div>
 
             <div>
-              <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>Attendees</label>
+              <label
+                style={{ fontWeight: 800, display: "block", marginBottom: 6 }}
+              >
+                Attendees
+              </label>
               <input
                 type="number"
                 min={0}
                 value={attendees}
-                onChange={(e) => setAttendees(Math.max(0, toNumberSafe(e.target.value)))}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+                onChange={(e) =>
+                  setAttendees(Math.max(0, toNumberSafe(e.target.value)))
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,0.15)",
+                }}
               />
             </div>
 
@@ -608,14 +819,20 @@ export default function BookerPreviewPage() {
         <Card title={isRFQMode ? "Optional add-ons (full catalogue)" : "Optional add-ons"}>
           {optionalAddOnsResolved.length === 0 ? (
             <div style={{ opacity: 0.75 }}>
-              {isRFQMode ? "No active public add-ons in catalogue." : "No optional add-ons for this room."}
+              {isRFQMode
+                ? "No active public add-ons in catalogue."
+                : "No optional add-ons for this room."}
             </div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {optionalAddOnsResolved.map(({ id, addOn }) => {
                 const name = addOn?.name || addOn?.title || "Unnamed add-on";
                 const { model, amount, unit } = getAddOnPricing(addOn);
-                const { value, supported } = calcAddOnValue(addOn, attendees, durationHours);
+                const { value, supported } = calcAddOnValue(
+                  addOn,
+                  attendees,
+                  durationHours
+                );
 
                 const modelLabel =
                   model === "PER_PERIOD"
@@ -645,7 +862,9 @@ export default function BookerPreviewPage() {
                       <div style={{ fontWeight: 800 }}>{name}</div>
                       <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
                         {modelLabel} • Unit: {formatMoney(amount)}
-                        {supported ? ` • Adds: ${formatMoney(value)}` : " • Not supported in preview (treated as €0)"}
+                        {supported
+                          ? ` • Adds: ${formatMoney(value)}`
+                          : " • Not supported in preview (treated as €0)"}
                       </div>
                     </div>
                   </label>
@@ -662,7 +881,9 @@ export default function BookerPreviewPage() {
           {/* Included names only (optional) */}
           {includedAddOnsResolved.length > 0 ? (
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>Included in your price:</div>
+              <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                Included in your price:
+              </div>
               <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.85 }}>
                 {includedAddOnsResolved.map((a) => {
                   const key = String(a?.id ?? a?._id ?? a?.name ?? "included");
@@ -681,12 +902,17 @@ export default function BookerPreviewPage() {
 
             {optionalLineItems.length > 0 ? (
               <div style={{ marginTop: 8 }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>Selected optional add-ons</div>
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                  Selected optional add-ons
+                </div>
                 <div style={{ display: "grid", gap: 6 }}>
                   {optionalLineItems.map((x) => (
                     <div key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ fontWeight: 700 }}>
-                        {x.name} <span style={{ fontSize: 12, opacity: 0.7 }}>({x.label})</span>
+                        {x.name}{" "}
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>
+                          ({x.label})
+                        </span>
                       </div>
                       <div style={{ fontWeight: 900 }}>{formatMoney(x.value)}</div>
                     </div>
