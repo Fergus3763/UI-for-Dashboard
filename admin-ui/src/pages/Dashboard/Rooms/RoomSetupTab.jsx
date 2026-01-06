@@ -1,4 +1,4 @@
-// admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx 
+// admin-ui/src/pages/Dashboard/Rooms/RoomSetupTab.jsx
 
 import React, { useEffect, useMemo, useState } from "react";
 import RoomListPanel from "./RoomListPanel";
@@ -45,6 +45,9 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
   );
   const [validationError, setValidationError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // UI-only: collapsible explainer (collapsed by default; never disappears)
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
 
   useEffect(() => {
     // When the rooms prop changes (e.g. after a successful save or page load),
@@ -181,68 +184,199 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
   };
 
   return (
-    <div className="room-setup" style={{ display: "flex", gap: "1.5rem" }}>
-      <RoomListPanel
-        rooms={draftRooms}
-        selectedRoomId={selectedRoomId}
-        onSelectRoom={handleSelectRoom}
-        onNewRoom={handleNewRoom}
-        onDeleteRoom={handleDeleteRoom}
-      />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {!selectedRoom && (
-          <div className="room-setup-empty">
-            <p>No rooms defined yet.</p>
-            <button type="button" onClick={handleNewRoom}>
-              New Room
-            </button>
-          </div>
-        )}
-
-        {selectedRoom && (
-          <>
-            {validationError && (
-              <div
-                className="alert alert-error"
-                style={{ marginBottom: "1rem" }}
-              >
-                {validationError}
-              </div>
-            )}
-            {saveSuccess && !saving && (
-              <div
-                className="alert alert-success"
-                style={{ marginBottom: "1rem" }}
-              >
-                Room configuration saved.
-              </div>
-            )}
-
-            <RoomForm
-              room={selectedRoom}
-              addOns={addOns}
-              onChange={handleUpdateRoom}
-              onCodeChange={handleCodeChangeWithAutoGeneration}
-            />
-
-            {/* 👇 HUB #8-approved calendar mount point */}
-            <RoomCalendarPanel room={selectedRoom} />
-
+    <div>
+      {/* Collapsible explainer (UI-only; collapsed by default; never disappears) */}
+      <div
+        style={{
+          marginBottom: "1rem",
+          borderRadius: 14,
+          border: "1px solid rgba(59, 130, 246, 0.22)",
+          background: "rgba(59, 130, 246, 0.06)",
+          padding: 14,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
-              className="room-setup-actions"
-              style={{ marginTop: "1.5rem", textAlign: "right" }}
+              style={{
+                fontSize: 16,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(17, 24, 39, 0.92)",
+              }}
             >
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !draftRooms.length}
+              Why this page exists
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                lineHeight: "16px",
+                color: "rgba(17, 24, 39, 0.68)",
+              }}
+            >
+              A short, self-guided explanation (read-only guidance).
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setExplainerExpanded((v) => !v)}
+            style={{
+              border: "1px solid rgba(59, 130, 246, 0.32)",
+              background: "rgba(59, 130, 246, 0.10)",
+              color: "rgba(30, 64, 175, 0.95)",
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontWeight: 820,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+            aria-expanded={explainerExpanded}
+          >
+            {explainerExpanded ? "Collapse ▴" : "Expand ▾"}
+          </button>
+        </div>
+
+        {explainerExpanded ? (
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                Why this page exists
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
               >
-                {saving ? "Saving…" : "Save All Rooms"}
+                This is where you define the physical reality of your meeting
+                rooms.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                What data you configure here
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                Room names, layouts, capacities, pricing rules, and availability
+                characteristics.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                How this data is used
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                Room definitions power pricing, eligibility for online booking,
+                RFQ routing, and what Booker can see and select.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                Why this matters
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                Accurate room setup is the foundation of trusted pricing and
+                confident automation.
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="room-setup" style={{ display: "flex", gap: "1.5rem" }}>
+        <RoomListPanel
+          rooms={draftRooms}
+          selectedRoomId={selectedRoomId}
+          onSelectRoom={handleSelectRoom}
+          onNewRoom={handleNewRoom}
+          onDeleteRoom={handleDeleteRoom}
+        />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!selectedRoom && (
+            <div className="room-setup-empty">
+              <p>No rooms defined yet.</p>
+              <button type="button" onClick={handleNewRoom}>
+                New Room
               </button>
             </div>
-          </>
-        )}
+          )}
+
+          {selectedRoom && (
+            <>
+              {validationError && (
+                <div
+                  className="alert alert-error"
+                  style={{ marginBottom: "1rem" }}
+                >
+                  {validationError}
+                </div>
+              )}
+              {saveSuccess && !saving && (
+                <div
+                  className="alert alert-success"
+                  style={{ marginBottom: "1rem" }}
+                >
+                  Room configuration saved.
+                </div>
+              )}
+
+              <RoomForm
+                room={selectedRoom}
+                addOns={addOns}
+                onChange={handleUpdateRoom}
+                onCodeChange={handleCodeChangeWithAutoGeneration}
+              />
+
+              {/* 👇 HUB #8-approved calendar mount point */}
+              <RoomCalendarPanel room={selectedRoom} />
+
+              <div
+                className="room-setup-actions"
+                style={{ marginTop: "1.5rem", textAlign: "right" }}
+              >
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !draftRooms.length}
+                >
+                  {saving ? "Saving…" : "Save All Rooms"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
