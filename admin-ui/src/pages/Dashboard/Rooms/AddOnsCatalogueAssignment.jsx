@@ -1,6 +1,6 @@
 // admin-ui/src/pages/Dashboard/Rooms/AddOnsCatalogueAssignment.jsx
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 
 /**
  * Add-Ons → Catalogue & Assignment
@@ -71,6 +71,9 @@ const AddOnsCatalogueAssignment = ({
   onUpdateRoomAssignments,
   saving = false,
 }) => {
+  // UI-only: collapsible explainer (collapsed by default; never disappears)
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
+
   const normaliseIdArray = (value) => {
     if (!Array.isArray(value)) return [];
     return value.map((v) => String(v));
@@ -85,7 +88,12 @@ const AddOnsCatalogueAssignment = ({
     return "none";
   };
 
-  const handleRoomAssignmentClick = (room, currentState, targetState, addOnId) => {
+  const handleRoomAssignmentClick = (
+    room,
+    currentState,
+    targetState,
+    addOnId
+  ) => {
     if (!onUpdateRoomAssignments || !room || !room.id) return;
 
     const idString = String(addOnId);
@@ -187,6 +195,154 @@ const AddOnsCatalogueAssignment = ({
 
   return (
     <div>
+      {/* Collapsible explainer (verbatim copy) */}
+      <div
+        style={{
+          marginBottom: "1rem",
+          borderRadius: 14,
+          border: "1px solid rgba(59, 130, 246, 0.22)",
+          background: "rgba(59, 130, 246, 0.06)",
+          padding: 14,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(17, 24, 39, 0.92)",
+              }}
+            >
+              Why this page exists
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                lineHeight: "16px",
+                color: "rgba(17, 24, 39, 0.68)",
+              }}
+            >
+              A short, self-guided explanation (read-only guidance).
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setExplainerExpanded((v) => !v)}
+            style={{
+              border: "1px solid rgba(59, 130, 246, 0.32)",
+              background: "rgba(59, 130, 246, 0.10)",
+              color: "rgba(30, 64, 175, 0.95)",
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontWeight: 820,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+            aria-expanded={explainerExpanded}
+          >
+            {explainerExpanded ? "Collapse ▴" : "Expand ▾"}
+          </button>
+        </div>
+
+        {explainerExpanded ? (
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <div>
+              <div
+                style={{
+                  fontWeight: 860,
+                  color: "rgba(17, 24, 39, 0.92)",
+                }}
+              >
+                Why this page exists
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                This page controls which add-ons apply to which rooms.
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontWeight: 860,
+                  color: "rgba(17, 24, 39, 0.92)",
+                }}
+              >
+                What data you configure here
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                Which add-ons are included by default and which are optional for
+                each room.
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontWeight: 860,
+                  color: "rgba(17, 24, 39, 0.92)",
+                }}
+              >
+                How this data is used
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                These assignments shape what guests see, what’s bundled, and
+                what’s selectable.
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontWeight: 860,
+                  color: "rgba(17, 24, 39, 0.92)",
+                }}
+              >
+                Why this matters
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                You control the guest experience while preserving pricing
+                accuracy and margin.
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       <h2 style={{ marginTop: 0, marginBottom: "0.5rem" }}>
         Add-Ons – Catalogue &amp; Assignment
       </h2>
