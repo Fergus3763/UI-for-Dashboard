@@ -249,8 +249,8 @@ export default function SimulationPage() {
 
   const [selectedOptionalAddOnIds, setSelectedOptionalAddOnIds] = useState(() => new Set());
 
-  // UI-only: explainer visibility (local; not persisted)
-  const [showExplainer, setShowExplainer] = useState(true);
+  // UI-only: collapsible explainer (collapsed by default; never disappears)
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -422,97 +422,86 @@ export default function SimulationPage() {
         description='Hotel-only, read-only price simulator (no saving). Purpose: “What price will the booker see and pay?”'
       />
 
-      {/* Self-guided explainer (UI-only) */}
-      {showExplainer ? (
-        <div style={{ marginTop: 14 }}>
-          <Card title="Why this page exists" subtitle="A quick, self-guided explanation for hotel admins (read-only).">
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  <Badge tone="neutral">Read-only</Badge>
-                  <Badge tone="included">Confidence tool</Badge>
-                  <Badge tone="optional">No saving</Badge>
-                </div>
+      {/* Collapsible explainer (UI-only; collapsed by default; never disappears) */}
+      <div
+        style={{
+          marginTop: 14,
+          borderRadius: 14,
+          border: "1px solid rgba(59, 130, 246, 0.22)",
+          background: "rgba(59, 130, 246, 0.06)",
+          padding: 14,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, lineHeight: "20px", fontWeight: 880, color: "rgba(17, 24, 39, 0.92)" }}>
+              Why this page exists
+            </div>
+            <div style={{ marginTop: 6, fontSize: 12, lineHeight: "16px", color: "rgba(17, 24, 39, 0.68)" }}>
+              A short, self-guided explanation to help you trust what the simulator is showing.
+            </div>
+          </div>
 
-                <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 820, color: "rgba(17, 24, 39, 0.92)" }}>What this page does</div>
-                    <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.62)", lineHeight: "18px" }}>
-                      This page lets you test and verify exactly how your meeting room pricing behaves before any guest ever sees it.
-                    </div>
-                  </div>
+          <button
+            type="button"
+            onClick={() => setExplainerExpanded((v) => !v)}
+            style={{
+              border: "1px solid rgba(59, 130, 246, 0.32)",
+              background: "rgba(59, 130, 246, 0.10)",
+              color: "rgba(30, 64, 175, 0.95)",
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontWeight: 820,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+            aria-expanded={explainerExpanded}
+          >
+            {explainerExpanded ? "Collapse ▴" : "Expand ▾"}
+          </button>
+        </div>
 
-                  <div>
-                    <div style={{ fontWeight: 820, color: "rgba(17, 24, 39, 0.92)" }}>Why the hotel needs this set up</div>
-                    <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.62)", lineHeight: "18px" }}>
-                      Meeting room pricing is complex. This simulator gives you confidence that every cost you’ve configured — room rates,
-                      included services, and optional add-ons — is correctly reflected in the final price.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontWeight: 820, color: "rgba(17, 24, 39, 0.92)" }}>How this is used downstream</div>
-                    <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.62)", lineHeight: "18px" }}>
-                      The same pricing rules used here power the Booker Preview and live booking experience. If the numbers are correct
-                      here, they will be correct for your guests.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontWeight: 820, color: "rgba(17, 24, 39, 0.92)" }}>What confidence and control this gives you</div>
-                    <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.62)", lineHeight: "18px" }}>
-                      You can safely adjust pricing, test scenarios, and explore different meeting sizes knowing exactly what price a
-                      guest will see — before committing anything live.
-                    </div>
-                  </div>
-                </div>
-
-                <Divider style={{ margin: "14px 0" }} />
-
-                <div style={{ fontSize: 12, lineHeight: "16px", color: "rgba(17, 24, 39, 0.62)" }}>
-                  This page is intentionally read-only. Data source: <code>/.netlify/functions/load_config</code> (GET only).
+        {explainerExpanded ? (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>What this page does</div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  This page lets you test and verify exactly how your meeting room pricing behaves before any guest ever sees it.
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowExplainer(false)}
-                style={{
-                  border: "1px solid rgba(17, 24, 39, 0.14)",
-                  background: "#fff",
-                  color: "rgba(17, 24, 39, 0.82)",
-                  borderRadius: 10,
-                  padding: "8px 10px",
-                  fontWeight: 760,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-                aria-label="Dismiss explainer"
-              >
-                Dismiss
-              </button>
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>Why the hotel needs this set up</div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  Meeting room pricing is complex. This simulator gives you confidence that every cost you’ve configured — room rates,
+                  included services, and optional add-ons — is correctly reflected in the final price.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>How this is used downstream</div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  The same pricing rules used here power the Booker Preview and live booking experience. If the numbers are correct
+                  here, they will be correct for your guests.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>What confidence and control this gives you</div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  You can safely adjust pricing, test scenarios, and explore different meeting sizes knowing exactly what price a guest
+                  will see — before committing anything live.
+                </div>
+              </div>
             </div>
-          </Card>
-        </div>
-      ) : (
-        <div style={{ marginTop: 14 }}>
-          <button
-            type="button"
-            onClick={() => setShowExplainer(true)}
-            style={{
-              border: "1px solid rgba(17, 24, 39, 0.14)",
-              background: "rgba(17, 24, 39, 0.02)",
-              color: "rgba(17, 24, 39, 0.82)",
-              borderRadius: 12,
-              padding: "10px 12px",
-              fontWeight: 760,
-              cursor: "pointer",
-            }}
-          >
-            Show “Why this page exists”
-          </button>
-        </div>
-      )}
+
+            <div style={{ marginTop: 12, fontSize: 12, lineHeight: "16px", color: "rgba(17, 24, 39, 0.62)" }}>
+              This page is intentionally read-only. Data source: <code>/.netlify/functions/load_config</code> (GET only).
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       {/* Inputs */}
       <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -760,8 +749,8 @@ export default function SimulationPage() {
                         justifyContent: "space-between",
                         gap: 12,
                         padding: "10px 12px",
-                        borderRadius: 12,
                         border: "1px solid rgba(17, 24, 39, 0.10)",
+                        borderRadius: 12,
                         background: "#fff",
                       }}
                     >
