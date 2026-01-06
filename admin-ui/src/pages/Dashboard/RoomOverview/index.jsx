@@ -15,10 +15,7 @@ const normaliseRoom = (room) => {
   const pricingSource = original.pricing || {};
 
   const perPersonRaw =
-    pricingSource.perPerson ??
-    original.perPersonRate ??
-    original.perPerson ??
-    null;
+    pricingSource.perPerson ?? original.perPersonRate ?? original.perPerson ?? null;
 
   const perRoomRaw =
     pricingSource.perRoom ??
@@ -28,10 +25,7 @@ const normaliseRoom = (room) => {
     null;
 
   const ruleRaw =
-    pricingSource.rule ??
-    original.priceRule ??
-    original.pricingRule ??
-    "higher";
+    pricingSource.rule ?? original.priceRule ?? original.pricingRule ?? "higher";
 
   const toNumberOrNull = (value) => {
     if (value === "" || value === null || value === undefined) return null;
@@ -79,12 +73,7 @@ const normaliseRoom = (room) => {
         if (typeof item === "number") return String(item);
         if (item && typeof item === "object") {
           const id =
-            item.id ??
-            item.code ??
-            item.slug ??
-            item.value ??
-            item.name ??
-            null;
+            item.id ?? item.code ?? item.slug ?? item.value ?? item.name ?? null;
           return id ? String(id) : null;
         }
         return null;
@@ -119,6 +108,9 @@ const RoomOverviewPage = () => {
   const [addOnsById, setAddOnsById] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // UI-only: collapsible explainer (collapsed by default; never disappears)
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
 
   // ─────────────────────────────────────
   // Load config via load_config function
@@ -160,9 +152,7 @@ const RoomOverviewPage = () => {
       } catch (err) {
         console.error("Error loading config for Room Overview:", err);
         if (isMounted) {
-          setError(
-            "Unable to load room configuration. Please try again later."
-          );
+          setError("Unable to load room configuration. Please try again later.");
         }
       } finally {
         if (isMounted) {
@@ -203,10 +193,8 @@ const RoomOverviewPage = () => {
   const formatCapacity = (layout) => {
     if (!layout) return "";
 
-    const capacityMin =
-      layout.capacityMin != null ? layout.capacityMin : layout.min;
-    const capacityMax =
-      layout.capacityMax != null ? layout.capacityMax : layout.max;
+    const capacityMin = layout.capacityMin != null ? layout.capacityMin : layout.min;
+    const capacityMax = layout.capacityMax != null ? layout.capacityMax : layout.max;
 
     if (capacityMin != null && capacityMax != null) {
       return `${capacityMin}–${capacityMax}`;
@@ -251,9 +239,7 @@ const RoomOverviewPage = () => {
               <div className="room-image-wrapper" key={index}>
                 <img
                   src={url}
-                  alt={`${room.name || room.code || "Room"} image ${
-                    index + 1
-                  }`}
+                  alt={`${room.name || room.code || "Room"} image ${index + 1}`}
                 />
               </div>
             );
@@ -361,9 +347,7 @@ const RoomOverviewPage = () => {
 
     // Ensure exclusivity: if an ID appears in both, treat it as Included.
     const includedIds = Array.from(includedSet);
-    const optionalIds = Array.from(optionalSetRaw).filter(
-      (id) => !includedSet.has(id)
-    );
+    const optionalIds = Array.from(optionalSetRaw).filter((id) => !includedSet.has(id));
 
     const hasAny = includedIds.length > 0 || optionalIds.length > 0;
     if (!hasAny) {
@@ -648,7 +632,120 @@ const RoomOverviewPage = () => {
 
       <div className="room-overview-header">
         <h1 className="room-overview-title">Room Overview</h1>
-        <p className="helper-text">
+
+        {/* Collapsible explainer (verbatim copy) */}
+        <div
+          style={{
+            marginTop: 12,
+            borderRadius: 14,
+            border: "1px solid rgba(59, 130, 246, 0.22)",
+            background: "rgba(59, 130, 246, 0.06)",
+            padding: 14,
+            maxWidth: 980,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* TEST CHANGE: title is BLUE + 17px */}
+              <div
+                style={{
+                  fontSize: 17,
+                  lineHeight: "20px",
+                  fontWeight: 880,
+                  color: "rgba(30, 64, 175, 0.95)",
+                }}
+              >
+                Why this page exists
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 12,
+                  lineHeight: "16px",
+                  color: "rgba(17, 24, 39, 0.68)",
+                }}
+              >
+                A short, self-guided explanation (read-only guidance).
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExplainerExpanded((v) => !v)}
+              style={{
+                border: "1px solid rgba(59, 130, 246, 0.32)",
+                background: "rgba(59, 130, 246, 0.10)",
+                color: "rgba(30, 64, 175, 0.95)",
+                borderRadius: 12,
+                padding: "10px 12px",
+                fontWeight: 820,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+              aria-expanded={explainerExpanded}
+            >
+              {explainerExpanded ? "Collapse ▴" : "Expand ▾"}
+            </button>
+          </div>
+
+          {explainerExpanded ? (
+            <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  Why this page exists
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  This page gives you a single, read-only view of all meeting rooms and their configurations at a glance.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  What this page shows
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  A visual summary of each room, including layouts, capacities, pricing behaviour, and assigned add-ons.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  How this page is used
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  This page is designed for verification, not editing. Use it to compare rooms, spot inconsistencies, and confirm that your setup behaves as expected before guests see it.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  What this page does not do
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  No changes can be made from this page. All edits happen in the Room Setup and Add-Ons sections.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  Why this matters
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  Room Overview acts as a final sense-check. If something looks wrong here, it would look wrong to a guest. If it looks right here, you can be confident the booking experience will reflect it accurately. This view helps you validate your configuration without risking accidental changes.
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <p className="helper-text" style={{ marginTop: 12 }}>
           Read-only visual summary of all rooms. Use this view to compare rooms
           at a glance and preview what bookers will eventually see. No changes
           can be made from this page.
@@ -657,9 +754,7 @@ const RoomOverviewPage = () => {
 
       {loading && <div className="feedback">Loading room configuration…</div>}
 
-      {!loading && error && (
-        <div className="feedback feedback-error">{error}</div>
-      )}
+      {!loading && error && <div className="feedback feedback-error">{error}</div>}
 
       {!loading && !error && rooms.length === 0 && (
         <div className="empty-state">No rooms configured yet.</div>
@@ -675,17 +770,12 @@ const RoomOverviewPage = () => {
                 {/* BASIC INFO */}
                 <div className="room-card-header">
                   <div className="room-card-title">
-                    <div className="room-name">
-                      {room.name || "Untitled room"}
-                    </div>
-                    {room.code && (
-                      <div className="room-code">Code: {room.code}</div>
-                    )}
+                    <div className="room-name">{room.name || "Untitled room"}</div>
+                    {room.code && <div className="room-code">Code: {room.code}</div>}
                   </div>
                   <span
                     className={
-                      "status-badge " +
-                      (room.active ? "status-active" : "status-inactive")
+                      "status-badge " + (room.active ? "status-active" : "status-inactive")
                     }
                   >
                     {room.active ? "Active" : "Inactive"}
@@ -693,9 +783,7 @@ const RoomOverviewPage = () => {
                 </div>
 
                 {room.description && (
-                  <div className="room-description">
-                    {truncateText(room.description)}
-                  </div>
+                  <div className="room-description">{truncateText(room.description)}</div>
                 )}
 
                 {/* IMAGES */}
