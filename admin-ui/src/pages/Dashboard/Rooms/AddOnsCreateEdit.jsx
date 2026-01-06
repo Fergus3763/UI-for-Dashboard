@@ -55,7 +55,10 @@ function formatPricing(addOn) {
 
   const { included, pricing } = addOn;
   const model = pricing.model || DEFAULT_PRICING_MODEL;
-  const amount = typeof pricing.amountity = typeof pricing.amount === "number" ? pricing.amount : 0;
+
+  // ✅ FIX: correct typeof check (was a typo causing "Invalid assignment target")
+  const amount = typeof pricing.amount === "number" ? pricing.amount : 0;
+
   const periodUnit = pricing.periodUnit;
 
   if (included) {
@@ -137,7 +140,12 @@ function normaliseExistingAddOn(addOn) {
   };
 }
 
-const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) => {
+const AddOnsCreateEdit = ({
+  addOns,
+  setAddOns,
+  onSaveAddOns,
+  saving = false,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState("fnb");
   const [editingId, setEditingId] = useState(null); // null = none, "new" = new, otherwise existing id
 
@@ -230,7 +238,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
       description: n.description,
       category: n.category,
       pricingModel: n.pricing.model,
-      pricingAmount: String(typeof n.pricing.amount === "number" ? n.pricing.amount : 0),
+      pricingAmount: String(
+        typeof n.pricing.amount === "number" ? n.pricing.amount : 0
+      ),
       pricingPeriodUnit: n.pricing.periodUnit || DEFAULT_PERIOD_UNIT,
       vatClass: n.vatClass || "",
       public: n.public,
@@ -247,7 +257,15 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
 
   const validateForm = () => {
     const errors = {};
-    const { code, name, category, pricingModel, pricingAmount, pricingPeriodUnit, id } = formState;
+    const {
+      code,
+      name,
+      category,
+      pricingModel,
+      pricingAmount,
+      pricingPeriodUnit,
+      id,
+    } = formState;
 
     const trimmedName = (name || "").trim();
     const trimmedCode = (code || "").trim();
@@ -283,13 +301,15 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
       // still allow 0, but must be a number >= 0
       const amountNumber = parseFloat(pricingAmount);
       if (Number.isNaN(amountNumber) || amountNumber < 0) {
-        errors.pricingAmount = "Amount must be a number greater than or equal to 0.";
+        errors.pricingAmount =
+          "Amount must be a number greater than or equal to 0.";
       }
     }
 
     if (pricingModel === "PER_PERIOD") {
       if (!pricingPeriodUnit) {
-        errors.pricingPeriodUnit = "Period unit is required for per-period pricing.";
+        errors.pricingPeriodUnit =
+          "Period unit is required for per-period pricing.";
       }
     }
 
@@ -322,7 +342,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
 
     // Preserve existing "included" flag for existing add-ons, but do not expose in UI.
     const existing =
-      Array.isArray(localAddOns) && id ? localAddOns.find((a) => a.id === id) : null;
+      Array.isArray(localAddOns) && id
+        ? localAddOns.find((a) => a.id === id)
+        : null;
     const included = existing ? !!existing.included : false;
 
     const pricing = {
@@ -349,7 +371,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
   };
 
   const persistAndSave = (newAddOnsArray, options = { resetAfter: false }) => {
-    const normalised = (Array.isArray(newAddOnsArray) ? newAddOnsArray : []).map(normaliseExistingAddOn);
+    const normalised = (Array.isArray(newAddOnsArray) ? newAddOnsArray : []).map(
+      normaliseExistingAddOn
+    );
 
     // 1) Update local view immediately so the table refreshes at once
     setLocalAddOns(normalised);
@@ -383,7 +407,10 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
       );
     } else {
       // Create new
-      nextAddOns = [...(Array.isArray(localAddOns) ? localAddOns : []), builtAddOn];
+      nextAddOns = [
+        ...(Array.isArray(localAddOns) ? localAddOns : []),
+        builtAddOn,
+      ];
     }
 
     persistAndSave(nextAddOns, { resetAfter: addAnother });
@@ -391,7 +418,10 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
     if (!addAnother) {
       setEditingId(null);
     } else {
-      const suggestedCode = getSuggestedCodeForCategory(nextAddOns, selectedCategory);
+      const suggestedCode = getSuggestedCodeForCategory(
+        nextAddOns,
+        selectedCategory
+      );
       setEditingId("new");
       setFormErrors({});
       setFormState({
@@ -419,8 +449,8 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
     const normalised = normaliseExistingAddOn(addOn);
     const updated = { ...normalised, active: !normalised.active };
 
-    const nextAddOns = (Array.isArray(localAddOns) ? localAddOns : []).map((a) =>
-      a.id === updated.id ? updated : a
+    const nextAddOns = (Array.isArray(localAddOns) ? localAddOns : []).map(
+      (a) => (a.id === updated.id ? updated : a)
     );
 
     persistAndSave(nextAddOns, { resetAfter: false });
@@ -437,12 +467,33 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
           padding: 14,
         }}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, lineHeight: "20px", fontWeight: 880, color: "rgba(17, 24, 39, 0.92)" }}>
+            <div
+              style={{
+                fontSize: 16,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(17, 24, 39, 0.92)",
+              }}
+            >
               Why this page exists
             </div>
-            <div style={{ marginTop: 6, fontSize: 12, lineHeight: "16px", color: "rgba(17, 24, 39, 0.68)" }}>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                lineHeight: "16px",
+                color: "rgba(17, 24, 39, 0.68)",
+              }}
+            >
               A short, self-guided explanation (read-only guidance).
             </div>
           </div>
@@ -469,29 +520,61 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
         {explainerExpanded ? (
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
             <div>
-              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>Why this page exists</div>
-              <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                Why this page exists
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
                 This page defines everything that can be added to a booking — once, centrally. Addons can be inclusive in base price or as an optional purchase by the booker
               </div>
             </div>
 
             <div>
-              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>What data you configure here</div>
-              <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                What data you configure here
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
                 Add-on names, categories, pricing models, VAT treatment, and whether they are public or internal.
               </div>
             </div>
 
             <div>
-              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>How this data is used</div>
-              <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                How this data is used
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
                 These add-ons are reused across rooms, simulations, previews, and RFQ scenarios.
               </div>
             </div>
 
             <div>
-              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>Why this matters</div>
-              <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                Why this matters
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
                 Centralising add-ons avoids duplication and ensures pricing consistency across all bookings. Add-ons are upselling opportunities
               </div>
             </div>
@@ -528,7 +611,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
               border: isSelected
                 ? "1px solid rgba(59, 130, 246, 0.22)"
                 : "1px solid rgba(0,0,0,0.14)",
-              backgroundColor: isSelected ? "rgba(59, 130, 246, 0.10)" : "#ffffff",
+              backgroundColor: isSelected
+                ? "rgba(59, 130, 246, 0.10)"
+                : "#ffffff",
               color: isSelected ? "#1d4ed8" : "#444",
               cursor: "pointer",
               fontSize: "0.9rem",
@@ -565,7 +650,13 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
 
   const renderTable = () => (
     <div style={{ marginBottom: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+        }}
+      >
         <h3 style={{ marginBottom: "0.5rem" }}>
           {CATEGORY_LABELS[selectedCategory]} Add-Ons
         </h3>
@@ -578,7 +669,13 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "0.9rem",
+            }}
+          >
             <thead>
               <tr>
                 <th style={thStyle}>Code</th>
@@ -598,7 +695,11 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   <td style={tdStyle}>{formatPricing(addOn)}</td>
                   <td style={tdStyle}>{addOn.active ? "Yes" : "No"}</td>
                   <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                    <button type="button" onClick={() => startEditAddOn(addOn)} style={smallButtonStyle}>
+                    <button
+                      type="button"
+                      onClick={() => startEditAddOn(addOn)}
+                      style={smallButtonStyle}
+                    >
                       Edit
                     </button>
                     <button
@@ -642,13 +743,26 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
     const isNew = editingId === "new";
 
     return (
-      <div style={{ border: "1px solid #ddd", borderRadius: "4px", padding: "1rem", marginBottom: "1rem" }}>
+      <div
+        style={{
+          border: "1px solid #ddd",
+          borderRadius: "4px",
+          padding: "1rem",
+          marginBottom: "1rem",
+        }}
+      >
         <h3 style={{ marginTop: 0, marginBottom: "0.75rem" }}>
           {isNew ? "New Add-On" : "Edit Add-On"}
         </h3>
         <form onSubmit={(e) => handleSubmit(e, { addAnother: false })}>
           {/* Code & Name */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              marginBottom: "0.75rem",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 Code
@@ -659,7 +773,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   style={inputStyle}
                 />
               </label>
-              {formErrors.code && <div style={errorTextStyle}>{formErrors.code}</div>}
+              {formErrors.code && (
+                <div style={errorTextStyle}>{formErrors.code}</div>
+              )}
               <div style={{ fontSize: "0.8rem", color: "#555" }}>
                 Suggested format per category, e.g. FB-0001, AV-0001.
               </div>
@@ -676,7 +792,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   required
                 />
               </label>
-              {formErrors.name && <div style={errorTextStyle}>{formErrors.name}</div>}
+              {formErrors.name && (
+                <div style={errorTextStyle}>{formErrors.name}</div>
+              )}
             </div>
           </div>
 
@@ -686,20 +804,34 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
               Description
               <textarea
                 value={description}
-                onChange={(e) => handleFormFieldChange("description", e.target.value)}
-                style={{ ...inputStyle, minHeight: "70px", resize: "vertical" }}
+                onChange={(e) =>
+                  handleFormFieldChange("description", e.target.value)
+                }
+                style={{
+                  ...inputStyle,
+                  minHeight: "70px",
+                  resize: "vertical",
+                }}
               />
             </label>
           </div>
 
           {/* Category & Visibility */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              marginBottom: "0.75rem",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 Category *
                 <select
                   value={category}
-                  onChange={(e) => handleFormFieldChange("category", e.target.value)}
+                  onChange={(e) =>
+                    handleFormFieldChange("category", e.target.value)
+                  }
                   style={inputStyle}
                 >
                   {CATEGORY_KEYS.map((key) => (
@@ -709,7 +841,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   ))}
                 </select>
               </label>
-              {formErrors.category && <div style={errorTextStyle}>{formErrors.category}</div>}
+              {formErrors.category && (
+                <div style={errorTextStyle}>{formErrors.category}</div>
+              )}
             </div>
 
             <div style={{ flex: 1 }}>
@@ -717,16 +851,22 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                 <input
                   type="checkbox"
                   checked={isPublic}
-                  onChange={(e) => handleFormFieldChange("public", e.target.checked)}
+                  onChange={(e) =>
+                    handleFormFieldChange("public", e.target.checked)
+                  }
                   style={{ marginRight: "0.5rem" }}
                 />
                 Public (visible to guests)
               </label>
-              <label style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}>
+              <label
+                style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}
+              >
                 <input
                   type="checkbox"
                   checked={active}
-                  onChange={(e) => handleFormFieldChange("active", e.target.checked)}
+                  onChange={(e) =>
+                    handleFormFieldChange("active", e.target.checked)
+                  }
                   style={{ marginRight: "0.5rem" }}
                 />
                 Active
@@ -735,13 +875,21 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
           </div>
 
           {/* Pricing */}
-          <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              marginBottom: "0.75rem",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 Pricing model *
                 <select
                   value={pricingModel}
-                  onChange={(e) => handleFormFieldChange("pricingModel", e.target.value)}
+                  onChange={(e) =>
+                    handleFormFieldChange("pricingModel", e.target.value)
+                  }
                   style={inputStyle}
                 >
                   <option value="PER_EVENT">Per event</option>
@@ -750,7 +898,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   <option value="PER_UNIT">Per unit</option>
                 </select>
               </label>
-              {formErrors.pricingModel && <div style={errorTextStyle}>{formErrors.pricingModel}</div>}
+              {formErrors.pricingModel && (
+                <div style={errorTextStyle}>{formErrors.pricingModel}</div>
+              )}
             </div>
 
             <div style={{ flex: 1 }}>
@@ -761,11 +911,15 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   min="0"
                   step="0.01"
                   value={pricingAmount}
-                  onChange={(e) => handleFormFieldChange("pricingAmount", e.target.value)}
+                  onChange={(e) =>
+                    handleFormFieldChange("pricingAmount", e.target.value)
+                  }
                   style={inputStyle}
                 />
               </label>
-              {formErrors.pricingAmount && <div style={errorTextStyle}>{formErrors.pricingAmount}</div>}
+              {formErrors.pricingAmount && (
+                <div style={errorTextStyle}>{formErrors.pricingAmount}</div>
+              )}
               <div style={{ fontSize: "0.8rem", color: "#555" }}>
                 Enter the total price in euro and cents, e.g. 21.50 for €21.50.
               </div>
@@ -777,7 +931,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   Period unit *
                   <select
                     value={pricingPeriodUnit}
-                    onChange={(e) => handleFormFieldChange("pricingPeriodUnit", e.target.value)}
+                    onChange={(e) =>
+                      handleFormFieldChange("pricingPeriodUnit", e.target.value)
+                    }
                     style={inputStyle}
                   >
                     <option value="MINUTE">Per minute</option>
@@ -786,7 +942,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
                   </select>
                 </label>
                 {formErrors.pricingPeriodUnit && (
-                  <div style={errorTextStyle}>{formErrors.pricingPeriodUnit}</div>
+                  <div style={errorTextStyle}>
+                    {formErrors.pricingPeriodUnit}
+                  </div>
                 )}
               </div>
             )}
@@ -799,7 +957,9 @@ const AddOnsCreateEdit = ({ addOns, setAddOns, onSaveAddOns, saving = false }) =
               <input
                 type="text"
                 value={vatClass}
-                onChange={(e) => handleFormFieldChange("vatClass", e.target.value)}
+                onChange={(e) =>
+                  handleFormFieldChange("vatClass", e.target.value)
+                }
                 style={inputStyle}
               />
             </label>
