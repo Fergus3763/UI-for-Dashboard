@@ -167,6 +167,91 @@ function hydrateBookingPolicy(rawBookingPolicy) {
   };
 }
 
+function ExplainerPanel({ expanded, onToggle, sections }) {
+  return (
+    <div
+      style={{
+        marginBottom: "1rem",
+        borderRadius: 14,
+        border: "1px solid rgba(59, 130, 246, 0.22)",
+        background: "rgba(59, 130, 246, 0.06)",
+        padding: 14,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 16,
+              lineHeight: "20px",
+              fontWeight: 880,
+              color: "rgba(17, 24, 39, 0.92)",
+            }}
+          >
+            Why this page exists
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 12,
+              lineHeight: "16px",
+              color: "rgba(17, 24, 39, 0.68)",
+            }}
+          >
+            A short, self-guided explanation (read-only guidance).
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          style={{
+            border: "1px solid rgba(59, 130, 246, 0.32)",
+            background: "rgba(59, 130, 246, 0.10)",
+            color: "rgba(30, 64, 175, 0.95)",
+            borderRadius: 12,
+            padding: "10px 12px",
+            fontWeight: 820,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+          aria-expanded={expanded}
+        >
+          {expanded ? "Collapse ▴" : "Expand ▾"}
+        </button>
+      </div>
+
+      {expanded ? (
+        <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+          {sections.map((s) => (
+            <div key={s.heading}>
+              <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                {s.heading}
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "rgba(17, 24, 39, 0.70)",
+                  lineHeight: "18px",
+                }}
+              >
+                {s.body}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const VenueSetup = () => {
   const location = useLocation();
 
@@ -178,6 +263,11 @@ const VenueSetup = () => {
   const [saveMessage, setSaveMessage] = useState("");
   const [initialised, setInitialised] = useState(false);
   const [activeTab, setActiveTab] = useState("venue");
+
+  // UI-only: collapsible explainers (collapsed by default; never disappear)
+  const [venueExplainerExpanded, setVenueExplainerExpanded] = useState(false);
+  const [bookingExplainerExpanded, setBookingExplainerExpanded] =
+    useState(false);
 
   // ---------- Deep-linking via query string (UI/navigation only) ----------
   useEffect(() => {
@@ -335,6 +425,29 @@ const VenueSetup = () => {
       label: "Venue",
       content: (
         <div style={{ padding: "1rem" }}>
+          <ExplainerPanel
+            expanded={venueExplainerExpanded}
+            onToggle={() => setVenueExplainerExpanded((v) => !v)}
+            sections={[
+              {
+                heading: "Why this page exists",
+                body: "This page captures the core identity of your venue — who you are, where you are, and how Booker should recognise you.",
+              },
+              {
+                heading: "What data you configure here",
+                body: "Your venue name, address, contact details, imagery, and descriptive information.",
+              },
+              {
+                heading: "How this data is used",
+                body: "This information is reused everywhere your venue appears — in room listings, previews, confirmations, and Booker-facing pages.",
+              },
+              {
+                heading: "Why this matters",
+                body: "By setting this once, you ensure every booking and preview reflects your venue accurately, without repeating work or manual corrections.",
+              },
+            ]}
+          />
+
           {!initialised && (
             <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
           )}
@@ -614,6 +727,29 @@ const VenueSetup = () => {
       label: "Booking Policy / Terms",
       content: (
         <div style={{ padding: "1rem" }}>
+          <ExplainerPanel
+            expanded={bookingExplainerExpanded}
+            onToggle={() => setBookingExplainerExpanded((v) => !v)}
+            sections={[
+              {
+                heading: "Why this page exists",
+                body: "This page defines the rules under which bookings are accepted.",
+              },
+              {
+                heading: "What data you configure here",
+                body: "Your terms and conditions, privacy statement, documents, holding periods, and reservation policies.",
+              },
+              {
+                heading: "How this data is used",
+                body: "These rules are enforced consistently across simulations, previews, and future live bookings.",
+              },
+              {
+                heading: "Why this matters",
+                body: "Clear, centralised booking rules protect both you and the Booker — and prevent disputes later in the process.",
+              },
+            ]}
+          />
+
           {!initialised && (
             <p style={{ marginBottom: "0.5rem" }}>Loading configuration…</p>
           )}
