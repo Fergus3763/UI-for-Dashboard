@@ -204,9 +204,16 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, lineHeight: "20px", fontWeight: 880, color: "rgba(30, 64, 175, 0.95)" }}>
-          Why this page exists
-          </div>
+            <div
+              style={{
+                fontSize: 17,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(30, 64, 175, 0.95)",
+              }}
+            >
+              Why this page exists
+            </div>
 
             <div
               style={{
@@ -330,18 +337,12 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
           {selectedRoom && (
             <>
               {validationError && (
-                <div
-                  className="alert alert-error"
-                  style={{ marginBottom: "1rem" }}
-                >
+                <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
                   {validationError}
                 </div>
               )}
               {saveSuccess && !saving && (
-                <div
-                  className="alert alert-success"
-                  style={{ marginBottom: "1rem" }}
-                >
+                <div className="alert alert-success" style={{ marginBottom: "1rem" }}>
                   Room configuration saved.
                 </div>
               )}
@@ -356,7 +357,9 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
               {/* 👇 HUB #8-approved calendar mount point */}
               <RoomCalendarPanel room={selectedRoom} />
 
+              {/* ✅ Anchor target for "Jump to Save" */}
               <div
+                id="rooms-save-anchor"
                 className="room-setup-actions"
                 style={{ marginTop: "1.5rem", textAlign: "right" }}
               >
