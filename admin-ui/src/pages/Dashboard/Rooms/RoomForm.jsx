@@ -54,6 +54,17 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
     onChange({ ...room, ...changes });
   };
 
+  const jumpToSave = () => {
+    try {
+      const el = document.getElementById("rooms-save-anchor");
+      if (el && typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    } catch (e) {
+      // UI-only; ignore if environment blocks scroll
+    }
+  };
+
   return (
     <div className="room-form">
       {/* BASIC DETAILS */}
@@ -131,10 +142,7 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
           Upload up to 6 images. You can upload, replace, delete and reorder
           images. Only the image URLs are stored in the configuration.
         </p>
-        <RoomImagesEditor
-          images={room.images || []}
-          onChange={handleImagesChange}
-        />
+        <RoomImagesEditor images={room.images || []} onChange={handleImagesChange} />
       </section>
 
       {/* FEATURES */}
@@ -150,7 +158,7 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
           className="features-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(affig...)" // <-- keep your existing layout here
+            gridTemplateColumns: "repeat(affig...)", // <-- keep your existing layout here
           }}
         >
           {PREDEFINED_FEATURES.map((feature) => (
@@ -180,10 +188,48 @@ const RoomForm = ({ room, addOns, onChange, onCodeChange }) => {
           Define which layouts this room supports and the min/max capacities for
           each.
         </p>
-        <RoomLayoutsEditor
-          layouts={room.layouts || []}
-          onChange={handleLayoutsChange}
-        />
+        <RoomLayoutsEditor layouts={room.layouts || []} onChange={handleLayoutsChange} />
+
+        {/* UI-only reminder: scroll to existing Save button (no new save logic) */}
+        <div
+          style={{
+            marginTop: 12,
+            borderRadius: 12,
+            border: "1px solid rgba(59, 130, 246, 0.22)",
+            background: "rgba(59, 130, 246, 0.06)",
+            padding: "10px 12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: "rgba(17, 24, 39, 0.92)" }}>
+              Save reminder
+            </div>
+            <div style={{ marginTop: 4, fontSize: 12, color: "rgba(17, 24, 39, 0.68)" }}>
+              Layout changes (including online/RFQ thresholds) won’t apply until you Save All Rooms.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={jumpToSave}
+            style={{
+              border: "1px solid rgba(59, 130, 246, 0.32)",
+              background: "rgba(59, 130, 246, 0.10)",
+              color: "rgba(30, 64, 175, 0.95)",
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontWeight: 820,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Jump to Save ▾
+          </button>
+        </div>
       </section>
 
       {/* PRICING */}
