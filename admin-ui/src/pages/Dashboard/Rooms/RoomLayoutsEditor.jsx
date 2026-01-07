@@ -10,18 +10,92 @@ const PREDEFINED_LAYOUT_TYPES = [
   "Banquet",
 ];
 
+function toNonNegativeInt(value) {
+  if (value === "" || value === null || value === undefined) return 0;
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) || n < 0 ? 0 : n;
+}
+
+function clamp(n, min, max) {
+  const x = Number.isFinite(n) ? n : min;
+  return Math.max(min, Math.min(max, x));
+}
+
+function getEffectiveOnlineUpTo(layout) {
+  const max = toNonNegativeInt(layout?.max);
+  const raw = layout?.onlineBookingUpTo;
+  if (raw === null || raw === undefined || raw === "") return max;
+  return clamp(toNonNegativeInt(raw), toNonNegativeInt(layout?.min), max);
+}
+
 const LayoutRow = ({ label, layout, onChange }) => {
-  const min = layout?.min ?? "";
-  const max = layout?.max ?? "";
+  const min = layout?.min ?? 0;
+  const max = layout?.max ?? 0;
+
+  // onlineBookingUpTo: number | null
+  const effectiveOnlineUpTo = getEffectiveOnlineUpTo(layout);
+  const onlineInputValue =
+    layout?.onlineBookingUpTo === null || layout?.onlineBookingUpTo === undefined
+      ? String(max ?? 0) // default display = capacityMax
+      : String(layout?.onlineBookingUpTo ?? "");
+
+  const showRFQBadge =
+    Number.isFinite(max) && Number.isFinite(effectiveOnlineUpTo)
+      ? effectiveOnlineUpTo < max
+      : false;
 
   const handleMinChange = (value) => {
-    const parsed = value === "" ? "" : Math.max(0, parseInt(value, 10) || 0);
-    onChange({ ...layout, min: parsed === "" ? 0 : parsed });
+    const nextMin = toNonNegativeInt(value);
+    const nextMax = toNonNegativeInt(layout?.max);
+
+    // Keep onlineBookingUpTo within [min, max] if set; otherwise remain null (default=max)
+    const raw = layout?.onlineBookingUpTo;
+    const nextOnline =
+      raw === null || raw === undefined || raw === ""
+        ? null
+        : clamp(toNonNegativeInt(raw), nextMin, nextMax);
+
+    onChange({
+      ...layout,
+      min: nextMin,
+      max: nextMax,
+      onlineBookingUpTo: nextOnline,
+    });
   };
 
   const handleMaxChange = (value) => {
-    const parsed = value === "" ? "" : Math.max(0, parseInt(value, 10) || 0);
-    onChange({ ...layout, max: parsed === "" ? 0 : parsed });
+    const nextMin = toNonNegativeInt(layout?.min);
+    const nextMax = toNonNegativeInt(value);
+
+    // Keep onlineBookingUpTo within [min, max] if set; otherwise remain null (default=max)
+    const raw = layout?.onlineBookingUpTo;
+    const nextOnline =
+      raw === null || raw === undefined || raw === ""
+        ? null
+        : clamp(toNonNegativeInt(raw), nextMin, nextMax);
+
+    onChange({
+      ...layout,
+      min: nextMin,
+      max: nextMax,
+      onlineBookingUpTo: nextOnline,
+    });
+  };
+
+  const handleOnlineUpToChange = (value) => {
+    const nextMin = toNonNegativeInt(layout?.min);
+    const nextMax = toNonNegativeInt(layout?.max);
+
+    // Empty = null (meaning default = capacityMax)
+    if (value === "") {
+      onChange({ ...layout, onlineBookingUpTo: null });
+      return;
+    }
+
+    const parsed = toNonNegativeInt(value);
+    const clamped = clamp(parsed, nextMin, nextMax);
+
+    onChange({ ...layout, onlineBookingUpTo: clamped });
   };
 
   return (
@@ -29,13 +103,14 @@ const LayoutRow = ({ label, layout, onChange }) => {
       className="layout-row"
       style={{
         display: "grid",
-        gridTemplateColumns: "2fr 1fr 1fr",
+        gridTemplateColumns: "2fr 1fr 1fr 1.4fr",
         gap: "0.5rem",
-        alignItems: "center",
+        alignItems: "start",
         marginBottom: "0.5rem",
       }}
     >
-      <div>{label}</div>
+      <div style={{ paddingTop: 6 }}>{label}</div>
+
       <div>
         <input
           type="number"
@@ -45,6 +120,7 @@ const LayoutRow = ({ label, layout, onChange }) => {
           placeholder="Min"
         />
       </div>
+
       <div>
         <input
           type="number"
@@ -53,6 +129,39 @@ const LayoutRow = ({ label, layout, onChange }) => {
           onChange={(e) => handleMaxChange(e.target.value)}
           placeholder="Max"
         />
+      </div>
+
+      <div>
+        <input
+          type="number"
+          min={0}
+          value={onlineInputValue}
+          onChange={(e) => handleOnlineUpToChange(e.target.value)}
+          placeholder="Online up to"
+        />
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+          Bookings above this number will require manual confirmation (RFQ).
+        </div>
+
+        {showRFQBadge ? (
+          <div style={{ marginTop: 6 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "3px 10px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                border: "1px solid rgba(59, 130, 246, 0.22)",
+                background: "rgba(59, 130, 246, 0.10)",
+                color: "rgba(30, 64, 175, 0.95)",
+              }}
+            >
+              RFQ above {effectiveOnlineUpTo}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -64,11 +173,31 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
   const updateLayoutByType = (type, updated) => {
     let next = [...layouts];
     const existingIndex = next.findIndex((l) => l.type === type);
-    if (existingIndex === -1) {
-      next.push({ type, min: updated.min || 0, max: updated.max || 0 });
-    } else {
-      next[existingIndex] = { ...next[existingIndex], ...updated, type };
+
+    const base = existingIndex === -1 ? { type, min: 0, max: 0 } : next[existingIndex];
+
+    const merged = { ...base, ...updated, type };
+
+    // Ensure onlineBookingUpTo is either null or clamped to [min, max]
+    const nextMin = toNonNegativeInt(merged.min);
+    const nextMax = toNonNegativeInt(merged.max);
+
+    let nextOnline = merged.onlineBookingUpTo;
+    if (nextOnline === undefined) nextOnline = null; // default = max
+    if (nextOnline !== null) {
+      nextOnline = clamp(toNonNegativeInt(nextOnline), nextMin, nextMax);
     }
+
+    const finalLayout = {
+      ...merged,
+      min: nextMin,
+      max: nextMax,
+      onlineBookingUpTo: nextOnline,
+    };
+
+    if (existingIndex === -1) next.push(finalLayout);
+    else next[existingIndex] = finalLayout;
+
     onChange(next);
   };
 
@@ -86,7 +215,24 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
 
     const next = [...layouts];
     if (globalIndex !== -1) {
-      next[globalIndex] = { ...next[globalIndex], ...updated, type: "Custom" };
+      const base = next[globalIndex];
+      const merged = { ...base, ...updated, type: "Custom" };
+
+      const nextMin = toNonNegativeInt(merged.min);
+      const nextMax = toNonNegativeInt(merged.max);
+
+      let nextOnline = merged.onlineBookingUpTo;
+      if (nextOnline === undefined) nextOnline = null; // default = max
+      if (nextOnline !== null) {
+        nextOnline = clamp(toNonNegativeInt(nextOnline), nextMin, nextMax);
+      }
+
+      next[globalIndex] = {
+        ...merged,
+        min: nextMin,
+        max: nextMax,
+        onlineBookingUpTo: nextOnline,
+      };
     }
     onChange(next);
   };
@@ -102,7 +248,7 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
 
     onChange([
       ...layouts,
-      { type: "Custom", name, min: 0, max: 0 },
+      { type: "Custom", name, min: 0, max: 0, onlineBookingUpTo: null },
     ]);
   };
 
@@ -118,7 +264,7 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
         className="layout-header"
         style={{
           display: "grid",
-          gridTemplateColumns: "2fr 1fr 1fr",
+          gridTemplateColumns: "2fr 1fr 1fr 1.4fr",
           gap: "0.5rem",
           fontWeight: 600,
           marginBottom: "0.5rem",
@@ -127,6 +273,7 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
         <div>Layout Type</div>
         <div>Min Capacity</div>
         <div>Max Capacity</div>
+        <div>Online booking up to</div>
       </div>
 
       {/* Predefined layouts */}
@@ -134,7 +281,7 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
         <LayoutRow
           key={type}
           label={type}
-          layout={getByType(type) || { type, min: 0, max: 0 }}
+          layout={getByType(type) || { type, min: 0, max: 0, onlineBookingUpTo: null }}
           onChange={(updated) => updateLayoutByType(type, updated)}
         />
       ))}
@@ -149,9 +296,9 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
           key={index}
           style={{
             display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr auto",
+            gridTemplateColumns: "2fr 1fr 1fr 1.4fr auto",
             gap: "0.5rem",
-            alignItems: "center",
+            alignItems: "start",
             marginBottom: "0.5rem",
           }}
         >
@@ -159,12 +306,11 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
             <input
               type="text"
               value={layout.name || ""}
-              onChange={(e) =>
-                handleCustomChange(index, { name: e.target.value })
-              }
+              onChange={(e) => handleCustomChange(index, { name: e.target.value })}
               placeholder="Custom layout name"
             />
           </div>
+
           <div>
             <input
               type="number"
@@ -172,12 +318,13 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
               value={layout.min ?? 0}
               onChange={(e) =>
                 handleCustomChange(index, {
-                  min: Math.max(0, parseInt(e.target.value, 10) || 0),
+                  min: toNonNegativeInt(e.target.value),
                 })
               }
               placeholder="Min"
             />
           </div>
+
           <div>
             <input
               type="number"
@@ -185,13 +332,62 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
               value={layout.max ?? 0}
               onChange={(e) =>
                 handleCustomChange(index, {
-                  max: Math.max(0, parseInt(e.target.value, 10) || 0),
+                  max: toNonNegativeInt(e.target.value),
                 })
               }
               placeholder="Max"
             />
           </div>
+
           <div>
+            <input
+              type="number"
+              min={0}
+              value={
+                layout.onlineBookingUpTo === null || layout.onlineBookingUpTo === undefined
+                  ? String(layout.max ?? 0)
+                  : String(layout.onlineBookingUpTo ?? "")
+              }
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") {
+                  handleCustomChange(index, { onlineBookingUpTo: null });
+                  return;
+                }
+                const nextMin = toNonNegativeInt(layout.min);
+                const nextMax = toNonNegativeInt(layout.max);
+                handleCustomChange(index, {
+                  onlineBookingUpTo: clamp(toNonNegativeInt(v), nextMin, nextMax),
+                });
+              }}
+              placeholder="Online up to"
+            />
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+              Bookings above this number will require manual confirmation (RFQ).
+            </div>
+
+            {getEffectiveOnlineUpTo(layout) < toNonNegativeInt(layout.max) ? (
+              <div style={{ marginTop: 6 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "3px 10px",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "1px solid rgba(59, 130, 246, 0.22)",
+                    background: "rgba(59, 130, 246, 0.10)",
+                    color: "rgba(30, 64, 175, 0.95)",
+                  }}
+                >
+                  RFQ above {getEffectiveOnlineUpTo(layout)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          <div style={{ paddingTop: 2 }}>
             <button type="button" onClick={() => handleDeleteCustom(index)}>
               Delete
             </button>
