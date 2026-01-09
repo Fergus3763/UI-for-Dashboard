@@ -2,23 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-/**
- * Booker Preview — Admin-only, read-only customer pricing flow (Phase 1+)
- *
- * Layout-level RFQ Threshold:
- * - Layouts are eligible if: capacityMin <= attendees <= capacityMax
- * - Mode is RFQ if: attendees > onlineBookingUpTo
- * - onlineBookingUpTo default = capacityMax (if null/undefined)
- *
- * Hard constraints satisfied:
- * - Uses ONLY GET /.netlify/functions/load_config (payload.data parsing)
- * - No writes, no POST, no booking/reserve/payment, no availability logic
- *
- * Pricing rules MUST match Simulation Phase 2.
- */
-
-// ---------- helpers (local-only) ----------
-
 function toNumberSafe(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -147,7 +130,7 @@ function Card({ title, children }) {
   );
 }
 
-// ---- layouts helpers (read-only consumption) ----
+// ---- layouts helpers ----
 
 function getLayoutMinCapacity(layout) {
   const min =
@@ -169,13 +152,12 @@ function getLayoutMaxCapacity(layout) {
   return toNumberSafe(max);
 }
 
-function getLayoutOnlineBookingUpTo(layout) {
-  const max = getLayoutMaxCapacity(layout);
+function getLayoutRFQAbove(layout) {
+  // Field remains onlineBookingUpTo
   const raw = layout?.onlineBookingUpTo;
-  if (raw === null || raw === undefined || raw === "") return max; // default = capacityMax
+  if (raw === null || raw === undefined || raw === "") return 0;
   const n = toNumberSafe(raw);
-  const min = getLayoutMinCapacity(layout);
-  return Math.max(min, Math.min(max, n));
+  return n > 0 ? n : 0;
 }
 
 function getLayoutLabel(layout) {
@@ -317,14 +299,12 @@ export default function BookerPreviewPage() {
     return eligibleLayouts[idx] || null;
   }, [eligibleLayouts, selectedLayoutIndex]);
 
-  const onlineBookingUpTo = useMemo(
-    () => getLayoutOnlineBookingUpTo(selectedLayout),
-    [selectedLayout]
-  );
+  const rfqAbove = useMemo(() => getLayoutRFQAbove(selectedLayout), [selectedLayout]);
 
+  // RFQ applies only when value is explicitly set (>0)
   const isRFQMode = useMemo(() => {
-    return toNumberSafe(attendees) > toNumberSafe(onlineBookingUpTo);
-  }, [attendees, onlineBookingUpTo]);
+    return rfqAbove > 0 && toNumberSafe(attendees) > rfqAbove;
+  }, [attendees, rfqAbove]);
 
   // Clear optional selections on room/layout change (no scenario persistence)
   useEffect(() => {
@@ -349,11 +329,10 @@ export default function BookerPreviewPage() {
 
   // Optional add-ons:
   // - ONLINE: room-level optional only (curated)
-  // - RFQ: full global catalogue (active + public), deduped + stable-sorted, excluding included items
+  // - RFQ: full global catalogue (active + public)
   const optionalAddOnsResolved = useMemo(() => {
     const includedSet = new Set(includedAddOnIds.map(String));
 
-    // ONLINE BOOKABLE (curated)
     if (!isRFQMode) {
       return optionalAddOnIdsRoomScoped
         .map((id) => ({
@@ -363,7 +342,6 @@ export default function BookerPreviewPage() {
         .filter((x) => x.addOn);
     }
 
-    // RFQ / PRE-CONTRACT (full optional catalogue)
     const activeGlobal = Array.isArray(addOns) ? addOns : [];
 
     const pairs = activeGlobal
@@ -435,11 +413,7 @@ export default function BookerPreviewPage() {
   const optionalLineItems = useMemo(() => {
     return selectedOptionalResolved.map(({ addOn }) => {
       const { model, amount, unit } = getAddOnPricing(addOn);
-      const { value, supported } = calcAddOnValue(
-        addOn,
-        attendees,
-        durationHours
-      );
+      const { value, supported } = calcAddOnValue(addOn, attendees, durationHours);
 
       const label =
         model === "PER_PERIOD"
@@ -450,7 +424,6 @@ export default function BookerPreviewPage() {
         id: String(addOn?.id ?? addOn?._id ?? addOn?.name ?? "addon"),
         name: addOn?.name || addOn?.title || "Unnamed add-on",
         label,
-        unitAmount: amount,
         value,
         supported,
       };
@@ -503,21 +476,7 @@ export default function BookerPreviewPage() {
 
   return (
     <div style={{ padding: 18, maxWidth: 1000 }}>
-      {/* Banner */}
-      <div
-        style={{
-          padding: "10px 12px",
-          borderRadius: 12,
-          border: "1px solid rgba(0,0,0,0.12)",
-          background: "rgba(0,0,0,0.03)",
-          fontWeight: 800,
-          marginBottom: 14,
-        }}
-      >
-        Preview only — availability, reservation and payment are not active in this demo.
-      </div>
-
-      {/* RFQ-only messaging (required) */}
+      {/* RFQ-only messaging */}
       {isRFQMode ? (
         <div
           style={{
@@ -530,7 +489,7 @@ export default function BookerPreviewPage() {
             marginBottom: 14,
           }}
         >
-          🔒 Online booking available up to {toNumberSafe(onlineBookingUpTo)} attendees
+          🔒 Online booking available up to {rfqAbove} attendees
           <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "rgba(17, 24, 39, 0.72)" }}>
             Larger groups require confirmation — pricing shown below remains accurate.
           </div>
@@ -543,7 +502,6 @@ export default function BookerPreviewPage() {
       </div>
 
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {/* Inputs */}
         <Card title="Inputs">
           <div style={{ display: "grid", gap: 12 }}>
             <div>
@@ -569,7 +527,6 @@ export default function BookerPreviewPage() {
               </select>
             </div>
 
-            {/* Layout selector (filtered by attendee eligibility) */}
             <div>
               <label style={{ fontWeight: 800, display: "block", marginBottom: 6 }}>
                 Layout
@@ -589,17 +546,19 @@ export default function BookerPreviewPage() {
                     {eligibleLayouts.map((l, idx) => {
                       const label = getLayoutLabel(l);
                       const cap = formatCapacityRange(l);
-                      const upTo = getLayoutOnlineBookingUpTo(l);
+                      const rfq = getLayoutRFQAbove(l);
+                      const rfqText = rfq > 0 ? `RFQ above ${rfq}` : "Fully online";
                       return (
                         <option key={`${label}_${idx}`} value={idx}>
-                          {label}{cap ? ` — ${cap}` : ""} — Online up to {upTo}
+                          {label}{cap ? ` — ${cap}` : ""} — {rfqText}
                         </option>
                       );
                     })}
                   </select>
 
                   <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                    Mode: <strong>{isRFQMode ? "RFQ" : "ONLINE"}</strong> (attendees {toNumberSafe(attendees)}; online up to {toNumberSafe(onlineBookingUpTo)})
+                    Mode: <strong>{isRFQMode ? "RFQ" : "ONLINE"}</strong>
+                    {rfqAbove > 0 ? ` (RFQ above ${rfqAbove})` : " (fully online)"}
                   </div>
                 </>
               )}
@@ -647,14 +606,9 @@ export default function BookerPreviewPage() {
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
               />
             </div>
-
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Hour blocks only • Duration capped at 12 hours (MVP)
-            </div>
           </div>
         </Card>
 
-        {/* Optional add-ons */}
         <Card title={isRFQMode ? "Optional add-ons (full catalogue)" : "Optional add-ons"}>
           {optionalAddOnsResolved.length === 0 ? (
             <div style={{ opacity: 0.75 }}>
@@ -706,89 +660,32 @@ export default function BookerPreviewPage() {
         </Card>
       </div>
 
-      {/* Booker display */}
-      <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+      <div style={{ marginTop: 14 }}>
         <Card title="Your price (preview)">
-          {includedAddOnsResolved.length > 0 ? (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>Included in your price:</div>
-              <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.85 }}>
-                {includedAddOnsResolved.map((a) => {
-                  const key = String(a?.id ?? a?._id ?? a?.name ?? "included");
-                  const nm = a?.name || a?.title || "Unnamed add-on";
-                  return <li key={key}>{nm}</li>;
-                })}
-              </ul>
-            </div>
-          ) : null}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ fontWeight: 800 }}>Offer Price</div>
+            <div style={{ fontWeight: 900 }}>{formatMoney(offerPrice)}</div>
+          </div>
 
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ fontWeight: 800 }}>Offer Price</div>
-              <div style={{ fontWeight: 900 }}>{formatMoney(offerPrice)}</div>
-            </div>
-
-            {optionalLineItems.length > 0 ? (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>Selected optional add-ons</div>
-                <div style={{ display: "grid", gap: 6 }}>
-                  {optionalLineItems.map((x) => (
-                    <div key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ fontWeight: 700 }}>
-                        {x.name} <span style={{ fontSize: 12, opacity: 0.7 }}>({x.label})</span>
-                      </div>
-                      <div style={{ fontWeight: 900 }}>{formatMoney(x.value)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <div style={{ height: 1, background: "rgba(0,0,0,0.10)", margin: "10px 0" }} />
-
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ fontWeight: 800 }}>Provisional Price</div>
-              <div style={{ fontWeight: 900 }}>{formatMoney(provisionalPrice)}</div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ fontWeight: 800 }}>Final Price</div>
-              <div style={{ fontWeight: 900 }}>{formatMoney(finalPrice)}</div>
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              <button
-                type="button"
-                disabled
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(0,0,0,0.18)",
-                  background: "rgba(0,0,0,0.04)",
-                  fontWeight: 900,
-                  cursor: "not-allowed",
-                }}
-                title="No booking/submission logic in this preview."
-              >
-                {ctaLabel}
-              </button>
-              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
-                {isRFQMode
-                  ? "RFQ mode: confirmation is required. Pricing shown remains accurate."
-                  : "Online mode: booking flow continues. (Booking/payment not active in this preview.)"}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-              Inclusive add-on values are hidden in this preview by design.
-            </div>
+          <div style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              disabled
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.18)",
+                background: "rgba(0,0,0,0.04)",
+                fontWeight: 900,
+                cursor: "not-allowed",
+              }}
+              title="No booking/submission logic in this preview."
+            >
+              {ctaLabel}
+            </button>
           </div>
         </Card>
-      </div>
-
-      <div style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
-        Data source: <code>/.netlify/functions/load_config</code> only. No scenarios are saved. (No POST requests.)
       </div>
     </div>
   );
