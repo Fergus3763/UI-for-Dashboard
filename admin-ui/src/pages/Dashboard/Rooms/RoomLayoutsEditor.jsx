@@ -21,45 +21,67 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, x));
 }
 
-function getEffectiveOnlineUpTo(layout) {
+/**
+ * Field name remains: onlineBookingUpTo
+ * Semantics now: RFQ above X (only applies when X > 0)
+ *
+ * - null/undefined/"" => treated as 0 (fully online)
+ * - 0 => fully online
+ * - >0 => RFQ applies when attendees > value (and value is clamped to [min,max])
+ */
+function getRFQAbove(layout) {
+  const min = toNonNegativeInt(layout?.min);
   const max = toNonNegativeInt(layout?.max);
   const raw = layout?.onlineBookingUpTo;
-  if (raw === null || raw === undefined || raw === "") return max;
-  return clamp(toNonNegativeInt(raw), toNonNegativeInt(layout?.min), max);
+
+  if (raw === null || raw === undefined || raw === "") return 0;
+
+  const n = toNonNegativeInt(raw);
+  if (n <= 0) return 0;
+
+  return clamp(n, min, max);
+}
+
+function isRFQExplicitlySet(layout) {
+  const raw = layout?.onlineBookingUpTo;
+  const n =
+    raw === null || raw === undefined || raw === "" ? 0 : toNonNegativeInt(raw);
+  return n > 0;
 }
 
 const LayoutRow = ({ label, layout, onChange }) => {
   const min = layout?.min ?? 0;
   const max = layout?.max ?? 0;
 
-  // onlineBookingUpTo: number | null
-  const effectiveOnlineUpTo = getEffectiveOnlineUpTo(layout);
-  const onlineInputValue =
-    layout?.onlineBookingUpTo === null || layout?.onlineBookingUpTo === undefined
-      ? String(max ?? 0) // default display = capacityMax
-      : String(layout?.onlineBookingUpTo ?? "");
+  const rfqAbove = getRFQAbove(layout);
+  const showRFQBadge = isRFQExplicitlySet(layout);
 
-  const showRFQBadge =
-    Number.isFinite(max) && Number.isFinite(effectiveOnlineUpTo)
-      ? effectiveOnlineUpTo < max
-      : false;
+  // Input display:
+  // - blank by default (online-first)
+  // - show number only if explicitly set (>0), otherwise blank
+  const onlineInputValue = showRFQBadge
+    ? String(rfqAbove)
+    : "";
 
   const handleMinChange = (value) => {
     const nextMin = toNonNegativeInt(value);
     const nextMax = toNonNegativeInt(layout?.max);
 
-    // Keep onlineBookingUpTo within [min, max] if set; otherwise remain null (default=max)
+    // Only clamp if explicitly set (>0); otherwise keep as-is (null/0)
     const raw = layout?.onlineBookingUpTo;
-    const nextOnline =
-      raw === null || raw === undefined || raw === ""
-        ? null
-        : clamp(toNonNegativeInt(raw), nextMin, nextMax);
+    const rawN =
+      raw === null || raw === undefined || raw === "" ? 0 : toNonNegativeInt(raw);
+
+    let nextRFQ = raw;
+    if (rawN > 0) {
+      nextRFQ = clamp(rawN, nextMin, nextMax);
+    }
 
     onChange({
       ...layout,
       min: nextMin,
       max: nextMax,
-      onlineBookingUpTo: nextOnline,
+      onlineBookingUpTo: nextRFQ,
     });
   };
 
@@ -67,34 +89,44 @@ const LayoutRow = ({ label, layout, onChange }) => {
     const nextMin = toNonNegativeInt(layout?.min);
     const nextMax = toNonNegativeInt(value);
 
-    // Keep onlineBookingUpTo within [min, max] if set; otherwise remain null (default=max)
+    // Only clamp if explicitly set (>0); otherwise keep as-is (null/0)
     const raw = layout?.onlineBookingUpTo;
-    const nextOnline =
-      raw === null || raw === undefined || raw === ""
-        ? null
-        : clamp(toNonNegativeInt(raw), nextMin, nextMax);
+    const rawN =
+      raw === null || raw === undefined || raw === "" ? 0 : toNonNegativeInt(raw);
+
+    let nextRFQ = raw;
+    if (rawN > 0) {
+      nextRFQ = clamp(rawN, nextMin, nextMax);
+    }
 
     onChange({
       ...layout,
       min: nextMin,
       max: nextMax,
-      onlineBookingUpTo: nextOnline,
+      onlineBookingUpTo: nextRFQ,
     });
   };
 
-  const handleOnlineUpToChange = (value) => {
+  const handleRFQAboveChange = (value) => {
     const nextMin = toNonNegativeInt(layout?.min);
     const nextMax = toNonNegativeInt(layout?.max);
 
-    // Empty = null (meaning default = capacityMax)
+    // Blank = online-first default (store null)
     if (value === "") {
       onChange({ ...layout, onlineBookingUpTo: null });
       return;
     }
 
     const parsed = toNonNegativeInt(value);
-    const clamped = clamp(parsed, nextMin, nextMax);
 
+    // 0 means fully online (keep 0 explicitly if entered)
+    if (parsed <= 0) {
+      onChange({ ...layout, onlineBookingUpTo: 0 });
+      return;
+    }
+
+    // >0 means RFQ above this number, clamped to [min,max]
+    const clamped = clamp(parsed, nextMin, nextMax);
     onChange({ ...layout, onlineBookingUpTo: clamped });
   };
 
@@ -136,8 +168,8 @@ const LayoutRow = ({ label, layout, onChange }) => {
           type="number"
           min={0}
           value={onlineInputValue}
-          onChange={(e) => handleOnlineUpToChange(e.target.value)}
-          placeholder="Online up to"
+          onChange={(e) => handleRFQAboveChange(e.target.value)}
+          placeholder="(fully online)"
         />
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
           Bookings above this number will require manual confirmation (RFQ).
@@ -158,7 +190,7 @@ const LayoutRow = ({ label, layout, onChange }) => {
                 color: "rgba(30, 64, 175, 0.95)",
               }}
             >
-              RFQ above {effectiveOnlineUpTo}
+              RFQ above {rfqAbove}
             </span>
           </div>
         ) : null}
@@ -174,25 +206,30 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
     let next = [...layouts];
     const existingIndex = next.findIndex((l) => l.type === type);
 
-    const base = existingIndex === -1 ? { type, min: 0, max: 0 } : next[existingIndex];
+    const base =
+      existingIndex === -1 ? { type, min: 0, max: 0, onlineBookingUpTo: null } : next[existingIndex];
 
     const merged = { ...base, ...updated, type };
 
-    // Ensure onlineBookingUpTo is either null or clamped to [min, max]
     const nextMin = toNonNegativeInt(merged.min);
     const nextMax = toNonNegativeInt(merged.max);
 
-    let nextOnline = merged.onlineBookingUpTo;
-    if (nextOnline === undefined) nextOnline = null; // default = max
-    if (nextOnline !== null) {
-      nextOnline = clamp(toNonNegativeInt(nextOnline), nextMin, nextMax);
-    }
+    // Preserve online-first default:
+    // - null/0 stays null/0
+    // - >0 is clamped into [min,max]
+    let raw = merged.onlineBookingUpTo;
+    if (raw === undefined) raw = null;
+
+    const rawN =
+      raw === null || raw === undefined || raw === "" ? 0 : toNonNegativeInt(raw);
+
+    const nextRFQ = rawN > 0 ? clamp(rawN, nextMin, nextMax) : raw;
 
     const finalLayout = {
       ...merged,
       min: nextMin,
       max: nextMax,
-      onlineBookingUpTo: nextOnline,
+      onlineBookingUpTo: nextRFQ,
     };
 
     if (existingIndex === -1) next.push(finalLayout);
@@ -221,17 +258,19 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
       const nextMin = toNonNegativeInt(merged.min);
       const nextMax = toNonNegativeInt(merged.max);
 
-      let nextOnline = merged.onlineBookingUpTo;
-      if (nextOnline === undefined) nextOnline = null; // default = max
-      if (nextOnline !== null) {
-        nextOnline = clamp(toNonNegativeInt(nextOnline), nextMin, nextMax);
-      }
+      let raw = merged.onlineBookingUpTo;
+      if (raw === undefined) raw = null;
+
+      const rawN =
+        raw === null || raw === undefined || raw === "" ? 0 : toNonNegativeInt(raw);
+
+      const nextRFQ = rawN > 0 ? clamp(rawN, nextMin, nextMax) : raw;
 
       next[globalIndex] = {
         ...merged,
         min: nextMin,
         max: nextMax,
-        onlineBookingUpTo: nextOnline,
+        onlineBookingUpTo: nextRFQ,
       };
     }
     onChange(next);
@@ -246,10 +285,7 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
       name = `${baseName} ${counter++}`;
     }
 
-    onChange([
-      ...layouts,
-      { type: "Custom", name, min: 0, max: 0, onlineBookingUpTo: null },
-    ]);
+    onChange([...layouts, { type: "Custom", name, min: 0, max: 0, onlineBookingUpTo: null }]);
   };
 
   const handleDeleteCustom = (index) => {
@@ -273,7 +309,7 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
         <div>Layout Type</div>
         <div>Min Capacity</div>
         <div>Max Capacity</div>
-        <div>Online booking up to</div>
+        <div>RFQ above</div>
       </div>
 
       {/* Predefined layouts */}
@@ -291,109 +327,120 @@ const RoomLayoutsEditor = ({ layouts, onChange }) => {
         <strong>Custom Layouts</strong>
       </div>
 
-      {customLayouts.map((layout, index) => (
-        <div
-          key={index}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 1.4fr auto",
-            gap: "0.5rem",
-            alignItems: "start",
-            marginBottom: "0.5rem",
-          }}
-        >
-          <div>
-            <input
-              type="text"
-              value={layout.name || ""}
-              onChange={(e) => handleCustomChange(index, { name: e.target.value })}
-              placeholder="Custom layout name"
-            />
-          </div>
+      {customLayouts.map((layout, index) => {
+        const rfqAbove = getRFQAbove(layout);
+        const explicit = isRFQExplicitlySet(layout);
 
-          <div>
-            <input
-              type="number"
-              min={0}
-              value={layout.min ?? 0}
-              onChange={(e) =>
-                handleCustomChange(index, {
-                  min: toNonNegativeInt(e.target.value),
-                })
-              }
-              placeholder="Min"
-            />
-          </div>
-
-          <div>
-            <input
-              type="number"
-              min={0}
-              value={layout.max ?? 0}
-              onChange={(e) =>
-                handleCustomChange(index, {
-                  max: toNonNegativeInt(e.target.value),
-                })
-              }
-              placeholder="Max"
-            />
-          </div>
-
-          <div>
-            <input
-              type="number"
-              min={0}
-              value={
-                layout.onlineBookingUpTo === null || layout.onlineBookingUpTo === undefined
-                  ? String(layout.max ?? 0)
-                  : String(layout.onlineBookingUpTo ?? "")
-              }
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "") {
-                  handleCustomChange(index, { onlineBookingUpTo: null });
-                  return;
-                }
-                const nextMin = toNonNegativeInt(layout.min);
-                const nextMax = toNonNegativeInt(layout.max);
-                handleCustomChange(index, {
-                  onlineBookingUpTo: clamp(toNonNegativeInt(v), nextMin, nextMax),
-                });
-              }}
-              placeholder="Online up to"
-            />
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
-              Bookings above this number will require manual confirmation (RFQ).
+        return (
+          <div
+            key={index}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "2fr 1fr 1fr 1.4fr auto",
+              gap: "0.5rem",
+              alignItems: "start",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <div>
+              <input
+                type="text"
+                value={layout.name || ""}
+                onChange={(e) => handleCustomChange(index, { name: e.target.value })}
+                placeholder="Custom layout name"
+              />
             </div>
 
-            {getEffectiveOnlineUpTo(layout) < toNonNegativeInt(layout.max) ? (
-              <div style={{ marginTop: 6 }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "3px 10px",
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: "1px solid rgba(59, 130, 246, 0.22)",
-                    background: "rgba(59, 130, 246, 0.10)",
-                    color: "rgba(30, 64, 175, 0.95)",
-                  }}
-                >
-                  RFQ above {getEffectiveOnlineUpTo(layout)}
-                </span>
-              </div>
-            ) : null}
-          </div>
+            <div>
+              <input
+                type="number"
+                min={0}
+                value={layout.min ?? 0}
+                onChange={(e) =>
+                  handleCustomChange(index, {
+                    min: toNonNegativeInt(e.target.value),
+                  })
+                }
+                placeholder="Min"
+              />
+            </div>
 
-          <div style={{ paddingTop: 2 }}>
-            <button type="button" onClick={() => handleDeleteCustom(index)}>
-              Delete
-            </button>
+            <div>
+              <input
+                type="number"
+                min={0}
+                value={layout.max ?? 0}
+                onChange={(e) =>
+                  handleCustomChange(index, {
+                    max: toNonNegativeInt(e.target.value),
+                  })
+                }
+                placeholder="Max"
+              />
+            </div>
+
+            <div>
+              <input
+                type="number"
+                min={0}
+                value={explicit ? String(rfqAbove) : ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+
+                  if (v === "") {
+                    handleCustomChange(index, { onlineBookingUpTo: null });
+                    return;
+                  }
+
+                  const parsed = toNonNegativeInt(v);
+                  if (parsed <= 0) {
+                    handleCustomChange(index, { onlineBookingUpTo: 0 });
+                    return;
+                  }
+
+                  const nextMin = toNonNegativeInt(layout.min);
+                  const nextMax = toNonNegativeInt(layout.max);
+
+                  handleCustomChange(index, {
+                    onlineBookingUpTo: clamp(parsed, nextMin, nextMax),
+                  });
+                }}
+                placeholder="(fully online)"
+              />
+
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                Bookings above this number will require manual confirmation (RFQ).
+              </div>
+
+              {explicit ? (
+                <div style={{ marginTop: 6 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      border: "1px solid rgba(59, 130, 246, 0.22)",
+                      background: "rgba(59, 130, 246, 0.10)",
+                      color: "rgba(30, 64, 175, 0.95)",
+                    }}
+                  >
+                    RFQ above {rfqAbove}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+
+            <div style={{ paddingTop: 2 }}>
+              <button type="button" onClick={() => handleDeleteCustom(index)}>
+                Delete
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       <button type="button" onClick={handleAddCustom}>
         + Add Custom Layout
