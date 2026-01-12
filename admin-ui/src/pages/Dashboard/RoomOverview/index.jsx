@@ -120,6 +120,9 @@ const RoomOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // UI-only: collapsible explainer (collapsed by default; never disappears)
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
+
   // ─────────────────────────────────────
   // Load config via load_config function
   // ─────────────────────────────────────
@@ -343,7 +346,6 @@ const RoomOverviewPage = () => {
   };
 
   const renderAddOns = (room) => {
-    // Canonical fields win; legacy arrays are fallback only.
     const rawIncluded = Array.isArray(room.includedAddOns)
       ? room.includedAddOns
       : Array.isArray(room.includedAddOnIds)
@@ -359,16 +361,13 @@ const RoomOverviewPage = () => {
     const includedSet = new Set(rawIncluded.map((id) => String(id)));
     const optionalSetRaw = new Set(rawOptional.map((id) => String(id)));
 
-    // Ensure exclusivity: if an ID appears in both, treat it as Included.
     const includedIds = Array.from(includedSet);
     const optionalIds = Array.from(optionalSetRaw).filter(
       (id) => !includedSet.has(id)
     );
 
     const hasAny = includedIds.length > 0 || optionalIds.length > 0;
-    if (!hasAny) {
-      return null;
-    }
+    if (!hasAny) return null;
 
     return (
       <div className="room-section">
@@ -408,7 +407,6 @@ const RoomOverviewPage = () => {
   };
 
   const renderBuffers = (room) => {
-    // Canonical names win; legacy names are fallback only.
     const before =
       room.bufferBefore ??
       room.bufferBeforeMinutes ??
@@ -648,7 +646,122 @@ const RoomOverviewPage = () => {
 
       <div className="room-overview-header">
         <h1 className="room-overview-title">Room Overview</h1>
-        <p className="helper-text">
+
+        {/* Collapsible explainer (restyled as optional guidance note) */}
+        <div
+          style={{
+            marginTop: 12,
+            borderRadius: 12,
+            border: "1px dashed rgba(59, 130, 246, 0.22)",
+            background: "rgba(59, 130, 246, 0.04)",
+            borderLeft: "6px solid rgba(59, 130, 246, 0.55)",
+            padding: "10px 12px",
+            maxWidth: 980,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 15,
+                  lineHeight: "20px",
+                  fontWeight: 900,
+                  fontStyle: "italic",
+                  color: "rgba(30, 64, 175, 0.95)",
+                }}
+              >
+                Why this page exists
+              </div>
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 12,
+                  lineHeight: "16px",
+                  color: "rgba(17, 24, 39, 0.62)",
+                  fontStyle: "italic",
+                }}
+              >
+                Quick orientation (optional). Expand if needed.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExplainerExpanded((v) => !v)}
+              style={{
+                border: "1px solid rgba(59, 130, 246, 0.32)",
+                background: "rgba(59, 130, 246, 0.08)",
+                color: "rgba(30, 64, 175, 0.95)",
+                borderRadius: 12,
+                padding: "8px 10px",
+                fontWeight: 850,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+              aria-expanded={explainerExpanded}
+            >
+              {explainerExpanded ? "Collapse ▴" : "Expand ▾"}
+            </button>
+          </div>
+
+          {explainerExpanded ? (
+            <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  Why this page exists
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  This page gives you a single, read-only view of all meeting rooms and their configurations at a glance.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  What this page shows
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  A visual summary of each room, including layouts, capacities, pricing behaviour, and assigned add-ons.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  How this page is used
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  This page is designed for verification, not editing. Use it to compare rooms, spot inconsistencies, and confirm that your setup behaves as expected before guests see it.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  What this page does not do
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  No changes can be made from this page. All edits happen in the Room Setup and Add-Ons sections.
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 860, color: "rgba(17, 24, 39, 0.92)" }}>
+                  Why this matters
+                </div>
+                <div style={{ marginTop: 6, color: "rgba(17, 24, 39, 0.70)", lineHeight: "18px" }}>
+                  Room Overview acts as a final sense-check. If something looks wrong here, it would look wrong to a guest. If it looks right here, you can be confident the booking experience will reflect it accurately. This view helps you validate your configuration without risking accidental changes.
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <p className="helper-text" style={{ marginTop: 12 }}>
           Read-only visual summary of all rooms. Use this view to compare rooms
           at a glance and preview what bookers will eventually see. No changes
           can be made from this page.
