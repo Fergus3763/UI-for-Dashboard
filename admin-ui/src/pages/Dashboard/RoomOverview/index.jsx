@@ -254,9 +254,7 @@ const RoomOverviewPage = () => {
               <div className="room-image-wrapper" key={index}>
                 <img
                   src={url}
-                  alt={`${room.name || room.code || "Room"} image ${
-                    index + 1
-                  }`}
+                  alt={`${room.name || room.code || "Room"} image ${index + 1}`}
                 />
               </div>
             );
@@ -320,7 +318,6 @@ const RoomOverviewPage = () => {
   };
 
   const renderPricing = (room) => {
-    // Room Setup stores pricing as room.pricing { perPerson, perRoom, rule }
     const pricing = room.pricing || {};
     const perPerson = pricing.perPerson ?? null;
     const perRoom = pricing.perRoom ?? null;
@@ -435,213 +432,49 @@ const RoomOverviewPage = () => {
     );
   };
 
-  // ─────────────────────────────────────
-  // Render main page
-  // ─────────────────────────────────────
-
   return (
     <div className="room-overview-page">
       {/* Local styles – keep everything self-contained */}
       <style>{`
-        .room-overview-page {
-          padding: 24px;
-        }
-        .room-overview-header {
-          margin-bottom: 16px;
-        }
-        .room-overview-title {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin: 0 0 4px 0;
-        }
-        .helper-text {
-          font-size: 0.9rem;
-          color: #64748b;
-          max-width: 720px;
-        }
-        .feedback {
-          font-size: 0.9rem;
-          color: #64748b;
-          margin-top: 8px;
-        }
-        .feedback-error {
-          color: #b91c1c;
-        }
-        .room-overview-grid {
-          display: grid;
-          grid-template-columns: repeat(1, minmax(0, 1fr));
-          gap: 24px;
-          margin-top: 16px;
-        }
-        @media (min-width: 768px) {
-          .room-overview-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-        @media (min-width: 1024px) {
-          .room-overview-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-        .room-card {
-          background-color: #ffffff;
-          border-radius: 16px;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .room-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 8px;
-        }
-        .room-card-title {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-        .room-name {
-          font-size: 1.05rem;
-          font-weight: 600;
-          margin: 0;
-        }
-        .room-code {
-          font-size: 0.8rem;
-          color: #64748b;
-        }
-        .status-badge {
-          padding: 3px 10px;
-          border-radius: 999px;
-          font-size: 0.75rem;
-          font-weight: 500;
-          white-space: nowrap;
-        }
-        .status-active {
-          background-color: #dcfce7;
-          color: #166534;
-        }
-        .status-inactive {
-          background-color: #fee2e2;
-          color: #991b1b;
-        }
-        .room-description {
-          font-size: 0.9rem;
-          color: #475569;
-          margin-top: 4px;
-        }
-        .section-title {
-          font-size: 0.8rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          color: #94a3b8;
-          margin-bottom: 4px;
-        }
-        .room-section {
-          margin-top: 8px;
-        }
-        .room-images-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 6px;
-        }
-        .room-image-wrapper,
-        .room-image-placeholder {
-          position: relative;
-          padding-top: 66.6667%;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-        .room-image-wrapper {
-          background-color: #0f172a;
-        }
-        .room-image-wrapper img {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .room-image-placeholder {
-          background-color: #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          color: #64748b;
-          border: 1px dashed #cbd5f5;
-        }
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 3px 10px;
-          border-radius: 999px;
-          font-size: 0.75rem;
-          margin: 2px 6px 2px 0;
-          background-color: #e2e8f0;
-          color: #334155;
-        }
-        .feature-badge {
-          background-color: #eff6ff;
-          color: #1d4ed8;
-        }
-        .layout-item {
-          font-size: 0.85rem;
-          color: #475569;
-          margin-top: 2px;
-        }
-        .layout-name {
-          font-weight: 500;
-        }
-        .layout-capacity {
-          font-size: 0.8rem;
-          color: #64748b;
-        }
-        .pricing-row {
-          font-size: 0.85rem;
-          color: #475569;
-          margin-top: 2px;
-        }
-        .pricing-label {
-          font-weight: 500;
-        }
-        .buffer-row {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: space-between;
-          gap: 8px;
-          font-size: 0.85rem;
-          color: #475569;
-        }
-        .add-on-group {
-          margin-bottom: 4px;
-        }
-        .add-on-label {
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: #64748b;
-          margin-bottom: 2px;
-        }
-        .add-on-badge-included {
-          background-color: #dcfce7;
-          color: #166534;
-        }
-        .add-on-badge-optional {
-          background-color: #dbeafe;
-          color: #1e3a8a;
-        }
-        .muted-text {
-          font-size: 0.8rem;
-          color: #94a3b8;
-        }
-        .empty-state {
-          font-size: 0.9rem;
-          color: #64748b;
-          margin-top: 16px;
-        }
+        .room-overview-page { padding: 24px; }
+        .room-overview-header { margin-bottom: 16px; }
+        .room-overview-title { font-size: 1.5rem; font-weight: 600; margin: 0 0 4px 0; }
+        .helper-text { font-size: 0.9rem; color: #64748b; max-width: 720px; }
+        .feedback { font-size: 0.9rem; color: #64748b; margin-top: 8px; }
+        .feedback-error { color: #b91c1c; }
+        .room-overview-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 24px; margin-top: 16px; }
+        @media (min-width: 768px) { .room-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1024px) { .room-overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .room-card { background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .room-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .room-card-title { display: flex; flex-direction: column; gap: 2px; }
+        .room-name { font-size: 1.05rem; font-weight: 600; margin: 0; }
+        .room-code { font-size: 0.8rem; color: #64748b; }
+        .status-badge { padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
+        .status-active { background-color: #dcfce7; color: #166534; }
+        .status-inactive { background-color: #fee2e2; color: #991b1b; }
+        .room-description { font-size: 0.9rem; color: #475569; margin-top: 4px; }
+        .section-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #94a3b8; margin-bottom: 4px; }
+        .room-section { margin-top: 8px; }
+        .room-images-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+        .room-image-wrapper, .room-image-placeholder { position: relative; padding-top: 66.6667%; border-radius: 8px; overflow: hidden; }
+        .room-image-wrapper { background-color: #0f172a; }
+        .room-image-wrapper img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .room-image-placeholder { background-color: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #64748b; border: 1px dashed #cbd5f5; }
+        .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; margin: 2px 6px 2px 0; background-color: #e2e8f0; color: #334155; }
+        .feature-badge { background-color: #eff6ff; color: #1d4ed8; }
+        .layout-item { font-size: 0.85rem; color: #475569; margin-top: 2px; }
+        .layout-name { font-weight: 500; }
+        .layout-capacity { font-size: 0.8rem; color: #64748b; }
+        .pricing-row { font-size: 0.85rem; color: #475569; margin-top: 2px; }
+        .pricing-label { font-weight: 500; }
+        .buffer-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 0.85rem; color: #475569; }
+        .add-on-group { margin-bottom: 4px; }
+        .add-on-label { font-size: 0.8rem; font-weight: 500; color: #64748b; margin-bottom: 2px; }
+        .add-on-badge-included { background-color: #dcfce7; color: #166534; }
+        .add-on-badge-optional { background-color: #dbeafe; color: #1e3a8a; }
+        .muted-text { font-size: 0.8rem; color: #94a3b8; }
+        .empty-state { font-size: 0.9rem; color: #64748b; margin-top: 16px; }
       `}</style>
 
       <div className="room-overview-header">
@@ -679,6 +512,7 @@ const RoomOverviewPage = () => {
               >
                 Why this page exists
               </div>
+
               <div
                 style={{
                   marginTop: 6,
