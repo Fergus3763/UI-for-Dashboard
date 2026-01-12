@@ -237,6 +237,23 @@ const RoomOverviewPage = () => {
     return addOn.name || addOn.label || id;
   };
 
+  /**
+   * Task A: Layout RFQ/Online label (display-only).
+   * If onlineBookingUpTo > 0 => "RFQ above X", else "Online"
+   */
+  const getLayoutModeMeta = (layout) => {
+    const raw = layout?.onlineBookingUpTo;
+    if (raw === null || raw === undefined || raw === "") {
+      return { tone: "online", label: "Online" };
+    }
+    const n = Number(raw);
+    const threshold = Number.isFinite(n) ? n : 0;
+    if (threshold > 0) {
+      return { tone: "rfq", label: `RFQ above ${threshold}` };
+    }
+    return { tone: "online", label: "Online" };
+  };
+
   // ─────────────────────────────────────
   // Render helpers
   // ─────────────────────────────────────
@@ -301,18 +318,42 @@ const RoomOverviewPage = () => {
     return (
       <div className="room-section">
         <div className="section-title">Layouts</div>
-        {layouts.map((layout, index) => (
-          <div key={index} className="layout-item">
-            <div className="layout-name">
-              {formatLayoutName(layout) || "Unnamed layout"}
-            </div>
-            {formatCapacity(layout) && (
-              <div className="layout-capacity">
-                Capacity: {formatCapacity(layout)}
+        {layouts.map((layout, index) => {
+          const mode = getLayoutModeMeta(layout);
+          const cap = formatCapacity(layout);
+
+          return (
+            <div key={index} className="layout-item">
+              <div className="layout-topline">
+                <div className="layout-name">
+                  {formatLayoutName(layout) || "Unnamed layout"}
+                  {cap ? <span className="layout-range">({cap})</span> : null}
+                </div>
+
+                <span
+                  className={
+                    "layout-pill " +
+                    (mode.tone === "rfq"
+                      ? "layout-pill-rfq"
+                      : "layout-pill-online")
+                  }
+                  title={
+                    mode.tone === "rfq"
+                      ? "RFQ required above this attendee count"
+                      : "Bookable online"
+                  }
+                >
+                  {mode.label}
+                </span>
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Keep existing capacity line for clarity, but de-emphasize it */}
+              {cap ? (
+                <div className="layout-capacity">Capacity: {cap}</div>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -463,9 +504,14 @@ const RoomOverviewPage = () => {
         .room-image-placeholder { background-color: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #64748b; border: 1px dashed #cbd5f5; }
         .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; margin: 2px 6px 2px 0; background-color: #e2e8f0; color: #334155; }
         .feature-badge { background-color: #eff6ff; color: #1d4ed8; }
-        .layout-item { font-size: 0.85rem; color: #475569; margin-top: 2px; }
-        .layout-name { font-weight: 500; }
-        .layout-capacity { font-size: 0.8rem; color: #64748b; }
+        .layout-item { font-size: 0.85rem; color: #475569; margin-top: 6px; }
+        .layout-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .layout-name { font-weight: 600; display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+        .layout-range { font-weight: 600; color: #64748b; }
+        .layout-capacity { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+        .layout-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 650; white-space: nowrap; border: 1px solid rgba(0,0,0,0.10); background: rgba(0,0,0,0.03); color: rgba(17,24,39,0.78); }
+        .layout-pill-online { border-color: rgba(16,185,129,0.28); background: rgba(16,185,129,0.10); color: rgba(6,95,70,0.92); }
+        .layout-pill-rfq { border-color: rgba(59,130,246,0.22); background: rgba(59,130,246,0.08); color: rgba(30,64,175,0.92); }
         .pricing-row { font-size: 0.85rem; color: #475569; margin-top: 2px; }
         .pricing-label { font-weight: 500; }
         .buffer-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 0.85rem; color: #475569; }
@@ -480,7 +526,7 @@ const RoomOverviewPage = () => {
       <div className="room-overview-header">
         <h1 className="room-overview-title">Room Overview</h1>
 
-        {/* Collapsible explainer (restyled as optional guidance note) */}
+        {/* Collapsible explainer (collapsed by default; never disappears) */}
         <div
           style={{
             marginTop: 12,
