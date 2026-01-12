@@ -15,7 +15,10 @@ const normaliseRoom = (room) => {
   const pricingSource = original.pricing || {};
 
   const perPersonRaw =
-    pricingSource.perPerson ?? original.perPersonRate ?? original.perPerson ?? null;
+    pricingSource.perPerson ??
+    original.perPersonRate ??
+    original.perPerson ??
+    null;
 
   const perRoomRaw =
     pricingSource.perRoom ??
@@ -25,7 +28,10 @@ const normaliseRoom = (room) => {
     null;
 
   const ruleRaw =
-    pricingSource.rule ?? original.priceRule ?? original.pricingRule ?? "higher";
+    pricingSource.rule ??
+    original.priceRule ??
+    original.pricingRule ??
+    "higher";
 
   const toNumberOrNull = (value) => {
     if (value === "" || value === null || value === undefined) return null;
@@ -73,7 +79,12 @@ const normaliseRoom = (room) => {
         if (typeof item === "number") return String(item);
         if (item && typeof item === "object") {
           const id =
-            item.id ?? item.code ?? item.slug ?? item.value ?? item.name ?? null;
+            item.id ??
+            item.code ??
+            item.slug ??
+            item.value ??
+            item.name ??
+            null;
           return id ? String(id) : null;
         }
         return null;
@@ -152,7 +163,9 @@ const RoomOverviewPage = () => {
       } catch (err) {
         console.error("Error loading config for Room Overview:", err);
         if (isMounted) {
-          setError("Unable to load room configuration. Please try again later.");
+          setError(
+            "Unable to load room configuration. Please try again later."
+          );
         }
       } finally {
         if (isMounted) {
@@ -193,8 +206,10 @@ const RoomOverviewPage = () => {
   const formatCapacity = (layout) => {
     if (!layout) return "";
 
-    const capacityMin = layout.capacityMin != null ? layout.capacityMin : layout.min;
-    const capacityMax = layout.capacityMax != null ? layout.capacityMax : layout.max;
+    const capacityMin =
+      layout.capacityMin != null ? layout.capacityMin : layout.min;
+    const capacityMax =
+      layout.capacityMax != null ? layout.capacityMax : layout.max;
 
     if (capacityMin != null && capacityMax != null) {
       return `${capacityMin}–${capacityMax}`;
@@ -239,7 +254,9 @@ const RoomOverviewPage = () => {
               <div className="room-image-wrapper" key={index}>
                 <img
                   src={url}
-                  alt={`${room.name || room.code || "Room"} image ${index + 1}`}
+                  alt={`${room.name || room.code || "Room"} image ${
+                    index + 1
+                  }`}
                 />
               </div>
             );
@@ -329,7 +346,6 @@ const RoomOverviewPage = () => {
   };
 
   const renderAddOns = (room) => {
-    // Canonical fields win; legacy arrays are fallback only.
     const rawIncluded = Array.isArray(room.includedAddOns)
       ? room.includedAddOns
       : Array.isArray(room.includedAddOnIds)
@@ -345,14 +361,13 @@ const RoomOverviewPage = () => {
     const includedSet = new Set(rawIncluded.map((id) => String(id)));
     const optionalSetRaw = new Set(rawOptional.map((id) => String(id)));
 
-    // Ensure exclusivity: if an ID appears in both, treat it as Included.
     const includedIds = Array.from(includedSet);
-    const optionalIds = Array.from(optionalSetRaw).filter((id) => !includedSet.has(id));
+    const optionalIds = Array.from(optionalSetRaw).filter(
+      (id) => !includedSet.has(id)
+    );
 
     const hasAny = includedIds.length > 0 || optionalIds.length > 0;
-    if (!hasAny) {
-      return null;
-    }
+    if (!hasAny) return null;
 
     return (
       <div className="room-section">
@@ -392,7 +407,6 @@ const RoomOverviewPage = () => {
   };
 
   const renderBuffers = (room) => {
-    // Canonical names win; legacy names are fallback only.
     const before =
       room.bufferBefore ??
       room.bufferBeforeMinutes ??
@@ -633,14 +647,15 @@ const RoomOverviewPage = () => {
       <div className="room-overview-header">
         <h1 className="room-overview-title">Room Overview</h1>
 
-        {/* Collapsible explainer (verbatim copy) */}
+        {/* Collapsible explainer (restyled as optional guidance note) */}
         <div
           style={{
             marginTop: 12,
-            borderRadius: 14,
-            border: "1px solid rgba(59, 130, 246, 0.22)",
-            background: "rgba(59, 130, 246, 0.06)",
-            padding: 14,
+            borderRadius: 12,
+            border: "1px dashed rgba(59, 130, 246, 0.22)",
+            background: "rgba(59, 130, 246, 0.04)",
+            borderLeft: "6px solid rgba(59, 130, 246, 0.55)",
+            padding: "10px 12px",
             maxWidth: 980,
           }}
         >
@@ -653,12 +668,12 @@ const RoomOverviewPage = () => {
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              {/* TEST CHANGE: title is BLUE + 17px */}
               <div
                 style={{
-                  fontSize: 17,
+                  fontSize: 15,
                   lineHeight: "20px",
-                  fontWeight: 880,
+                  fontWeight: 900,
+                  fontStyle: "italic",
                   color: "rgba(30, 64, 175, 0.95)",
                 }}
               >
@@ -669,10 +684,11 @@ const RoomOverviewPage = () => {
                   marginTop: 6,
                   fontSize: 12,
                   lineHeight: "16px",
-                  color: "rgba(17, 24, 39, 0.68)",
+                  color: "rgba(17, 24, 39, 0.62)",
+                  fontStyle: "italic",
                 }}
               >
-                A short, self-guided explanation (read-only guidance).
+                Quick orientation (optional). Expand if needed.
               </div>
             </div>
 
@@ -681,11 +697,11 @@ const RoomOverviewPage = () => {
               onClick={() => setExplainerExpanded((v) => !v)}
               style={{
                 border: "1px solid rgba(59, 130, 246, 0.32)",
-                background: "rgba(59, 130, 246, 0.10)",
+                background: "rgba(59, 130, 246, 0.08)",
                 color: "rgba(30, 64, 175, 0.95)",
                 borderRadius: 12,
-                padding: "10px 12px",
-                fontWeight: 820,
+                padding: "8px 10px",
+                fontWeight: 850,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
@@ -754,7 +770,9 @@ const RoomOverviewPage = () => {
 
       {loading && <div className="feedback">Loading room configuration…</div>}
 
-      {!loading && error && <div className="feedback feedback-error">{error}</div>}
+      {!loading && error && (
+        <div className="feedback feedback-error">{error}</div>
+      )}
 
       {!loading && !error && rooms.length === 0 && (
         <div className="empty-state">No rooms configured yet.</div>
@@ -770,12 +788,17 @@ const RoomOverviewPage = () => {
                 {/* BASIC INFO */}
                 <div className="room-card-header">
                   <div className="room-card-title">
-                    <div className="room-name">{room.name || "Untitled room"}</div>
-                    {room.code && <div className="room-code">Code: {room.code}</div>}
+                    <div className="room-name">
+                      {room.name || "Untitled room"}
+                    </div>
+                    {room.code && (
+                      <div className="room-code">Code: {room.code}</div>
+                    )}
                   </div>
                   <span
                     className={
-                      "status-badge " + (room.active ? "status-active" : "status-inactive")
+                      "status-badge " +
+                      (room.active ? "status-active" : "status-inactive")
                     }
                   >
                     {room.active ? "Active" : "Inactive"}
@@ -783,7 +806,9 @@ const RoomOverviewPage = () => {
                 </div>
 
                 {room.description && (
-                  <div className="room-description">{truncateText(room.description)}</div>
+                  <div className="room-description">
+                    {truncateText(room.description)}
+                  </div>
                 )}
 
                 {/* IMAGES */}
