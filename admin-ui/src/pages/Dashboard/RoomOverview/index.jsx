@@ -679,18 +679,6 @@ const RoomOverviewPage = () => {
               >
                 Why this page exists
               </div>
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 12,
-                  lineHeight: "16px",
-                  color: "rgba(17, 24, 39, 0.62)",
-                  fontStyle: "italic",
-                }}
-              >
-                Quick orientation (optional). Expand if needed.
-              </div>
-            </div>
 
             <button
               type="button"
