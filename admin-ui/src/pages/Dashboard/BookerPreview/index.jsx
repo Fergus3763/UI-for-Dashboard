@@ -62,6 +62,26 @@ function getRoomDisplayName(room) {
   return code ? `${name} (${code})` : name;
 }
 
+function getRoomDescription(room) {
+  const raw =
+    room?.description ??
+    room?.roomDescription ??
+    room?.details ??
+    room?.summary ??
+    "";
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  // Keep consistent with UI: shown as muted, line-clamped, but also guard huge strings.
+  if (s.length > 260) return `${s.slice(0, 260).trim()}…`;
+  return s;
+}
+
+function getRoomFeatures(room) {
+  const raw = room?.features ?? room?.roomFeatures ?? room?.amenities ?? [];
+  if (!Array.isArray(raw)) return [];
+  return raw.map((x) => String(x || "").trim()).filter(Boolean);
+}
+
 function indexAddOnsById(addOns) {
   const map = new Map();
   (addOns || []).forEach((a) => {
@@ -119,10 +139,15 @@ function calcAddOnValue(addOn, attendees, durationHours) {
         note: "",
       };
     }
-    return { value: 0, supported: false, note: "Not yet supported (PER_PERIOD non-hour)" };
+    return {
+      value: 0,
+      supported: false,
+      note: "Not yet supported (PER_PERIOD non-hour)",
+    };
   }
 
-  if (model === "PER_UNIT") return { value: 0, supported: false, note: "Not yet supported (PER_UNIT)" };
+  if (model === "PER_UNIT")
+    return { value: 0, supported: false, note: "Not yet supported (PER_UNIT)" };
 
   return { value: 0, supported: false, note: "Not yet supported" };
 }
@@ -800,6 +825,12 @@ export default function BookerPreviewPage() {
                   <Badge tone="rfq">RFQ above {r.rfqAbove}</Badge>
                 );
 
+              const desc = getRoomDescription(r.room);
+              const features = getRoomFeatures(r.room);
+              const maxFeatures = 6;
+              const shownFeatures = features.slice(0, maxFeatures);
+              const remainingFeatures = Math.max(0, features.length - shownFeatures.length);
+
               return (
                 <div
                   key={r.key}
@@ -847,11 +878,44 @@ export default function BookerPreviewPage() {
                         <div style={{ fontWeight: 950, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {r.roomLabel}
                         </div>
+
                         <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                           <Badge tone="neutral">{r.layoutLabel}</Badge>
                           {r.capacityText ? <Badge tone="neutral">Capacity {r.capacityText}</Badge> : null}
                           {modeBadge}
                         </div>
+
+                        {/* Task B: description (muted, line-clamped) */}
+                        {desc ? (
+                          <div
+                            style={{
+                              marginTop: 8,
+                              fontSize: 12,
+                              lineHeight: "16px",
+                              color: "rgba(17, 24, 39, 0.62)",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {desc}
+                          </div>
+                        ) : null}
+
+                        {/* Task B: features as compact badges */}
+                        {shownFeatures.length ? (
+                          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                            {shownFeatures.map((f, i) => (
+                              <Badge key={`${r.key}_feat_${i}`} tone="neutral">
+                                {f}
+                              </Badge>
+                            ))}
+                            {remainingFeatures > 0 ? (
+                              <Badge tone="neutral">+{remainingFeatures}</Badge>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
