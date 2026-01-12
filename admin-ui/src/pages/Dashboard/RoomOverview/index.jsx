@@ -688,7 +688,7 @@ const RoomOverviewPage = () => {
                   fontStyle: "italic",
                 }}
               >
-                Quick orientation (optional). Expand if needed.
+                Quick orientation.
               </div>
             </div>
 
