@@ -200,8 +200,16 @@ const AddOnsCatalogueAssignment = ({
         style={{
           marginBottom: "1rem",
           borderRadius: 14,
-          border: "1px solid rgba(59, 130, 246, 0.22)",
+
+          // ✅ change #2: dashed border
+          border: "1px dashed rgba(59, 130, 246, 0.22)",
+
+          // background unchanged
           background: "rgba(59, 130, 246, 0.06)",
+
+          // ✅ change #3: left accent
+          borderLeft: "6px solid rgba(59, 130, 246, 0.55)",
+
           padding: 14,
         }}
       >
@@ -214,10 +222,20 @@ const AddOnsCatalogueAssignment = ({
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-           <div style={{ fontSize: 17, lineHeight: "20px", fontWeight: 880, color: "rgba(30, 64, 175, 0.95)" }}>
-           Why this page exists
-          </div>
- 
+            <div
+              style={{
+                fontSize: 17,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(30, 64, 175, 0.95)",
+
+                // ✅ change #1: italic title
+                fontStyle: "italic",
+              }}
+            >
+              Why this page exists
+            </div>
+
             <div
               style={{
                 marginTop: 6,
