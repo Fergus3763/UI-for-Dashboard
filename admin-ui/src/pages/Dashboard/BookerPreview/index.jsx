@@ -158,7 +158,8 @@ function calcRoomBasePricePerHour(room, attendees) {
   const perRoom = toNumberSafe(pricing?.perRoom);
   const rule = String(pricing?.rule || "").toLowerCase(); // "higher" | "lower"
 
-  const perPersonTotal = perPerson > 0 ? toNumberSafe(attendees) * perPerson : 0;
+  const perPersonTotal =
+    perPerson > 0 ? toNumberSafe(attendees) * perPerson : 0;
   const perRoomTotal = perRoom > 0 ? perRoom : 0;
 
   const hasPerson = perPerson > 0;
@@ -380,6 +381,16 @@ export default function BookerPreviewPage() {
   const [rooms, setRooms] = useState([]);
   const [addOns, setAddOns] = useState([]);
 
+  // Demo-context banner dismissal (localStorage allowed)
+  const DEMO_BANNER_KEY = "booker_preview_demo_context_dismissed_v1";
+  const [demoBannerDismissed, setDemoBannerDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(DEMO_BANNER_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
   // Funnel state machine
   const [step, setStep] = useState("results"); // "results" | "addons" | "summary"
   const [selectedResult, setSelectedResult] = useState(null); // { roomId, layoutIndex, mode, rfqAbove, ... }
@@ -501,13 +512,8 @@ export default function BookerPreviewPage() {
     return results;
   }, [rooms, addOnById, attendees, durationHours]);
 
-  // When inputs change, keep selection safe:
-  // If user is not in results step, we keep their selection (demo convenience),
-  // but we must recalc pricing/optional lists based on current attendees/duration.
+  // When inputs change, keep selection safe
   useEffect(() => {
-    // Any change to attendees/duration affects pricing + add-on values.
-    // Keep selected optional selections, but if selectedResult becomes invalid,
-    // bounce back to results.
     if (!selectedResult) return;
 
     const a = toNumberSafe(attendees);
@@ -530,17 +536,18 @@ export default function BookerPreviewPage() {
     const includedSet = new Set((selectedResult.includedIds || []).map(String));
 
     if (selectedResult.mode === "ONLINE") {
-      // Curated room-scoped optional list
       const ids = Array.isArray(room?.optionalAddOns)
         ? room.optionalAddOns.map((x) => String(x))
         : [];
       return ids
         .filter((id) => !includedSet.has(String(id)))
-        .map((id) => ({ id: String(id), addOn: addOnById.get(String(id)) || null }))
+        .map((id) => ({
+          id: String(id),
+          addOn: addOnById.get(String(id)) || null,
+        }))
         .filter((x) => x.addOn);
     }
 
-    // RFQ: full global catalogue (active + public), exclude included
     const activeGlobal = Array.isArray(addOns) ? addOns : [];
     const pairs = activeGlobal
       .filter((a) => a && a.active !== false && a.public !== false)
@@ -550,15 +557,14 @@ export default function BookerPreviewPage() {
       })
       .filter((x) => x.id && x.addOn && !includedSet.has(String(x.id)));
 
-    // Dedupe by id
     const deduped = new Map();
     for (const p of pairs) {
       if (!deduped.has(p.id)) deduped.set(p.id, p);
     }
 
-    // Stable sort by category then name
     const categoryOf = (a) => String(a?.category ?? "").toLowerCase();
-    const nameOf = (a) => String(a?.name ?? a?.title ?? a?.code ?? "").toLowerCase();
+    const nameOf = (a) =>
+      String(a?.name ?? a?.title ?? a?.code ?? "").toLowerCase();
 
     return Array.from(deduped.values()).sort((x, y) => {
       const c1 = categoryOf(x.addOn);
@@ -592,7 +598,6 @@ export default function BookerPreviewPage() {
     const perHour = calcRoomBasePricePerHour(room, a);
     const baseTotal = perHour * dur;
 
-    // Inclusive values computed internally but hidden from booker
     const includedIds = (selectedResult.includedIds || []).map(String);
     const inclusiveValues = includedIds
       .map((id) => addOnById.get(String(id)) || null)
@@ -604,7 +609,9 @@ export default function BookerPreviewPage() {
     const bundlePrice = baseTotal + inclusiveTotal;
     const offerPrice = bundlePrice;
 
-    const selectedOptionIds = Array.from(selectedOptionalAddOnIds || []).map(String);
+    const selectedOptionIds = Array.from(selectedOptionalAddOnIds || []).map(
+      String
+    );
     const optionSet = new Set(selectedOptionIds);
 
     const optionalLineItems = (optionalAddOnsForSelection || [])
@@ -615,7 +622,9 @@ export default function BookerPreviewPage() {
         const { value, supported, note } = calcAddOnValue(addOn, a, dur);
 
         const modelLabel =
-          model === "PER_PERIOD" ? `${model}${unit ? `(${unit})` : ""}` : model || "UNKNOWN_MODEL";
+          model === "PER_PERIOD"
+            ? `${model}${unit ? `(${unit})` : ""}`
+            : model || "UNKNOWN_MODEL";
 
         return {
           id: String(id),
@@ -672,7 +681,6 @@ export default function BookerPreviewPage() {
     setSelectedResult(result);
     setSelectedOptionalAddOnIds(new Set());
     setStep("addons");
-    // scroll to top for coherence
     try {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
@@ -687,6 +695,15 @@ export default function BookerPreviewPage() {
     } catch (e) {
       /* ignore */
     }
+  }
+
+  function dismissDemoContextBanner() {
+    try {
+      localStorage.setItem(DEMO_BANNER_KEY, "1");
+    } catch (e) {
+      // ignore
+    }
+    setDemoBannerDismissed(true);
   }
 
   // ---------- Render ----------
@@ -712,6 +729,94 @@ export default function BookerPreviewPage() {
     );
   }
 
+  // NEW: demo-context banner (dismissible, postscript style, exact copy)
+  const demoContextBanner = demoBannerDismissed ? null : (
+    <div
+      style={{
+        marginBottom: 12,
+        borderRadius: 12,
+        border: "1px dashed rgba(59, 130, 246, 0.22)",
+        background: "rgba(59, 130, 246, 0.04)",
+        borderLeft: "6px solid rgba(59, 130, 246, 0.55)",
+        padding: "10px 12px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 15,
+              lineHeight: "20px",
+              fontWeight: 900,
+              fontStyle: "italic",
+              color: "rgba(30, 64, 175, 0.95)",
+            }}
+          >
+            Booker Preview
+          </div>
+
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 12,
+              lineHeight: "16px",
+              color: "rgba(17, 24, 39, 0.62)",
+              fontStyle: "italic",
+            }}
+          >
+            This is how your meeting rooms appear to customers booking online.
+          </div>
+
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 12,
+              lineHeight: "16px",
+              color: "rgba(17, 24, 39, 0.72)",
+            }}
+          >
+            Use this preview to simulate a real booking journey — attendee numbers, layout eligibility, online vs RFQ behaviour, optional add-ons, and final pricing.
+          </div>
+
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 12,
+              lineHeight: "16px",
+              color: "rgba(17, 24, 39, 0.72)",
+            }}
+          >
+            This is a demo preview only. Availability, payment, and final confirmation are not active.
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={dismissDemoContextBanner}
+          style={{
+            border: "1px solid rgba(59, 130, 246, 0.32)",
+            background: "rgba(59, 130, 246, 0.08)",
+            color: "rgba(30, 64, 175, 0.95)",
+            borderRadius: 12,
+            padding: "8px 10px",
+            fontWeight: 850,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+
   const banner = (
     <div
       style={{
@@ -729,46 +834,98 @@ export default function BookerPreviewPage() {
 
   const inputs = (
     <Panel>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
         <div>
-          <div style={{ fontSize: 18, fontWeight: 950, margin: 0 }}>Booker Preview</div>
-          <div style={{ marginTop: 6, fontSize: 12, color: "rgba(17, 24, 39, 0.68)" }}>
-            Demo funnel: inputs → results → add-ons → summary (no booking / no RFQ submission)
+          <div style={{ fontSize: 18, fontWeight: 950, margin: 0 }}>
+            Booker Preview
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 12,
+              color: "rgba(17, 24, 39, 0.68)",
+            }}
+          >
+            Demo funnel: inputs → results → add-ons → summary (no booking / no
+            RFQ submission)
           </div>
         </div>
 
         <Badge tone="neutral">Step: {step}</Badge>
       </div>
 
-      <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+      <div
+        style={{
+          marginTop: 12,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr 1fr",
+          gap: 10,
+        }}
+      >
         <div>
-          <label style={{ fontWeight: 900, display: "block", marginBottom: 6 }}>Attendees</label>
+          <label
+            style={{ fontWeight: 900, display: "block", marginBottom: 6 }}
+          >
+            Attendees
+          </label>
           <input
             type="number"
             min={0}
             value={attendees}
-            onChange={(e) => setAttendees(Math.max(0, toNumberSafe(e.target.value)))}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+            onChange={(e) =>
+              setAttendees(Math.max(0, toNumberSafe(e.target.value)))
+            }
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+            }}
           />
         </div>
 
         <div>
-          <label style={{ fontWeight: 900, display: "block", marginBottom: 6 }}>Date (placeholder)</label>
+          <label
+            style={{ fontWeight: 900, display: "block", marginBottom: 6 }}
+          >
+            Date (placeholder)
+          </label>
           <input
             type="text"
             value={datePlaceholder}
             onChange={(e) => setDatePlaceholder(e.target.value)}
             placeholder="e.g. 2026-01-15"
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+            }}
           />
         </div>
 
         <div>
-          <label style={{ fontWeight: 900, display: "block", marginBottom: 6 }}>Start time</label>
+          <label
+            style={{ fontWeight: 900, display: "block", marginBottom: 6 }}
+          >
+            Start time
+          </label>
           <select
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+            }}
           >
             {hourOptions.map((t) => (
               <option key={t} value={t}>
@@ -779,11 +936,24 @@ export default function BookerPreviewPage() {
         </div>
 
         <div>
-          <label style={{ fontWeight: 900, display: "block", marginBottom: 6 }}>Duration (hours)</label>
+          <label
+            style={{ fontWeight: 900, display: "block", marginBottom: 6 }}
+          >
+            Duration (hours)
+          </label>
           <select
             value={durationHours}
-            onChange={(e) => setDurationHours(Math.min(12, Math.max(1, toNumberSafe(e.target.value))))}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)" }}
+            onChange={(e) =>
+              setDurationHours(
+                Math.min(12, Math.max(1, toNumberSafe(e.target.value)))
+              )
+            }
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+            }}
           >
             {durationOptions.map((h) => (
               <option key={h} value={h}>
@@ -803,8 +973,17 @@ export default function BookerPreviewPage() {
   const resultsStep = (
     <div style={{ marginTop: 14 }}>
       <Panel>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ fontWeight: 950, fontSize: 16 }}>Eligible rooms & layouts</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontWeight: 950, fontSize: 16 }}>
+            Eligible rooms & layouts
+          </div>
           <div style={{ fontSize: 12, color: "rgba(17, 24, 39, 0.62)" }}>
             {eligibleResults.length} result(s)
           </div>
@@ -829,7 +1008,10 @@ export default function BookerPreviewPage() {
               const features = getRoomFeatures(r.room);
               const maxFeatures = 6;
               const shownFeatures = features.slice(0, maxFeatures);
-              const remainingFeatures = Math.max(0, features.length - shownFeatures.length);
+              const remainingFeatures = Math.max(
+                0,
+                features.length - shownFeatures.length
+              );
 
               return (
                 <div
@@ -862,10 +1044,18 @@ export default function BookerPreviewPage() {
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div
+                        style={{ display: "flex", justifyContent: "center" }}
+                      >
                         <CameraIcon size={28} />
                       </div>
-                      <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800 }}>
+                      <div
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
                         Room image (coming soon)
                       </div>
                     </div>
@@ -873,19 +1063,43 @@ export default function BookerPreviewPage() {
 
                   {/* Middle: info */}
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 950, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div
+                          style={{
+                            fontWeight: 950,
+                            fontSize: 14,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {r.roomLabel}
                         </div>
 
-                        <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                        <div
+                          style={{
+                            marginTop: 4,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
                           <Badge tone="neutral">{r.layoutLabel}</Badge>
-                          {r.capacityText ? <Badge tone="neutral">Capacity {r.capacityText}</Badge> : null}
+                          {r.capacityText ? (
+                            <Badge tone="neutral">Capacity {r.capacityText}</Badge>
+                          ) : null}
                           {modeBadge}
                         </div>
 
-                        {/* Task B: description (muted, line-clamped) */}
                         {desc ? (
                           <div
                             style={{
@@ -903,9 +1117,16 @@ export default function BookerPreviewPage() {
                           </div>
                         ) : null}
 
-                        {/* Task B: features as compact badges */}
                         {shownFeatures.length ? (
-                          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                          <div
+                            style={{
+                              marginTop: 8,
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 6,
+                              alignItems: "center",
+                            }}
+                          >
                             {shownFeatures.map((f, i) => (
                               <Badge key={`${r.key}_feat_${i}`} tone="neutral">
                                 {f}
@@ -919,24 +1140,46 @@ export default function BookerPreviewPage() {
                       </div>
                     </div>
 
-                    {/* Included add-ons names */}
                     <div style={{ marginTop: 10 }}>
-                      <div style={{ fontSize: 12, fontWeight: 900, color: "rgba(17, 24, 39, 0.82)" }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 900,
+                          color: "rgba(17, 24, 39, 0.82)",
+                        }}
+                      >
                         Included in your price:
                       </div>
                       {r.includedNames.length ? (
-                        <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        <div
+                          style={{
+                            marginTop: 6,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                          }}
+                        >
                           {r.includedNames.slice(0, 6).map((nm, i) => (
                             <Badge key={`${r.key}_inc_${i}`} tone="neutral">
                               {nm}
                             </Badge>
                           ))}
                           {r.includedNames.length > 6 ? (
-                            <Badge tone="neutral">+{r.includedNames.length - 6} more</Badge>
+                            <Badge tone="neutral">
+                              +{r.includedNames.length - 6} more
+                            </Badge>
                           ) : null}
                         </div>
                       ) : (
-                        <div style={{ marginTop: 6, fontSize: 12, color: "rgba(17, 24, 39, 0.62)" }}>None</div>
+                        <div
+                          style={{
+                            marginTop: 6,
+                            fontSize: 12,
+                            color: "rgba(17, 24, 39, 0.62)",
+                          }}
+                        >
+                          None
+                        </div>
                       )}
                     </div>
                   </div>
@@ -944,12 +1187,17 @@ export default function BookerPreviewPage() {
                   {/* Right: price + select */}
                   <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 12, color: "rgba(17, 24, 39, 0.62)" }}>Base price</div>
+                      <div
+                        style={{ fontSize: 12, color: "rgba(17, 24, 39, 0.62)" }}
+                      >
+                        Base price
+                      </div>
                       <div style={{ marginTop: 4, fontWeight: 950, fontSize: 16 }}>
                         {formatMoney(r.baseTotal)}
                       </div>
                       <div style={{ marginTop: 2, fontSize: 12, color: "rgba(17, 24, 39, 0.62)" }}>
-                        {formatMoney(r.perHour)} / hour × {Math.min(12, Math.max(1, toNumberSafe(durationHours)))}h
+                        {formatMoney(r.perHour)} / hour ×{" "}
+                        {Math.min(12, Math.max(1, toNumberSafe(durationHours)))}h
                       </div>
                     </div>
 
@@ -969,11 +1217,19 @@ export default function BookerPreviewPage() {
   const addonsStep = !selectedResult ? null : (
     <div style={{ marginTop: 14 }}>
       <Panel>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
           <div>
             <div style={{ fontWeight: 950, fontSize: 16 }}>Optional add-ons</div>
             <div style={{ marginTop: 6, fontSize: 12, color: "rgba(17, 24, 39, 0.62)" }}>
-              Selected: <strong>{selectedResult.roomLabel}</strong> • <strong>{selectedResult.layoutLabel}</strong>{" "}
+              Selected: <strong>{selectedResult.roomLabel}</strong> •{" "}
+              <strong>{selectedResult.layoutLabel}</strong>{" "}
               {selectedResult.mode === "RFQ" ? (
                 <>
                   • <Badge tone="rfq">RFQ above {selectedResult.rfqAbove}</Badge>
@@ -987,7 +1243,9 @@ export default function BookerPreviewPage() {
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <SecondaryButton onClick={resetSelectionToResults}>Back to results</SecondaryButton>
+            <SecondaryButton onClick={resetSelectionToResults}>
+              Back to results
+            </SecondaryButton>
             <PrimaryButton onClick={goToSummary}>Continue to summary</PrimaryButton>
           </div>
         </div>
@@ -1218,6 +1476,7 @@ export default function BookerPreviewPage() {
 
   return (
     <div style={{ padding: 18, maxWidth: 1120 }}>
+      {demoContextBanner}
       {banner}
       {inputs}
 
