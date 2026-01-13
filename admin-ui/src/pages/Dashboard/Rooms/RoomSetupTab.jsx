@@ -190,8 +190,16 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
         style={{
           marginBottom: "1rem",
           borderRadius: 14,
-          border: "1px solid rgba(59, 130, 246, 0.22)",
+
+          // ✅ change #2: dashed border
+          border: "1px dashed rgba(59, 130, 246, 0.22)",
+
+          // background unchanged per "no other changes"
           background: "rgba(59, 130, 246, 0.06)",
+
+          // ✅ change #3: left blue accent
+          borderLeft: "6px solid rgba(59, 130, 246, 0.55)",
+
           padding: 14,
         }}
       >
@@ -210,6 +218,9 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
                 lineHeight: "20px",
                 fontWeight: 880,
                 color: "rgba(30, 64, 175, 0.95)",
+
+                // ✅ change #1: italic title
+                fontStyle: "italic",
               }}
             >
               Why this page exists
@@ -337,12 +348,18 @@ const RoomSetupTab = ({ rooms, addOns, onSaveRooms, saving }) => {
           {selectedRoom && (
             <>
               {validationError && (
-                <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
+                <div
+                  className="alert alert-error"
+                  style={{ marginBottom: "1rem" }}
+                >
                   {validationError}
                 </div>
               )}
               {saveSuccess && !saving && (
-                <div className="alert alert-success" style={{ marginBottom: "1rem" }}>
+                <div
+                  className="alert alert-success"
+                  style={{ marginBottom: "1rem" }}
+                >
                   Room configuration saved.
                 </div>
               )}
