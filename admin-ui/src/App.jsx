@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 
 // ✅ Real pages in this repo (as provided)
+import AdminLandingPage from "./pages/Dashboard/Admin";
 import VenueSetup from "./pages/Dashboard/VenueSetup";
 import Rooms from "./pages/Dashboard/Rooms";
 import RoomOverviewPage from "./pages/Dashboard/RoomOverview";
@@ -139,17 +140,10 @@ function AppShell() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              ...NAV_PILL,
-              padding: 0,
-              border: "none",
-              background: "transparent",
-              cursor: "default",
-            }}
-          >
+          {/* ✅ Admin is now a clickable NavLink, styled exactly like other top-level tabs */}
+          <NavLink to="/admin" style={topLinkStyle} onClick={closeAll}>
             Admin
-          </span>
+          </NavLink>
         </div>
 
         <nav style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 12, flexWrap: "wrap" }}>
@@ -209,9 +203,12 @@ function AppShell() {
       <main style={{ flex: 1 }}>
         <Routes>
           {/* Base */}
-          <Route path="/" element={<Navigate to="/admin/venue?view=venue" replace />} />
+          <Route path="/" element={<Navigate to="/admin" replace />} />
 
-          {/* Required routes */}
+          {/* ✅ New Admin landing page */}
+          <Route path="/admin" element={<AdminLandingPage />} />
+
+          {/* Existing routes */}
           <Route path="/admin/venue" element={<VenueSetup />} />
           <Route path="/admin/rooms" element={<Rooms />} />
           <Route path="/admin/room-overview" element={<RoomOverviewPage />} />
@@ -219,7 +216,7 @@ function AppShell() {
           <Route path="/admin/booker-preview" element={<BookerPreviewPage />} />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/admin/venue?view=venue" replace />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
     </div>
