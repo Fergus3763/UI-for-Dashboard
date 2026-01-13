@@ -427,17 +427,35 @@ export default function SimulationPage() {
         style={{
           marginTop: 14,
           borderRadius: 14,
-          border: "1px solid rgba(59, 130, 246, 0.22)",
+
+          // ✅ change #2: dashed border
+          border: "1px dashed rgba(59, 130, 246, 0.22)",
+
+          // background unchanged
           background: "rgba(59, 130, 246, 0.06)",
+
+          // ✅ change #3: left accent
+          borderLeft: "6px solid rgba(59, 130, 246, 0.55)",
+
           padding: 14,
         }}
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, lineHeight: "20px", fontWeight: 880, color: "rgba(30, 64, 175, 0.95)" }}>
-          Why this page exists
-          </div>
-  
+            <div
+              style={{
+                fontSize: 17,
+                lineHeight: "20px",
+                fontWeight: 880,
+                color: "rgba(30, 64, 175, 0.95)",
+
+                // ✅ change #1: italic title
+                fontStyle: "italic",
+              }}
+            >
+              Why this page exists
+            </div>
+
             <div style={{ marginTop: 6, fontSize: 12, lineHeight: "16px", color: "rgba(17, 24, 39, 0.68)" }}>
               A short, self-guided explanation to help you trust what the simulator is showing.
             </div>
