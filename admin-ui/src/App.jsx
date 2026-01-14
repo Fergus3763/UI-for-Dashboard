@@ -140,8 +140,8 @@ function AppShell() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* ✅ Admin is now a clickable NavLink, styled exactly like other top-level tabs */}
-          <NavLink to="/admin" style={topLinkStyle} onClick={closeAll}>
+          {/* ✅ Fix: end => active ONLY on /admin, not /admin/* */}
+          <NavLink to="/admin" end style={topLinkStyle} onClick={closeAll}>
             Admin
           </NavLink>
         </div>
@@ -205,7 +205,7 @@ function AppShell() {
           {/* Base */}
           <Route path="/" element={<Navigate to="/admin" replace />} />
 
-          {/* ✅ New Admin landing page */}
+          {/* ✅ Admin landing page */}
           <Route path="/admin" element={<AdminLandingPage />} />
 
           {/* Existing routes */}
