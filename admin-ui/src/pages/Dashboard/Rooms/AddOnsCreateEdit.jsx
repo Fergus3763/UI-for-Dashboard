@@ -44,6 +44,12 @@ const PERIOD_UNIT_LABELS = {
 const DEFAULT_PRICING_MODEL = "PER_EVENT";
 const DEFAULT_PERIOD_UNIT = "HOUR";
 
+const HELP_COPY_ACTIVE =
+  "When inactive, this add-on is not offered or included in pricing. You can reactivate it at any time.";
+
+const HELP_COPY_PUBLIC =
+  "If enabled, guests may see and select this add-on when relevant. If disabled, the add-on can still be included in room packages or pricing, but is not shown as a guest option.";
+
 function createId() {
   return (
     Date.now().toString(36) + Math.random().toString(36).substring(2, 10)
@@ -140,6 +146,71 @@ function normaliseExistingAddOn(addOn) {
   };
 }
 
+function HelpIcon({ label, text, openKey, setOpenKey }) {
+  const isOpen = openKey === label;
+
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", marginLeft: 6 }}
+      onMouseEnter={() => setOpenKey(label)}
+      onMouseLeave={() => setOpenKey(null)}
+    >
+      <button
+        type="button"
+        aria-label={`${label} help`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpenKey((prev) => (prev === label ? null : label));
+        }}
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 999,
+          border: "1px solid rgba(0,0,0,0.18)",
+          background: "rgba(0,0,0,0.03)",
+          color: "rgba(71, 85, 105, 0.95)",
+          fontSize: 12,
+          lineHeight: "14px",
+          fontWeight: 800,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          padding: 0,
+        }}
+        title={text} // native tooltip fallback
+      >
+        ?
+      </button>
+
+      {isOpen ? (
+        <div
+          role="tooltip"
+          style={{
+            position: "absolute",
+            top: 22,
+            left: 0,
+            zIndex: 50,
+            width: 320,
+            maxWidth: "60vw",
+            padding: "10px 10px",
+            borderRadius: 10,
+            border: "1px solid rgba(0,0,0,0.14)",
+            background: "#ffffff",
+            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.14)",
+            fontSize: 12,
+            lineHeight: "16px",
+            color: "rgba(17, 24, 39, 0.82)",
+          }}
+        >
+          {text}
+        </div>
+      ) : null}
+    </span>
+  );
+}
+
 const AddOnsCreateEdit = ({
   addOns,
   setAddOns,
@@ -151,6 +222,9 @@ const AddOnsCreateEdit = ({
 
   // UI-only: collapsible explainer (collapsed by default; never disappears)
   const [explainerExpanded, setExplainerExpanded] = useState(false);
+
+  // UI-only: help popover state for checkboxes
+  const [openHelpKey, setOpenHelpKey] = useState(null); // "public" | "active" | null
 
   // Local, normalised copy so the table updates immediately even if parent
   // state / persistence is slow or temporarily not wired.
@@ -205,6 +279,7 @@ const AddOnsCreateEdit = ({
       public: true,
       active: true,
     });
+    setOpenHelpKey(null);
   };
 
   const startNewAddOn = () => {
@@ -225,6 +300,7 @@ const AddOnsCreateEdit = ({
       public: true,
       active: true,
     });
+    setOpenHelpKey(null);
   };
 
   const startEditAddOn = (addOn) => {
@@ -246,6 +322,7 @@ const AddOnsCreateEdit = ({
       public: n.public,
       active: n.active,
     });
+    setOpenHelpKey(null);
   };
 
   const handleFormFieldChange = (field, value) => {
@@ -437,6 +514,7 @@ const AddOnsCreateEdit = ({
         public: true,
         active: true,
       });
+      setOpenHelpKey(null);
     }
   };
 
@@ -542,7 +620,9 @@ const AddOnsCreateEdit = ({
                   lineHeight: "18px",
                 }}
               >
-                This page defines everything that can be added to a booking — once, centrally. Addons can be inclusive in base price or as an optional purchase by the booker
+                This page defines everything that can be added to a booking —
+                once, centrally. Addons can be inclusive in base price or as an
+                optional purchase by the booker
               </div>
             </div>
 
@@ -557,7 +637,8 @@ const AddOnsCreateEdit = ({
                   lineHeight: "18px",
                 }}
               >
-                Add-on names, categories, pricing models, VAT treatment, and whether they are public or internal.
+                Add-on names, categories, pricing models, VAT treatment, and
+                whether they are public or internal.
               </div>
             </div>
 
@@ -572,7 +653,8 @@ const AddOnsCreateEdit = ({
                   lineHeight: "18px",
                 }}
               >
-                These add-ons are reused across rooms, simulations, previews, and RFQ scenarios.
+                These add-ons are reused across rooms, simulations, previews,
+                and RFQ scenarios.
               </div>
             </div>
 
@@ -587,7 +669,9 @@ const AddOnsCreateEdit = ({
                   lineHeight: "18px",
                 }}
               >
-                Centralising add-ons avoids duplication and ensures pricing consistency across all bookings. Add-ons are upselling opportunities
+                Centralising add-ons avoids duplication and ensures pricing
+                consistency across all bookings. Add-ons are upselling
+                opportunities
               </div>
             </div>
           </div>
@@ -868,8 +952,17 @@ const AddOnsCreateEdit = ({
                   }
                   style={{ marginRight: "0.5rem" }}
                 />
-                Public (visible to guests)
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Public (visible to guests)
+                  <HelpIcon
+                    label="public"
+                    text={HELP_COPY_PUBLIC}
+                    openKey={openHelpKey}
+                    setOpenKey={setOpenHelpKey}
+                  />
+                </span>
               </label>
+
               <label
                 style={{ ...labelStyle, display: "block", marginTop: "0.25rem" }}
               >
@@ -881,7 +974,15 @@ const AddOnsCreateEdit = ({
                   }
                   style={{ marginRight: "0.5rem" }}
                 />
-                Active
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Active
+                  <HelpIcon
+                    label="active"
+                    text={HELP_COPY_ACTIVE}
+                    openKey={openHelpKey}
+                    setOpenKey={setOpenHelpKey}
+                  />
+                </span>
               </label>
             </div>
           </div>
@@ -944,7 +1045,10 @@ const AddOnsCreateEdit = ({
                   <select
                     value={pricingPeriodUnit}
                     onChange={(e) =>
-                      handleFormFieldChange("pricingPeriodUnit", e.target.value)
+                      handleFormFieldChange(
+                        "pricingPeriodUnit",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
                   >
